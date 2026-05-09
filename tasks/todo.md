@@ -14,17 +14,17 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 1 — Foundation
 
-- [ ] **Task 2** [M] — Project scaffold (Vite + TS + Vue + tooling)
-- [ ] **Task 3** [M] — Domain layer (id, types, categories, ranking) + 100% test coverage
-- [ ] **Task 4** [S] — i18n setup (it/en, no Apple/dark/light/auto)
-- [ ] **Task 5** [M] — Design tokens CSS + Tailwind bridge (single direction A)
-- [ ] **Task 6** [S] — Router + auth guard (mock until Phase 4)
-- [ ] **Task 7** [M] — Pinia stores skeleton with fixtures
+- [x] **Task 2** [M] — Project scaffold (Vite + TS + Vue + tooling) ✓
+- [x] **Task 3** [M] — Domain layer (id, types, categories, ranking) + 100% test coverage ✓
+- [x] **Task 4** [S] — i18n setup (it/en, no Apple/dark/light/auto) ✓
+- [x] **Task 5** [M] — Design tokens CSS + Tailwind bridge (single direction A) ✓
+- [x] **Task 6** [S] — Router + auth guard (mock until Phase 4) ✓
+- [x] **Task 7** [M] — Pinia stores skeleton with fixtures ✓
 
 ### Checkpoint A — Foundation
-- [ ] Lint + typecheck + test:run + build all green
-- [ ] Dev server boots, root redirects to /login
-- [ ] Domain coverage = 100%
+- [x] Lint + typecheck + test:run + build all green ✓
+- [x] Dev server boots, root redirects to /login ✓
+- [x] Domain coverage = 100% ✓
 - [ ] Human approval before Phase 2
 
 ---
