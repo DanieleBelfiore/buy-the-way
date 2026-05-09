@@ -48,14 +48,14 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 3 — Views (fixtures-driven)
 
-- [ ] **Task 14** [S] — LoginView (Google CTA only)
-- [ ] **Task 15** [M] — ListsView (home + cards + FAB + badge)
-- [ ] **Task 16** [M] — ListDetailView (Shelf + autocomplete + sections + toast)
-- [ ] **Task 17** [M] — ListSettingsView (rename + collaborators + archive)
-- [ ] **Task 18** [M] — AddCollaboratorView (idle / found / not-found)
-- [ ] **Task 19** [S] — TrashView
-- [ ] **Task 20** [S] — SettingsView (no theme section)
-- [ ] **Task 21** [S] — Global states (offline banner, toast, empty)
+- [x] **Task 14** [S] — LoginView (Google CTA only)
+- [x] **Task 15** [M] — ListsView (home + cards + FAB + badge)
+- [x] **Task 16** [M] — ListDetailView (Shelf + autocomplete + sections + toast)
+- [x] **Task 17** [M] — ListSettingsView (rename + collaborators + archive)
+- [x] **Task 18** [M] — AddCollaboratorView (idle / found / not-found)
+- [x] **Task 19** [S] — TrashView
+- [x] **Task 20** [S] — SettingsView (no theme section)
+- [x] **Task 21** [S] — Global states (offline banner, toast, empty)
 
 ### Checkpoint C — UI complete
 - [ ] All 7 views navigable
