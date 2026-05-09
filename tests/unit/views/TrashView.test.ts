@@ -35,8 +35,7 @@ describe('TrashView — with items', () => {
     mockRestore.mockReset();
   });
 
-  const mountView = () =>
-    mount(TrashView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(TrashView, { global: { plugins: [i18n] } });
 
   test('renders deleted list names', () => {
     const w = mountView();

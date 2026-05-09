@@ -33,8 +33,7 @@ describe('SettingsView', () => {
     mockPush.mockReset();
   });
 
-  const mountView = () =>
-    mount(SettingsView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(SettingsView, { global: { plugins: [i18n] } });
 
   test('contains no theme/dark/light/auto strings in rendered HTML', () => {
     const w = mountView();

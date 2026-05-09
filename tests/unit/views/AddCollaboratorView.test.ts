@@ -35,8 +35,7 @@ describe('AddCollaboratorView', () => {
     mockBack.mockReset();
   });
 
-  const mountView = () =>
-    mount(AddCollaboratorView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(AddCollaboratorView, { global: { plugins: [i18n] } });
 
   test('idle state shows email input and lookupHint', () => {
     const w = mountView();

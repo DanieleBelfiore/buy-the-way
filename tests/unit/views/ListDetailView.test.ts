@@ -89,8 +89,7 @@ describe('ListDetailView', () => {
     mockPush.mockReset();
   });
 
-  const mountView = () =>
-    mount(ListDetailView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(ListDetailView, { global: { plugins: [i18n] } });
 
   test('renders list name in header', () => {
     const w = mountView();

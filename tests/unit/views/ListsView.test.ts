@@ -15,14 +15,22 @@ const i18n = createI18n({
 const NOW = Date.now();
 const mockActiveLists = [
   {
-    id: 'list-a', name: 'Spesa A', ownerUid: 'u1',
-    collaboratorUids: [], deletedAt: null,
-    createdAt: NOW - 2000, updatedAt: NOW - 1000,
+    id: 'list-a',
+    name: 'Spesa A',
+    ownerUid: 'u1',
+    collaboratorUids: [],
+    deletedAt: null,
+    createdAt: NOW - 2000,
+    updatedAt: NOW - 1000,
   },
   {
-    id: 'list-b', name: 'Spesa B', ownerUid: 'u1',
-    collaboratorUids: [], deletedAt: null,
-    createdAt: NOW - 5000, updatedAt: NOW - 3000,
+    id: 'list-b',
+    name: 'Spesa B',
+    ownerUid: 'u1',
+    collaboratorUids: [],
+    deletedAt: null,
+    createdAt: NOW - 5000,
+    updatedAt: NOW - 3000,
   },
 ];
 
@@ -60,8 +68,7 @@ describe('ListsView', () => {
     mockPush.mockReset();
   });
 
-  const mountView = () =>
-    mount(ListsView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(ListsView, { global: { plugins: [i18n] } });
 
   test('renders all active list names', () => {
     const w = mountView();

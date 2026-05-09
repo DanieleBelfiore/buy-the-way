@@ -59,8 +59,7 @@ describe('ListSettingsView — owner', () => {
     mockPush.mockReset();
   });
 
-  const mountView = () =>
-    mount(ListSettingsView, { global: { plugins: [i18n] } });
+  const mountView = () => mount(ListSettingsView, { global: { plugins: [i18n] } });
 
   test('renders rename input', () => {
     const w = mountView();
