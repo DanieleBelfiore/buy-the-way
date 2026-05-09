@@ -31,16 +31,16 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 2 — UI atoms
 
-- [ ] **Task 8** [S] — Brand atoms (Wordmark, BTWMark, Avatar, AvatarStack, Phone)
-- [ ] **Task 9** [M] — Icon set (line icons + GoogleG, no Apple-company icon)
-- [ ] **Task 10** [M] — Form atoms (Button, Input, Chip, FAB, OfflineBanner, Toast)
-- [ ] **Task 11** [S] — List atoms (CategoryIcon, CategoryHeader, ListItemRow)
-- [ ] **Task 12** [M] — MostUsedShelf component (the new "Lo Scaffale")
-- [ ] **Task 13** [M] — ItemAutocomplete component
+- [x] **Task 8** [S] — Brand atoms (Wordmark, BTWMark, Avatar, AvatarStack, Phone) ✓
+- [x] **Task 9** [M] — Icon set (line icons + GoogleG, no Apple-company icon) ✓
+- [x] **Task 10** [M] — Form atoms (Button, Input, Chip, FAB, OfflineBanner, Toast) ✓
+- [x] **Task 11** [S] — List atoms (CategoryIcon, CategoryHeader, ListItemRow) ✓
+- [x] **Task 12** [M] — MostUsedShelf component (the new "Lo Scaffale") ✓
+- [x] **Task 13** [M] — ItemAutocomplete component ✓
 
 ### Checkpoint B — Atoms ready
 - [ ] /dev/atoms/* render every variant at 375 px and 1024 px
-- [ ] Atom unit tests pass
+- [x] Atom unit tests pass ✓ (111 tests, 16 files)
 - [ ] Coverage ≥ 80% on atoms
 - [ ] Human visual review before Phase 3
 
@@ -48,14 +48,14 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 3 — Views (fixtures-driven)
 
-- [ ] **Task 14** [S] — LoginView (Google CTA only)
-- [ ] **Task 15** [M] — ListsView (home + cards + FAB + badge)
-- [ ] **Task 16** [M] — ListDetailView (Shelf + autocomplete + sections + toast)
-- [ ] **Task 17** [M] — ListSettingsView (rename + collaborators + archive)
-- [ ] **Task 18** [M] — AddCollaboratorView (idle / found / not-found)
-- [ ] **Task 19** [S] — TrashView
-- [ ] **Task 20** [S] — SettingsView (no theme section)
-- [ ] **Task 21** [S] — Global states (offline banner, toast, empty)
+- [x] **Task 14** [S] — LoginView (Google CTA only)
+- [x] **Task 15** [M] — ListsView (home + cards + FAB + badge)
+- [x] **Task 16** [M] — ListDetailView (Shelf + autocomplete + sections + toast)
+- [x] **Task 17** [M] — ListSettingsView (rename + collaborators + archive)
+- [x] **Task 18** [M] — AddCollaboratorView (idle / found / not-found)
+- [x] **Task 19** [S] — TrashView
+- [x] **Task 20** [S] — SettingsView (no theme section)
+- [x] **Task 21** [S] — Global states (offline banner, toast, empty)
 
 ### Checkpoint C — UI complete
 - [ ] All 7 views navigable
