@@ -1,11 +1,15 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   modelValue: string;
   placeholder?: string;
+  type?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
+  type: 'text',
 });
 
 const emit = defineEmits<{
@@ -24,8 +28,9 @@ const onInput = (event: Event): void => {
       <slot name="iconLeft" />
     </span>
     <input
+      v-bind="$attrs"
       class="input__field"
-      type="text"
+      :type="props.type"
       :value="props.modelValue"
       :placeholder="props.placeholder"
       @input="onInput"

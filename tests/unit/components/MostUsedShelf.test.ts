@@ -12,11 +12,7 @@ const i18n = createI18n({
   messages: { en: enMessages },
 });
 
-const makeEntry = (
-  name: string,
-  usageCount: number,
-  lastUsedAt: number,
-): CatalogEntry => ({
+const makeEntry = (name: string, usageCount: number, lastUsedAt: number): CatalogEntry => ({
   id: newId(),
   ownerUid: 'uid',
   name,

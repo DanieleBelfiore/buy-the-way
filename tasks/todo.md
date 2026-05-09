@@ -31,16 +31,16 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 2 — UI atoms
 
-- [ ] **Task 8** [S] — Brand atoms (Wordmark, BTWMark, Avatar, AvatarStack, Phone)
-- [ ] **Task 9** [M] — Icon set (line icons + GoogleG, no Apple-company icon)
-- [ ] **Task 10** [M] — Form atoms (Button, Input, Chip, FAB, OfflineBanner, Toast)
-- [ ] **Task 11** [S] — List atoms (CategoryIcon, CategoryHeader, ListItemRow)
-- [ ] **Task 12** [M] — MostUsedShelf component (the new "Lo Scaffale")
-- [ ] **Task 13** [M] — ItemAutocomplete component
+- [x] **Task 8** [S] — Brand atoms (Wordmark, BTWMark, Avatar, AvatarStack, Phone) ✓
+- [x] **Task 9** [M] — Icon set (line icons + GoogleG, no Apple-company icon) ✓
+- [x] **Task 10** [M] — Form atoms (Button, Input, Chip, FAB, OfflineBanner, Toast) ✓
+- [x] **Task 11** [S] — List atoms (CategoryIcon, CategoryHeader, ListItemRow) ✓
+- [x] **Task 12** [M] — MostUsedShelf component (the new "Lo Scaffale") ✓
+- [x] **Task 13** [M] — ItemAutocomplete component ✓
 
 ### Checkpoint B — Atoms ready
 - [ ] /dev/atoms/* render every variant at 375 px and 1024 px
-- [ ] Atom unit tests pass
+- [x] Atom unit tests pass ✓ (111 tests, 16 files)
 - [ ] Coverage ≥ 80% on atoms
 - [ ] Human visual review before Phase 3
 

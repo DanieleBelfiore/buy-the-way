@@ -15,11 +15,7 @@ const makeEntry = (name: string): CatalogEntry => ({
   lastUsedAt: Date.now(),
 });
 
-const entries: CatalogEntry[] = [
-  makeEntry('Latte'),
-  makeEntry('Pane'),
-  makeEntry('Pasta'),
-];
+const entries: CatalogEntry[] = [makeEntry('Latte'), makeEntry('Pane'), makeEntry('Pasta')];
 
 describe('ItemAutocomplete', () => {
   test('shows no suggestions when query empty', () => {
