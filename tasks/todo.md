@@ -104,8 +104,8 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 6 — Tests + CI + deploy
 
-- [ ] **Task 33** [L] — E2E suite (auth, list-crud, collaborators, share-realtime, offline-sync) + axe checks
-- [ ] **Task 34** [M] — GitHub Actions CI + Netlify deploy
+- [x] **Task 33** [L] — E2E suite (auth, list-crud, collaborators, share-realtime, offline-sync) + axe checks ✓
+- [x] **Task 34** [M] — GitHub Actions CI + Netlify deploy ✓
 
 ### Checkpoint F — Ship-ready
 - [ ] CI green on main
@@ -117,8 +117,8 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 7 — Branding finalize (parallel-safe with Phase 6)
 
-- [ ] **Task 35** [S] — Wordmark SVG asset
-- [ ] **Task 36** [S] — README + CONTRIBUTING
+- [x] **Task 35** [S] — Wordmark SVG asset ✓
+- [x] **Task 36** [S] — README + CONTRIBUTING ✓
 
 ---
 
