@@ -17,12 +17,21 @@ const label = computed((): string => t(`category.${props.category}`));
 </script>
 
 <template>
-  <div class="sec-h" :data-category="props.category">
+  <div
+    class="sec-h"
+    :data-category="props.category"
+  >
     <span class="sec-h__lead">
-      <CategoryIcon :category="props.category" :size="18" />
+      <CategoryIcon
+        :category="props.category"
+        :size="18"
+      />
       <span class="sec-h__label">{{ label }}</span>
     </span>
-    <span class="sec-h__count" aria-hidden="true">
+    <span
+      class="sec-h__count"
+      aria-hidden="true"
+    >
       {{ props.checked }}/{{ props.total }}
     </span>
   </div>

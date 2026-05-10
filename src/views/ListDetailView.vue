@@ -64,10 +64,20 @@ const handleToggle = (item: Item): void => {
 </script>
 
 <template>
-  <div class="list-detail" data-view="ListDetailView">
+  <div
+    class="list-detail"
+    data-view="ListDetailView"
+  >
     <header class="list-detail__header appbar">
-      <button class="iconbtn" @click="router.back()">←</button>
-      <h1 class="list-detail__title">{{ list?.name }}</h1>
+      <button
+        class="iconbtn"
+        @click="router.back()"
+      >
+        ←
+      </button>
+      <h1 class="list-detail__title">
+        {{ list?.name }}
+      </h1>
       <router-link
         :to="`/lists/${listId}/settings`"
         class="iconbtn"
@@ -77,7 +87,10 @@ const handleToggle = (item: Item): void => {
       </router-link>
     </header>
 
-    <div data-testid="autocomplete" class="list-detail__autocomplete">
+    <div
+      data-testid="autocomplete"
+      class="list-detail__autocomplete"
+    >
       <ItemAutocomplete
         :entries="catalog.entries"
         :placeholder="t('home.fab')"
@@ -104,7 +117,10 @@ const handleToggle = (item: Item): void => {
           :total="items.length"
         />
         <ul class="list-detail__items">
-          <li v-for="item in items" :key="item.id">
+          <li
+            v-for="item in items"
+            :key="item.id"
+          >
             <ListItemRow
               :name="item.name"
               :quantity="item.quantity"

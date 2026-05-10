@@ -17,7 +17,11 @@ const onAction = (toast: Toast): void => {
     aria-live="polite"
     aria-label="Notifications"
   >
-    <div v-for="t in toasts" :key="t.id" class="toast">
+    <div
+      v-for="t in toasts"
+      :key="t.id"
+      class="toast"
+    >
       <span class="toast__msg">{{ t.message }}</span>
       <button
         v-if="t.action"

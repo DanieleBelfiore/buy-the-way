@@ -42,22 +42,39 @@ const handleCreateList = (name: string): void => {
 </script>
 
 <template>
-  <div class="lists-view" data-view="ListsView">
+  <div
+    class="lists-view"
+    data-view="ListsView"
+  >
     <header class="lists-view__header appbar">
-      <h1 class="lists-view__title">{{ t('home.title') }}</h1>
+      <h1 class="lists-view__title">
+        {{ t('home.title') }}
+      </h1>
       <div class="lists-view__header-actions">
-        <router-link to="/settings" class="iconbtn" :aria-label="t('settings.account')">
+        <router-link
+          to="/settings"
+          class="iconbtn"
+          :aria-label="t('settings.account')"
+        >
           <IconSettings :size="22" />
         </router-link>
       </div>
     </header>
 
     <EmptyState v-if="sortedActive.length === 0">
-      <template #title>{{ t('home.empty') }}</template>
+      <template #title>
+        {{ t('home.empty') }}
+      </template>
     </EmptyState>
 
-    <ul v-else class="lists-view__grid">
-      <li v-for="list in sortedActive" :key="list.id">
+    <ul
+      v-else
+      class="lists-view__grid"
+    >
+      <li
+        v-for="list in sortedActive"
+        :key="list.id"
+      >
         <ListCard
           :list="list"
           :items="items.forList(list.id)"
@@ -75,14 +92,17 @@ const handleCreateList = (name: string): void => {
       >
         <IconTrash :size="16" />
         {{ t('home.trash') }}
-        <span v-if="lists.trash.length > 0" class="lists-view__trash-count">
+        <span
+          v-if="lists.trash.length > 0"
+          class="lists-view__trash-count"
+        >
           {{ lists.trash.length }}
         </span>
       </router-link>
     </div>
 
     <FAB
-      :ariaLabel="t('home.fab')"
+      :aria-label="t('home.fab')"
       data-testid="new-list-fab"
       @click="showNewListSheet = true"
     >

@@ -15,23 +15,44 @@ const handleLogout = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="settings-view" data-view="SettingsView">
+  <div
+    class="settings-view"
+    data-view="SettingsView"
+  >
     <header class="settings-view__header appbar">
-      <h1 class="settings-view__title">{{ t('settings.account') }}</h1>
+      <h1 class="settings-view__title">
+        {{ t('settings.account') }}
+      </h1>
     </header>
 
-    <section class="settings-view__section" aria-labelledby="account-heading">
+    <section
+      class="settings-view__section"
+      aria-labelledby="account-heading"
+    >
       <div class="settings-view__account">
-        <Avatar :name="auth.currentUser?.displayName ?? '?'" tone="dark" />
+        <Avatar
+          :name="auth.currentUser?.displayName ?? '?'"
+          tone="dark"
+        />
         <div class="settings-view__account-info">
-          <p class="settings-view__name">{{ auth.currentUser?.displayName }}</p>
-          <p class="settings-view__email label">{{ auth.currentUser?.email }}</p>
+          <p class="settings-view__name">
+            {{ auth.currentUser?.displayName }}
+          </p>
+          <p class="settings-view__email label">
+            {{ auth.currentUser?.email }}
+          </p>
         </div>
       </div>
     </section>
 
-    <section class="settings-view__section" aria-labelledby="language-heading">
-      <h2 id="language-heading" class="settings-view__section-title">
+    <section
+      class="settings-view__section"
+      aria-labelledby="language-heading"
+    >
+      <h2
+        id="language-heading"
+        class="settings-view__section-title"
+      >
         {{ t('settings.language') }}
       </h2>
       <div class="settings-view__lang-row">
@@ -59,7 +80,10 @@ const handleLogout = async (): Promise<void> => {
     <section class="settings-view__section">
       <ul class="settings-view__links">
         <li>
-          <router-link to="/trash" class="settings-view__link">
+          <router-link
+            to="/trash"
+            class="settings-view__link"
+          >
             {{ t('settings.trash') }}
           </router-link>
         </li>

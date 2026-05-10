@@ -41,14 +41,27 @@ const handleLeave = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="list-settings" data-view="ListSettingsView">
+  <div
+    class="list-settings"
+    data-view="ListSettingsView"
+  >
     <header class="list-settings__header appbar">
-      <button class="iconbtn" @click="router.back()">←</button>
-      <h1 class="list-settings__title">{{ t('listSettings.rename') }}</h1>
+      <button
+        class="iconbtn"
+        @click="router.back()"
+      >
+        ←
+      </button>
+      <h1 class="list-settings__title">
+        {{ t('listSettings.rename') }}
+      </h1>
     </header>
 
     <div class="list-settings__body">
-      <section v-if="isOwner" class="list-settings__section">
+      <section
+        v-if="isOwner"
+        class="list-settings__section"
+      >
         <Input
           v-model="nameInput"
           data-testid="rename-input"
@@ -57,8 +70,13 @@ const handleLeave = async (): Promise<void> => {
         />
       </section>
 
-      <section v-else class="list-settings__section">
-        <p class="list-settings__name">{{ list?.name }}</p>
+      <section
+        v-else
+        class="list-settings__section"
+      >
+        <p class="list-settings__name">
+          {{ list?.name }}
+        </p>
       </section>
 
       <section class="list-settings__actions">

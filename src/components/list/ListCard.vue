@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: 'click'): void;
+  (_e: 'click'): void;
 }>();
 
 const checkedCount = computed(() => props.items.filter((i) => i.checked).length);
@@ -39,23 +39,46 @@ const previewItems = computed(() => props.items.slice(0, 3));
     @keydown.space.prevent="emit('click')"
   >
     <header class="list-card__header">
-      <h2 class="list-card__name">{{ list.name }}</h2>
-      <span v-if="isNew" class="chip chip--dark list-card__badge">Nuovo</span>
+      <h2 class="list-card__name">
+        {{ list.name }}
+      </h2>
+      <span
+        v-if="isNew"
+        class="chip chip--dark list-card__badge"
+      >Nuovo</span>
     </header>
 
     <div class="list-card__meta">
-      <AvatarStack v-if="memberNames.length > 0" :names="[...memberNames]" />
+      <AvatarStack
+        v-if="memberNames.length > 0"
+        :names="[...memberNames]"
+      />
       <span class="list-card__count label">{{ totalCount }} articoli</span>
     </div>
 
-    <ul v-if="previewItems.length > 0" class="list-card__preview" aria-hidden="true">
-      <li v-for="item in previewItems" :key="item.id" class="list-card__preview-item label">
+    <ul
+      v-if="previewItems.length > 0"
+      class="list-card__preview"
+      aria-hidden="true"
+    >
+      <li
+        v-for="item in previewItems"
+        :key="item.id"
+        class="list-card__preview-item label"
+      >
         {{ item.name }}
       </li>
     </ul>
 
-    <div v-if="totalCount > 0" class="list-card__progress" aria-hidden="true">
-      <div class="list-card__progress-bar" :style="{ width: `${progress * 100}%` }" />
+    <div
+      v-if="totalCount > 0"
+      class="list-card__progress"
+      aria-hidden="true"
+    >
+      <div
+        class="list-card__progress-bar"
+        :style="{ width: `${progress * 100}%` }"
+      />
     </div>
   </article>
 </template>

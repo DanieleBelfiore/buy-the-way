@@ -21,7 +21,10 @@ const handleGoogleSignIn = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="login" data-view="LoginView">
+  <div
+    class="login"
+    data-view="LoginView"
+  >
     <header class="login__header">
       <Wordmark size="md" />
       <button
@@ -36,7 +39,9 @@ const handleGoogleSignIn = async (): Promise<void> => {
     </header>
 
     <main class="login__main">
-      <p class="login__hero">{{ t('auth.hero') }}</p>
+      <p class="login__hero">
+        {{ t('auth.hero') }}
+      </p>
 
       <Button
         variant="dark"

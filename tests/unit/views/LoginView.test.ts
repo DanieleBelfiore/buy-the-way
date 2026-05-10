@@ -15,15 +15,6 @@ const i18n = createI18n({
 const mockSignIn = vi.fn();
 const mockPush = vi.fn();
 
-vi.mock('@/composables/useAuth', () => ({
-  useAuth: () => ({
-    isAuthenticated: { value: false },
-    user: { value: null },
-    signIn: mockSignIn,
-    signOut: vi.fn(),
-  }),
-}));
-
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     isAuthenticated: false,

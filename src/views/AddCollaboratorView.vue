@@ -47,10 +47,20 @@ const handleAdd = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="add-collab" data-view="AddCollaboratorView">
+  <div
+    class="add-collab"
+    data-view="AddCollaboratorView"
+  >
     <header class="add-collab__header appbar">
-      <button class="iconbtn" @click="router.back()">←</button>
-      <h1 class="add-collab__title">{{ t('addCollab.title') }}</h1>
+      <button
+        class="iconbtn"
+        @click="router.back()"
+      >
+        ←
+      </button>
+      <h1 class="add-collab__title">
+        {{ t('addCollab.title') }}
+      </h1>
     </header>
 
     <div class="add-collab__body">
@@ -62,14 +72,28 @@ const handleAdd = async (): Promise<void> => {
         @keydown.enter="handleLookup"
       />
 
-      <p class="add-collab__hint label">lookupHint: {{ t('addCollab.lookupHint') }}</p>
+      <p class="add-collab__hint label">
+        lookupHint: {{ t('addCollab.lookupHint') }}
+      </p>
 
-      <div v-if="state === 'found' && foundUser" class="add-collab__found-card" data-testid="found-card">
-        <p class="add-collab__found-name">{{ foundUser.displayName }}</p>
-        <p class="add-collab__found-email label">{{ foundUser.email }}</p>
+      <div
+        v-if="state === 'found' && foundUser"
+        class="add-collab__found-card"
+        data-testid="found-card"
+      >
+        <p class="add-collab__found-name">
+          {{ foundUser.displayName }}
+        </p>
+        <p class="add-collab__found-email label">
+          {{ foundUser.email }}
+        </p>
       </div>
 
-      <div v-if="state === 'not-found'" class="add-collab__not-found-card" data-testid="not-found-card">
+      <div
+        v-if="state === 'not-found'"
+        class="add-collab__not-found-card"
+        data-testid="not-found-card"
+      >
         <p>{{ t('addCollab.notFound') }}</p>
       </div>
 

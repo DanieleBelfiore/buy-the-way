@@ -22,10 +22,20 @@ const handleSubmit = (): void => {
 </script>
 
 <template>
-  <div class="new-list-sheet" role="dialog" aria-modal="true" :aria-label="t('home.fab')">
-    <div class="new-list-sheet__backdrop" @click="emit('cancel')" />
+  <div
+    class="new-list-sheet"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="t('home.fab')"
+  >
+    <div
+      class="new-list-sheet__backdrop"
+      @click="emit('cancel')"
+    />
     <div class="new-list-sheet__panel">
-      <h2 class="new-list-sheet__title">{{ t('home.fab') }}</h2>
+      <h2 class="new-list-sheet__title">
+        {{ t('home.fab') }}
+      </h2>
       <Input
         v-model="name"
         data-testid="new-list-input"
@@ -34,8 +44,19 @@ const handleSubmit = (): void => {
         @keydown.escape="emit('cancel')"
       />
       <div class="new-list-sheet__actions">
-        <Button variant="ghost" @click="emit('cancel')">Annulla</Button>
-        <Button variant="dark" :disabled="!name.trim()" @click="handleSubmit">Crea</Button>
+        <Button
+          variant="ghost"
+          @click="emit('cancel')"
+        >
+          Annulla
+        </Button>
+        <Button
+          variant="dark"
+          :disabled="!name.trim()"
+          @click="handleSubmit"
+        >
+          Crea
+        </Button>
       </div>
     </div>
   </div>

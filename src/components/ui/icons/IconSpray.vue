@@ -20,6 +20,16 @@ const props = withDefaults(defineProps<Props>(), {
     stroke-linejoin="round"
     aria-hidden="true"
   >
-    <path d="M3 3h4v4H3zM8 5h5M13 3v8h2l1 3H5l1-3h2"/><line x1="9" y1="20" x2="9" y2="16"/><line x1="13" y1="20" x2="13" y2="16"/>
+    <path d="M3 3h4v4H3zM8 5h5M13 3v8h2l1 3H5l1-3h2" /><line
+      x1="9"
+      y1="20"
+      x2="9"
+      y2="16"
+    /><line
+      x1="13"
+      y1="20"
+      x2="13"
+      y2="16"
+    />
   </svg>
 </template>

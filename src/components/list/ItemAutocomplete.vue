@@ -24,12 +24,12 @@ type SelectPayload =
   | { kind: 'new'; name: string; category: Category };
 
 const emit = defineEmits<{
-  (e: 'select', payload: SelectPayload): void;
+  (_e: 'select', _payload: SelectPayload): void;
 }>();
 
 // Use vue-i18n when installed; fall back to in-component defaults so the
 // component remains testable / usable without an i18n plugin installed.
-type Translator = (key: string, params?: Record<string, unknown>) => string;
+type Translator = (_key: string, _params?: Record<string, unknown>) => string;
 const fallbackT: Translator = (key, params) => {
   if (key === 'list.autocompleteCreate') {
     const name = (params?.name as string | undefined) ?? '';
@@ -209,10 +209,23 @@ const onKeydown = (event: KeyboardEvent): void => {
         @click="selectItem(s)"
         @mouseenter="activeIndex = idx"
       >
-        <span class="ac__lead" aria-hidden="true">
-          <IconStar v-if="s.star" :size="14" />
-          <IconPlus v-else-if="s.kind === 'new'" :size="14" />
-          <CategoryIcon v-else :category="s.category" :size="14" />
+        <span
+          class="ac__lead"
+          aria-hidden="true"
+        >
+          <IconStar
+            v-if="s.star"
+            :size="14"
+          />
+          <IconPlus
+            v-else-if="s.kind === 'new'"
+            :size="14"
+          />
+          <CategoryIcon
+            v-else
+            :category="s.category"
+            :size="14"
+          />
         </span>
         <span class="ac__label">
           <template v-if="s.kind === 'new'">
@@ -220,7 +233,10 @@ const onKeydown = (event: KeyboardEvent): void => {
           </template>
           <template v-else>{{ s.name }}</template>
         </span>
-        <span v-if="s.star" class="ac__hint">
+        <span
+          v-if="s.star"
+          class="ac__hint"
+        >
           {{ t('list.autocompleteStar') }}
         </span>
       </li>

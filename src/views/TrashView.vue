@@ -21,21 +21,38 @@ const goHome = (): void => {
 </script>
 
 <template>
-  <div class="trash-view" data-view="TrashView">
+  <div
+    class="trash-view"
+    data-view="TrashView"
+  >
     <header class="trash-view__header appbar">
-      <button type="button" class="iconbtn" :aria-label="t('list.back')" @click="goHome">
+      <button
+        type="button"
+        class="iconbtn"
+        :aria-label="t('list.back')"
+        @click="goHome"
+      >
         <IconTrash :size="20" />
       </button>
-      <h1 class="trash-view__title">{{ t('trash.title') }}</h1>
+      <h1 class="trash-view__title">
+        {{ t('trash.title') }}
+      </h1>
     </header>
 
-    <p class="trash-view__retention label">{{ t('trash.retentionNote') }}</p>
+    <p class="trash-view__retention label">
+      {{ t('trash.retentionNote') }}
+    </p>
 
     <EmptyState v-if="lists.trash.length === 0">
-      <template #title>{{ t('trash.empty') }}</template>
+      <template #title>
+        {{ t('trash.empty') }}
+      </template>
     </EmptyState>
 
-    <ul v-else class="trash-view__list">
+    <ul
+      v-else
+      class="trash-view__list"
+    >
       <li
         v-for="list in lists.trash"
         :key="list.id"

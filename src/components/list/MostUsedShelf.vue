@@ -42,10 +42,20 @@ const onCellClick = (entry: CatalogEntry): void => {
 </script>
 
 <template>
-  <div v-if="ranked.length === 0" class="shelf-empty">
-    <p class="label">{{ t('list.mostUsedHelp') }}</p>
+  <div
+    v-if="ranked.length === 0"
+    class="shelf-empty"
+  >
+    <p class="label">
+      {{ t('list.mostUsedHelp') }}
+    </p>
   </div>
-  <div v-else class="shelf" role="list" :aria-label="t('list.mostUsed')">
+  <div
+    v-else
+    class="shelf"
+    role="list"
+    :aria-label="t('list.mostUsed')"
+  >
     <button
       v-for="(entry, idx) in ranked"
       :key="entry.id"
@@ -58,7 +68,10 @@ const onCellClick = (entry: CatalogEntry): void => {
       :tabindex="isAdded(entry) ? -1 : 0"
       @click="onCellClick(entry)"
     >
-      <CategoryIcon :category="entry.category" :size="16" />
+      <CategoryIcon
+        :category="entry.category"
+        :size="16"
+      />
       <span class="shelf__name">{{ entry.name }}</span>
     </button>
   </div>

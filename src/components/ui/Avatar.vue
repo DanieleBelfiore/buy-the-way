@@ -16,11 +16,13 @@ const initials = computed((): string => {
   const trimmed = props.name.trim();
   if (!trimmed) return '?';
   const parts = trimmed.split(/\s+/u);
+  const firstStr = parts[0] || '';
   if (parts.length === 1) {
-    return parts[0]!.charAt(0).toUpperCase();
+    return firstStr.charAt(0).toUpperCase();
   }
-  const first = parts[0]!.charAt(0);
-  const last = parts[parts.length - 1]!.charAt(0);
+  const lastStr = parts[parts.length - 1] || '';
+  const first = firstStr.charAt(0);
+  const last = lastStr.charAt(0);
   return `${first}${last}`.toUpperCase();
 });
 

@@ -1,15 +1,24 @@
 <template>
   <div class="empty-state">
-    <div v-if="$slots.icon" class="empty-state__icon">
+    <div
+      v-if="$slots.icon"
+      class="empty-state__icon"
+    >
       <slot name="icon" />
     </div>
     <p class="empty-state__title">
       <slot name="title" />
     </p>
-    <p v-if="$slots.body" class="empty-state__body">
+    <p
+      v-if="$slots.body"
+      class="empty-state__body"
+    >
       <slot name="body" />
     </p>
-    <div v-if="$slots.cta" class="empty-state__cta">
+    <div
+      v-if="$slots.cta"
+      class="empty-state__cta"
+    >
       <slot name="cta" />
     </div>
   </div>

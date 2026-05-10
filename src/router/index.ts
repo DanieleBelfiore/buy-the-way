@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
+import { useAuthStore } from '@/stores/auth';
 
 // Public routes do not require authentication. The guard treats anything
 // not in this set (matched by exact path for now) as auth-required.
@@ -67,6 +67,6 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  const { isAuthenticated } = useAuth();
-  return redirectTarget(isAuthenticated.value, to.path);
+  const auth = useAuthStore();
+  return redirectTarget(auth.isAuthenticated, to.path);
 });

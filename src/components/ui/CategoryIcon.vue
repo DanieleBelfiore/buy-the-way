@@ -55,7 +55,10 @@ const tone = computed((): string => COLOR_MAP[props.category]);
     :data-category="props.category"
     aria-hidden="true"
   >
-    <component :is="iconComponent" :size="props.size" />
+    <component
+      :is="iconComponent"
+      :size="props.size"
+    />
   </span>
 </template>
 

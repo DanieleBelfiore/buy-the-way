@@ -20,6 +20,6 @@ const props = withDefaults(defineProps<Props>(), {
     stroke-linejoin="round"
     aria-hidden="true"
   >
-    <polyline points="20,6 9,17 4,12"/>
+    <polyline points="20,6 9,17 4,12" />
   </svg>
 </template>

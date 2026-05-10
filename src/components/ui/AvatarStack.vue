@@ -20,7 +20,10 @@ const overflow = computed((): number =>
 </script>
 
 <template>
-  <span class="avatar-stack" :aria-label="`${props.names.length} members`">
+  <span
+    class="avatar-stack"
+    :aria-label="`${props.names.length} members`"
+  >
     <Avatar
       v-for="(name, idx) in visible"
       :key="`${name}-${idx}`"
@@ -28,7 +31,10 @@ const overflow = computed((): number =>
       tone="cream"
       class="avatar-stack__item"
     />
-    <span v-if="overflow > 0" class="chip chip--dark avatar-stack__more">
+    <span
+      v-if="overflow > 0"
+      class="chip chip--dark avatar-stack__more"
+    >
       +{{ overflow }}
     </span>
   </span>

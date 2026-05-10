@@ -24,7 +24,11 @@ const onInput = (event: Event): void => {
 
 <template>
   <label class="input input--wrap">
-    <span v-if="$slots.iconLeft" class="input__icon" aria-hidden="true">
+    <span
+      v-if="$slots.iconLeft"
+      class="input__icon"
+      aria-hidden="true"
+    >
       <slot name="iconLeft" />
     </span>
     <input
@@ -34,7 +38,7 @@ const onInput = (event: Event): void => {
       :value="props.modelValue"
       :placeholder="props.placeholder"
       @input="onInput"
-    />
+    >
   </label>
 </template>
 

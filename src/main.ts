@@ -5,11 +5,25 @@ import { router } from './router';
 import { i18n } from './i18n';
 import { initPWA } from './pwa/registerSW';
 import './styles/global.css';
+import { useAuthStore } from './stores/auth';
 
 const app = createApp(App);
-app.use(createPinia());
-app.use(router);
-app.use(i18n);
-app.mount('#app');
+const pinia = createPinia();
+app.use(pinia);
 
-initPWA();
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
+
+if (USE_FIXTURES) {
+  app.use(router);
+  app.use(i18n);
+  app.mount('#app');
+  initPWA();
+} else {
+  const authStore = useAuthStore();
+  authStore.initialize().then(() => {
+    app.use(router);
+    app.use(i18n);
+    app.mount('#app');
+    initPWA();
+  });
+}

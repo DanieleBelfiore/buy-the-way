@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import { signInWithGoogle, signOutUser } from '@/services/auth.service';
+import { signInWithGoogle, signOutUser, initAuthListener } from '@/services/auth.service';
 import type { UserProfile } from '@/domain/types';
 
 interface AuthStoreApi {
   readonly currentUser: Ref<UserProfile | null>;
   readonly isAuthenticated: ComputedRef<boolean>;
+  readonly isReady: Ref<boolean>;
+  initialize: () => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -14,6 +16,19 @@ interface AuthStoreApi {
 export const useAuthStore = defineStore('auth', (): AuthStoreApi => {
   const currentUser = ref<UserProfile | null>(null);
   const isAuthenticated = computed<boolean>(() => currentUser.value !== null);
+  const isReady = ref<boolean>(false);
+
+  const initialize = (): Promise<void> => {
+    return new Promise((resolve) => {
+      initAuthListener((user) => {
+        currentUser.value = user;
+        if (!isReady.value) {
+          isReady.value = true;
+          resolve();
+        }
+      });
+    });
+  };
 
   const signIn = async (): Promise<void> => {
     const user = await signInWithGoogle();
@@ -25,5 +40,5 @@ export const useAuthStore = defineStore('auth', (): AuthStoreApi => {
     currentUser.value = null;
   };
 
-  return { currentUser, isAuthenticated, signIn, signOut };
+  return { currentUser, isAuthenticated, isReady, initialize, signIn, signOut };
 });

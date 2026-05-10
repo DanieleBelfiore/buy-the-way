@@ -48,11 +48,20 @@ const onKey = (event: KeyboardEvent): void => {
       :data-state="props.checked ? 'checked' : 'unchecked'"
       aria-hidden="true"
     >
-      <IconCheck v-if="props.checked" :size="14" />
+      <IconCheck
+        v-if="props.checked"
+        :size="14"
+      />
     </span>
-    <CategoryIcon :category="props.category" :size="18" />
+    <CategoryIcon
+      :category="props.category"
+      :size="18"
+    />
     <span class="item__name">{{ props.name }}</span>
-    <span v-if="props.quantity" class="item__qty">{{ props.quantity }}</span>
+    <span
+      v-if="props.quantity"
+      class="item__qty"
+    >{{ props.quantity }}</span>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import type { UserProfile } from '@/domain/types';
@@ -9,6 +9,27 @@ async function upsertUserProfile(uid: string, email: string, displayName: string
   const ref = doc(db, 'users', uid);
   await setDoc(ref, { uid, email, displayName, lastLoginAt: Date.now() } satisfies UserProfile, {
     merge: true,
+  });
+}
+
+export function initAuthListener(callback: (user: UserProfile | null) => void): () => void {
+  return onAuthStateChanged(auth, (firebaseUser: User | null) => {
+    if (firebaseUser) {
+      const { uid, email, displayName } = firebaseUser;
+      const normalizedEmail = (email ?? '').trim().toLowerCase();
+      
+      // Asynchronously upsert profile to update lastLoginAt and ensure document exists
+      upsertUserProfile(uid, normalizedEmail, displayName ?? '').catch(console.error);
+      
+      callback({
+        uid,
+        email: normalizedEmail,
+        displayName: displayName ?? '',
+        lastLoginAt: Date.now(),
+      });
+    } else {
+      callback(null);
+    }
   });
 }
 

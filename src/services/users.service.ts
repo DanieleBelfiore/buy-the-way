@@ -7,5 +7,6 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
   const q = query(collection(db, 'users'), where('email', '==', normalized));
   const snap = await getDocs(q);
   if (snap.empty) return null;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return snap.docs[0]!.data() as UserProfile;
 }

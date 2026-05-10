@@ -7,7 +7,11 @@ const props = defineProps<Props>();
 </script>
 
 <template>
-  <button type="button" class="fab" :aria-label="props.ariaLabel">
+  <button
+    type="button"
+    class="fab"
+    :aria-label="props.ariaLabel"
+  >
     <slot />
   </button>
 </template>

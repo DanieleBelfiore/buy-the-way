@@ -3,7 +3,10 @@
 </script>
 
 <template>
-  <div class="phone" role="presentation">
+  <div
+    class="phone"
+    role="presentation"
+  >
     <div class="statusbar">
       <span>9:41</span>
       <span>BTW</span>

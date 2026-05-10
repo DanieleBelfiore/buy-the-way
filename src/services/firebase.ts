@@ -15,6 +15,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]!;
 
 export const auth = getAuth(app);
