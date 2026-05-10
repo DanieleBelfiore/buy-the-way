@@ -18,6 +18,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "vue-tsc --noEmit",
+    "test:rules": "vitest run --config vitest.rules.config.ts",
     "firebase:emulators": "firebase emulators:start --only auth,firestore",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
   },
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/node": "^22.10.1",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",

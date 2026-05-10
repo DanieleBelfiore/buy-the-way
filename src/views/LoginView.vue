@@ -15,7 +15,7 @@ const toggleLocale = (): void => {
 };
 
 const handleGoogleSignIn = async (): Promise<void> => {
-  auth.signIn();
+  await auth.signIn();
   await router.push('/');
 };
 </script>

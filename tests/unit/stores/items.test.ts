@@ -1,5 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+
+vi.mock('@/services/firebase', () => ({ auth: {}, db: {} }));
+vi.mock('@/services/auth.service', () => ({ signInWithGoogle: vi.fn(), signOutUser: vi.fn() }));
+vi.mock('@/services/lists.service', () => ({
+  createList: vi.fn(),
+  renameList: vi.fn(),
+  softDeleteList: vi.fn(),
+  restoreList: vi.fn(),
+  addCollaboratorByUid: vi.fn(),
+  removeCollaborator: vi.fn(),
+  leaveList: vi.fn(),
+  subscribeUserLists: vi.fn(() => vi.fn()),
+}));
+vi.mock('@/services/items.service', () => ({
+  addItem: vi.fn(),
+  toggleChecked: vi.fn(),
+  updateItem: vi.fn(),
+  removeItem: vi.fn(),
+  subscribeItems: vi.fn(() => vi.fn()),
+}));
+vi.mock('@/services/catalog.service', () => ({
+  recordCatalogUse: vi.fn().mockResolvedValue(undefined),
+  subscribeCatalog: vi.fn(() => vi.fn()),
+}));
+
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
 import { useItemsStore } from '@/stores/items';

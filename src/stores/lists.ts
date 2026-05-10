@@ -7,12 +7,27 @@ import type { ULID } from '@/domain/id';
 import type { List } from '@/domain/types';
 import { FIXTURE_LISTS } from '@/dev/fixtures';
 import { useAuthStore } from './auth';
+import {
+  createList as createListSvc,
+  renameList as renameListSvc,
+  softDeleteList as softDeleteListSvc,
+  restoreList as restoreListSvc,
+  addCollaboratorByUid as addCollaboratorByUidSvc,
+  removeCollaborator as removeCollaboratorSvc,
+  leaveList as leaveListSvc,
+  subscribeUserLists,
+} from '@/services/lists.service';
+
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
 
 interface ListsStoreApi {
   readonly all: Ref<readonly List[]>;
   readonly active: ComputedRef<readonly List[]>;
   readonly trash: ComputedRef<readonly List[]>;
   readonly getById: ComputedRef<(id: ULID) => List | undefined>;
+  readonly loading: Ref<boolean>;
+  readonly error: Ref<string | null>;
+  subscribe: (uid: string) => () => void;
   create: (name: string) => ULID;
   rename: (id: ULID, name: string) => void;
   softDelete: (id: ULID) => void;
@@ -26,10 +41,7 @@ interface ListsStoreApi {
 const FALLBACK_OWNER = 'mock-uid';
 
 const cloneFixtures = (): List[] =>
-  FIXTURE_LISTS.map((l) => ({
-    ...l,
-    collaboratorUids: [...l.collaboratorUids],
-  }));
+  FIXTURE_LISTS.map((l) => ({ ...l, collaboratorUids: [...l.collaboratorUids] }));
 
 const replaceById = (
   source: readonly List[],
@@ -37,13 +49,10 @@ const replaceById = (
   patch: (list: List) => List,
 ): readonly List[] => source.map((l) => (l.id === id ? patch(l) : l));
 
-/**
- * In-memory catalogue of every {@link List} the current user can see (owned
- * or collaborator). The reactive `all` array drives both the active shelf and
- * the Trash view via the `active`/`trash` getters.
- */
 export const useListsStore = defineStore('lists', (): ListsStoreApi => {
-  const all: Ref<readonly List[]> = ref(cloneFixtures());
+  const all: Ref<readonly List[]> = ref(USE_FIXTURES ? cloneFixtures() : []);
+  const loading = ref(false);
+  const error: Ref<string | null> = ref(null);
 
   const active = computed<readonly List[]>(() => all.value.filter((l) => l.deletedAt === null));
   const trash = computed<readonly List[]>(() => all.value.filter((l) => l.deletedAt !== null));
@@ -52,6 +61,24 @@ export const useListsStore = defineStore('lists', (): ListsStoreApi => {
       (id: ULID): List | undefined =>
         all.value.find((l) => l.id === id),
   );
+
+  let _unsub: (() => void) | null = null;
+
+  const subscribe = (uid: string): (() => void) => {
+    if (USE_FIXTURES) return () => {};
+    _unsub?.();
+    loading.value = true;
+    _unsub = subscribeUserLists(uid, (lists) => {
+      all.value = lists;
+      loading.value = false;
+    });
+    return () => {
+      _unsub?.();
+      _unsub = null;
+    };
+  };
+
+  const touch = (list: List): List => ({ ...list, updatedAt: Date.now() });
 
   const create = (name: string): ULID => {
     const auth = useAuthStore();
@@ -67,54 +94,89 @@ export const useListsStore = defineStore('lists', (): ListsStoreApi => {
       createdAt: now,
       updatedAt: now,
     };
-    all.value = [fresh, ...all.value];
+    if (USE_FIXTURES) {
+      all.value = [fresh, ...all.value];
+    } else {
+      createListSvc(fresh).catch((e) => {
+        error.value = String(e);
+      });
+    }
     return id;
   };
 
-  const touch = (list: List): List => ({ ...list, updatedAt: Date.now() });
-
   const rename = (id: ULID, name: string): void => {
-    all.value = replaceById(all.value, id, (l) => ({ ...touch(l), name }));
+    if (USE_FIXTURES) {
+      all.value = replaceById(all.value, id, (l) => ({ ...touch(l), name }));
+    } else {
+      renameListSvc(id, name).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const softDelete = (id: ULID): void => {
-    all.value = replaceById(all.value, id, (l) => ({
-      ...touch(l),
-      deletedAt: Date.now(),
-    }));
+    if (USE_FIXTURES) {
+      all.value = replaceById(all.value, id, (l) => ({ ...touch(l), deletedAt: Date.now() }));
+    } else {
+      softDeleteListSvc(id).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const restore = (id: ULID): void => {
-    all.value = replaceById(all.value, id, (l) => ({
-      ...touch(l),
-      deletedAt: null,
-    }));
+    if (USE_FIXTURES) {
+      all.value = replaceById(all.value, id, (l) => ({ ...touch(l), deletedAt: null }));
+    } else {
+      restoreListSvc(id).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const addCollaborator = (listId: ULID, uid: string): void => {
-    all.value = replaceById(all.value, listId, (l) =>
-      l.collaboratorUids.includes(uid)
-        ? l
-        : {
-            ...touch(l),
-            collaboratorUids: [...l.collaboratorUids, uid],
-          },
-    );
+    if (USE_FIXTURES) {
+      all.value = replaceById(all.value, listId, (l) =>
+        l.collaboratorUids.includes(uid)
+          ? l
+          : { ...touch(l), collaboratorUids: [...l.collaboratorUids, uid] },
+      );
+    } else {
+      addCollaboratorByUidSvc(listId, uid).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const removeCollaborator = (listId: ULID, uid: string): void => {
-    all.value = replaceById(all.value, listId, (l) => ({
-      ...touch(l),
-      collaboratorUids: l.collaboratorUids.filter((c) => c !== uid),
-    }));
+    if (USE_FIXTURES) {
+      all.value = replaceById(all.value, listId, (l) => ({
+        ...touch(l),
+        collaboratorUids: l.collaboratorUids.filter((c) => c !== uid),
+      }));
+    } else {
+      removeCollaboratorSvc(listId, uid).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const leave = (listId: ULID, selfUid: string): void => {
-    removeCollaborator(listId, selfUid);
+    if (USE_FIXTURES) {
+      removeCollaborator(listId, selfUid);
+    } else {
+      leaveListSvc(listId, selfUid).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const reset = (): void => {
-    all.value = cloneFixtures();
+    _unsub?.();
+    _unsub = null;
+    all.value = USE_FIXTURES ? cloneFixtures() : [];
+    loading.value = false;
+    error.value = null;
   };
 
   return {
@@ -122,6 +184,9 @@ export const useListsStore = defineStore('lists', (): ListsStoreApi => {
     active,
     trash,
     getById,
+    loading,
+    error,
+    subscribe,
     create,
     rename,
     softDelete,

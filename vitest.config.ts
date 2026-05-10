@@ -4,6 +4,10 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [vue()],
+  // Force fixture path in unit tests so stores don't attempt Firebase connections.
+  define: {
+    'import.meta.env.VITE_USE_FIXTURES': JSON.stringify('1'),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

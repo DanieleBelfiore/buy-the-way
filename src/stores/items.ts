@@ -8,6 +8,15 @@ import type { Category, Item } from '@/domain/types';
 import { FIXTURE_ITEMS } from '@/dev/fixtures';
 import { useAuthStore } from './auth';
 import { useCatalogStore } from './catalog';
+import {
+  addItem as addItemSvc,
+  toggleChecked as toggleCheckedSvc,
+  updateItem as updateItemSvc,
+  removeItem as removeItemSvc,
+  subscribeItems,
+} from '@/services/items.service';
+
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
 
 export interface ItemDraft {
   readonly name: string;
@@ -21,10 +30,13 @@ export type ItemPatch = Partial<Pick<Item, 'name' | 'quantity' | 'category' | 'n
 interface ItemsStoreApi {
   readonly itemsByList: Ref<Readonly<Record<ULID, readonly Item[]>>>;
   readonly forList: (listId: ULID) => readonly Item[];
+  readonly loading: Ref<boolean>;
+  readonly error: Ref<string | null>;
   add: (listId: ULID, draft: ItemDraft) => ULID;
   toggleChecked: (listId: ULID, itemId: ULID) => void;
   update: (listId: ULID, itemId: ULID, patch: ItemPatch) => void;
   remove: (listId: ULID, itemId: ULID) => void;
+  subscribeToList: (listId: ULID) => () => void;
   reset: () => void;
 }
 
@@ -47,15 +59,32 @@ const updateList = (
   [listId]: fn(source[listId] ?? []),
 });
 
-/**
- * Items keyed by parent list. Mutations always return new arrays so Vue's
- * reactivity catches the change without `$patch` tricks. {@link add} fires
- * `catalog.recordUse` so the MostUsedShelf reflects new entries instantly.
- */
 export const useItemsStore = defineStore('items', (): ItemsStoreApi => {
-  const itemsByList: Ref<Readonly<Record<ULID, readonly Item[]>>> = ref(cloneFixtures());
+  const itemsByList: Ref<Readonly<Record<ULID, readonly Item[]>>> = ref(
+    USE_FIXTURES ? cloneFixtures() : {},
+  );
+  const loading = ref(false);
+  const error: Ref<string | null> = ref(null);
 
   const forList = (listId: ULID): readonly Item[] => itemsByList.value[listId] ?? [];
+
+  const _listUnsubs = new Map<ULID, () => void>();
+
+  const subscribeToList = (listId: ULID): (() => void) => {
+    if (USE_FIXTURES) return () => {};
+    const existing = _listUnsubs.get(listId);
+    if (existing) return existing;
+    loading.value = true;
+    const unsub = subscribeItems(listId, (items) => {
+      itemsByList.value = { ...itemsByList.value, [listId]: items };
+      loading.value = false;
+    });
+    _listUnsubs.set(listId, unsub);
+    return () => {
+      unsub();
+      _listUnsubs.delete(listId);
+    };
+  };
 
   const add = (listId: ULID, draft: ItemDraft): ULID => {
     const auth = useAuthStore();
@@ -75,8 +104,14 @@ export const useItemsStore = defineStore('items', (): ItemsStoreApi => {
       createdAt: now,
       updatedAt: now,
     };
-    itemsByList.value = updateList(itemsByList.value, listId, (current) => [...current, fresh]);
-    catalog.recordUse(draft.name, draft.category);
+    if (USE_FIXTURES) {
+      itemsByList.value = updateList(itemsByList.value, listId, (current) => [...current, fresh]);
+      catalog.recordUse(draft.name, draft.category);
+    } else {
+      addItemSvc(listId, fresh).catch((e) => {
+        error.value = String(e);
+      });
+    }
     return id;
   };
 
@@ -88,27 +123,61 @@ export const useItemsStore = defineStore('items', (): ItemsStoreApi => {
   };
 
   const toggleChecked = (listId: ULID, itemId: ULID): void => {
-    const current = itemsByList.value[listId] ?? [];
-    const target = current.find((i) => i.id === itemId);
-    if (!target) {
-      return;
+    if (USE_FIXTURES) {
+      const current = itemsByList.value[listId] ?? [];
+      const target = current.find((i) => i.id === itemId);
+      if (!target) return;
+      patchItem(listId, itemId, { checked: !target.checked });
+    } else {
+      const current = itemsByList.value[listId] ?? [];
+      const target = current.find((i) => i.id === itemId);
+      if (!target) return;
+      toggleCheckedSvc(listId, itemId, target.checked).catch((e) => {
+        error.value = String(e);
+      });
     }
-    patchItem(listId, itemId, { checked: !target.checked });
   };
 
   const update = (listId: ULID, itemId: ULID, patch: ItemPatch): void => {
-    patchItem(listId, itemId, patch);
+    if (USE_FIXTURES) {
+      patchItem(listId, itemId, patch);
+    } else {
+      updateItemSvc(listId, itemId, patch).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const remove = (listId: ULID, itemId: ULID): void => {
-    itemsByList.value = updateList(itemsByList.value, listId, (current) =>
-      current.filter((i) => i.id !== itemId),
-    );
+    if (USE_FIXTURES) {
+      itemsByList.value = updateList(itemsByList.value, listId, (current) =>
+        current.filter((i) => i.id !== itemId),
+      );
+    } else {
+      removeItemSvc(listId, itemId).catch((e) => {
+        error.value = String(e);
+      });
+    }
   };
 
   const reset = (): void => {
-    itemsByList.value = cloneFixtures();
+    _listUnsubs.forEach((unsub) => unsub());
+    _listUnsubs.clear();
+    itemsByList.value = USE_FIXTURES ? cloneFixtures() : {};
+    loading.value = false;
+    error.value = null;
   };
 
-  return { itemsByList, forList, add, toggleChecked, update, remove, reset };
+  return {
+    itemsByList,
+    forList,
+    loading,
+    error,
+    add,
+    toggleChecked,
+    update,
+    remove,
+    subscribeToList,
+    reset,
+  };
 });

@@ -1,29 +1,29 @@
 import { defineStore } from 'pinia';
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import { useAuth } from '@/composables/useAuth';
+import { signInWithGoogle, signOutUser } from '@/services/auth.service';
 import type { UserProfile } from '@/domain/types';
 
 interface AuthStoreApi {
   readonly currentUser: Ref<UserProfile | null>;
   readonly isAuthenticated: ComputedRef<boolean>;
-  signIn: () => void;
-  signOut: () => void;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
-/**
- * Thin Pinia wrapper over the {@link useAuth} composable. Exists so the rest
- * of the app can `useAuthStore()` without importing the composable directly,
- * which makes the Phase 4 swap (Firebase Auth) a single-file change.
- */
 export const useAuthStore = defineStore('auth', (): AuthStoreApi => {
-  const auth = useAuth();
-  const isAuthenticated = computed<boolean>(() => auth.isAuthenticated.value);
+  const currentUser = ref<UserProfile | null>(null);
+  const isAuthenticated = computed<boolean>(() => currentUser.value !== null);
 
-  return {
-    currentUser: auth.user,
-    isAuthenticated,
-    signIn: () => auth.signIn(),
-    signOut: () => auth.signOut(),
+  const signIn = async (): Promise<void> => {
+    const user = await signInWithGoogle();
+    currentUser.value = user;
   };
+
+  const signOut = async (): Promise<void> => {
+    await signOutUser();
+    currentUser.value = null;
+  };
+
+  return { currentUser, isAuthenticated, signIn, signOut };
 });
