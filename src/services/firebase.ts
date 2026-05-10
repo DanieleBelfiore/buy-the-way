@@ -1,6 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  enableIndexedDbPersistence,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,6 +19,13 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Enable offline persistence — errors (e.g. multiple tabs, private browsing) are non-blocking.
+try {
+  await enableIndexedDbPersistence(db);
+} catch (err) {
+  console.warn('[firebase] IndexedDB persistence unavailable:', err);
+}
 
 // Connect to local emulators in dev mode (only once per process; try/catch guards HMR re-imports).
 if (import.meta.env.DEV) {

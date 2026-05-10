@@ -71,14 +71,14 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 4 — Firebase backend
 
-- [ ] **Task 22** [S] — Firebase init + emulator config
-- [ ] **Task 23** [M] — auth.service + users sync on login
-- [ ] **Task 24** [S] — users.service (findUserByEmail)
-- [ ] **Task 25** [M] — lists.service (CRUD + share + soft-delete)
-- [ ] **Task 26** [M] — items.service (CRUD + realtime + catalog hook)
-- [ ] **Task 27** [M] — catalog.service (per-user, recency-weighted)
-- [ ] **Task 28** [M] — Wire stores to services (replace fixtures)
-- [ ] **Task 29** [M] — Firestore security rules + indexes + emulator tests
+- [x] **Task 22** [S] — Firebase init + emulator config ✓
+- [x] **Task 23** [M] — auth.service + users sync on login ✓
+- [x] **Task 24** [S] — users.service (findUserByEmail) ✓
+- [x] **Task 25** [M] — lists.service (CRUD + share + soft-delete) ✓
+- [x] **Task 26** [M] — items.service (CRUD + realtime + catalog hook) ✓
+- [x] **Task 27** [M] — catalog.service (per-user, recency-weighted) ✓
+- [x] **Task 28** [M] — Wire stores to services (replace fixtures) ✓
+- [x] **Task 29** [M] — Firestore security rules + indexes + emulator tests ✓
 
 ### Checkpoint D — Backend wired
 - [ ] Sign-in works end-to-end against emulator
@@ -90,9 +90,9 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 
 ## Phase 5 — PWA + offline
 
-- [ ] **Task 30** [S] — vite-plugin-pwa + manifest + icons (generated from logo)
-- [ ] **Task 31** [S] — SW registration + update prompt
-- [ ] **Task 32** [M] — Offline persistence + last-write-wins verification
+- [x] **Task 30** [S] — vite-plugin-pwa + manifest + icons (generated from logo) ✓
+- [x] **Task 31** [S] — SW registration + update prompt ✓
+- [x] **Task 32** [M] — Offline persistence + last-write-wins verification ✓
 
 ### Checkpoint E — PWA shipped
 - [ ] Installable on iOS and Android
