@@ -145,3 +145,4 @@ Legend: **S** = small (1–2 files), **M** = medium (3–5 files), **L** = large
 | 6 | 2 | 3 |
 | 7 | 2 | 2 |
 | **Total** | **36** | **~37 sessions** |
+
