@@ -1,5 +1,6 @@
-import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 
 export interface AuthUser {
   uid: string;
@@ -12,7 +13,7 @@ export interface UseAuthReturn {
   ready: Ref<boolean>;
 }
 
-export const useAuth = (): UseAuthReturn => ({
-  user: ref(null),
-  ready: ref(true),
-});
+export const useAuth = (): UseAuthReturn => {
+  const { user, ready } = storeToRefs(useAuthStore());
+  return { user, ready };
+};
