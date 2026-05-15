@@ -10,11 +10,13 @@ const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
-app.use(router);
-app.use(i18n);
 
-// Boot auth subscription so guard's `ready` resolves
+// Init auth BEFORE router — Vue Router starts initial navigation in install(),
+// so the Firebase listener must be registered first or the guard waits forever.
 const authStore = useAuthStore();
 authStore.init();
+
+app.use(router);
+app.use(i18n);
 
 app.mount('#app');

@@ -147,6 +147,25 @@ describe('auth.service', () => {
       expect((data as any).displayName).toBe('');
     });
 
+    it('still calls callback even when setDoc throws', async () => {
+      let capturedCb: ((u: any) => Promise<void>) | undefined;
+      mOnAuthStateChanged.mockImplementation((_auth, cb) => {
+        capturedCb = cb as any;
+        return vi.fn() as any;
+      });
+      mSetDoc.mockRejectedValue(new Error('firestore unavailable'));
+
+      const callback = vi.fn();
+      onAuthChanged(callback);
+
+      await capturedCb!({ uid: 'uid-1', email: 'test@example.com', displayName: 'Test' });
+
+      // callback must be called even when setDoc fails
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({ uid: 'uid-1' }),
+      );
+    });
+
     it('handles null email gracefully', async () => {
       let capturedCb: ((u: any) => Promise<void>) | undefined;
       mOnAuthStateChanged.mockImplementation((_auth, cb) => {

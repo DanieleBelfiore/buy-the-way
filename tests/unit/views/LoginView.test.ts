@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
+import { createRouter, createMemoryHistory } from 'vue-router';
+import { reactive } from 'vue';
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(),
@@ -26,29 +28,44 @@ const i18n = createI18n({
   },
 });
 
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/login', name: 'login', component: LoginView },
+    { path: '/lists', name: 'lists', component: { template: '<div/>' } },
+  ],
+});
+
 describe('LoginView', () => {
   const mockSignIn = vi.fn();
+  // reactive so that watch(() => auth.user) in LoginView tracks changes
+  const mockStore = reactive({
+    user: null as { uid: string; email: string; displayName: string } | null,
+    ready: true,
+    signIn: mockSignIn,
+    signOut: vi.fn(),
+    init: vi.fn(),
+  });
 
-  beforeEach(() => {
+  const mountView = () => mount(LoginView, { global: { plugins: [i18n, router] } });
+
+  beforeEach(async () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
-    vi.mocked(useAuthStore).mockReturnValue({
-      user: null,
-      ready: true,
-      signIn: mockSignIn,
-      signOut: vi.fn(),
-      init: vi.fn(),
-    } as any);
+    mockStore.user = null;
+    vi.mocked(useAuthStore).mockReturnValue(mockStore as any);
+    await router.push('/login');
+    await router.isReady();
   });
 
   it('renders sign-in CTA button', () => {
-    const wrapper = mount(LoginView, { global: { plugins: [i18n] } });
+    const wrapper = mountView();
     expect(wrapper.find('[data-testid="sign-in-btn"]').exists()).toBe(true);
   });
 
   it('calls signIn on CTA click', async () => {
     mockSignIn.mockResolvedValue(undefined);
-    const wrapper = mount(LoginView, { global: { plugins: [i18n] } });
+    const wrapper = mountView();
     await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
     expect(mockSignIn).toHaveBeenCalledOnce();
   });
@@ -57,7 +74,7 @@ describe('LoginView', () => {
     let resolve: () => void;
     mockSignIn.mockReturnValue(new Promise<void>((r) => { resolve = r; }));
 
-    const wrapper = mount(LoginView, { global: { plugins: [i18n] } });
+    const wrapper = mountView();
     await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
     await wrapper.vm.$nextTick();
 
@@ -68,7 +85,7 @@ describe('LoginView', () => {
   it('shows error message on signIn failure', async () => {
     mockSignIn.mockRejectedValue(new Error('auth/popup-closed-by-user'));
 
-    const wrapper = mount(LoginView, { global: { plugins: [i18n] } });
+    const wrapper = mountView();
     await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
     await wrapper.vm.$nextTick();
 
@@ -78,10 +95,20 @@ describe('LoginView', () => {
   it('re-enables button after sign-in error', async () => {
     mockSignIn.mockRejectedValue(new Error('error'));
 
-    const wrapper = mount(LoginView, { global: { plugins: [i18n] } });
+    const wrapper = mountView();
     await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('[data-testid="sign-in-btn"]').attributes('disabled')).toBeUndefined();
+  });
+
+  it('redirects to lists when auth.user becomes non-null', async () => {
+    mountView();
+
+    // Simulate Firebase resolving auth state (e.g. after signInWithPopup)
+    mockStore.user = { uid: 'u1', email: 'a@b.com', displayName: 'A' };
+    await flushPromises();
+
+    expect(router.currentRoute.value.name).toBe('lists');
   });
 });

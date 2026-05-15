@@ -27,7 +27,13 @@ export const onAuthChanged = (
         displayName: firebaseUser.displayName ?? '',
         lastLoginAt: Date.now(),
       };
-      await setDoc(doc(db, 'users', firebaseUser.uid), profile, { merge: true });
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), profile, { merge: true });
+      } catch (err) {
+        // Non-fatal — profile upsert fails if Firestore is unavailable,
+        // but auth state is still valid and the guard must resolve.
+        console.warn('[auth] Failed to upsert user profile:', err);
+      }
       callback({
         uid: firebaseUser.uid,
         email: firebaseUser.email,

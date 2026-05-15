@@ -422,6 +422,13 @@ const onToggle = () => {
 - i18n tests: no user-facing hardcoded string outside `i18n/locales/*.json`.
 - Playwright accessibility tests (axe) on the main flows.
 
+**Test quality rules (learned in Phase 1):**
+
+- View tests must assert **user-observable outcomes** — final route, visible text, element presence — not only that a function was called. Example: after sign-in succeeds, assert `router.currentRoute.value.name === 'lists'`.
+- When a Vue component uses `watch(() => store.x, ...)`, the mock store must be `reactive({})`, not a plain object, otherwise the watcher never fires.
+- Every async operation visible to the user must have a test for the **error path** with visible feedback (error text rendered in the DOM).
+- Firestore security rules for every new collection must have at least one integration test (`*.int.test.ts` against the emulator) before that phase is marked complete.
+
 ## Boundaries
 
 **Always do:**
@@ -438,7 +445,9 @@ const onToggle = () => {
 - All UI strings go through `vue-i18n` (`t()`). Both it and en covered.
 - Update `updatedAt` on every mutation to support last-write-wins.
 - Run `lint`, `typecheck`, `test:run` before every commit (CI gate).
-- Keep `firestore.rules` aligned with the data model: `lists/{id}` is readable by `ownerUid` or any uid in `collaboratorUids`.
+- Keep `firestore.rules` aligned with the data model: `lists/{id}` is readable by `ownerUid` or any uid in `collaboratorUids`. Update rules **in the same commit** that introduces a new collection — never leave a collection with the default deny-all scaffold.
+- In `main.ts`, call `authStore.init()` **before** `app.use(router)`. Vue Router 4 starts the initial navigation synchronously inside `install()`; if the Firebase listener is not registered first, the auth guard waits on `ready` forever (blank page).
+- Every async Firebase callback that sets `ready = true` (or any flag that unblocks a guard) must wrap side-effectful Firestore calls in `try/catch`. If `setDoc` throws and the callback is never called, `ready` stays false and the app freezes on the guard indefinitely.
 - Rules on `users/{uid}`: any authenticated user can read (for email lookup) but can write only their own document. Read query limited to fields `uid`, `email`, `displayName` (do not expose `lastLoginAt` if avoidable).
 - `collaboratorUids` is mutable only by `ownerUid` for adding/removing others; a collaborator can only remove their own uid (leave). It is never possible to remove `ownerUid` from `collaboratorUids` (owner is tracked in a separate field).
 - PWA service worker uses network-first for Firestore data (delegated to the SDK's offline support) and cache-first for static assets.
@@ -466,6 +475,7 @@ const onToggle = () => {
 - Mutate domain objects in place.
 - Skip `--no-verify` on git, skip hooks, skip CI.
 - Use `v-html` with non-sanitized user-generated content.
+- Leave a view as an empty stub (`<h1>Stub</h1>`) if it is reachable from a navigable route in the current phase. Every routable view must have at minimum: a page title in the header and a back-navigation button (where applicable). Sign-out must be reachable from the UI in Phase 1 even if SettingsView is otherwise incomplete.
 
 ## Success Criteria
 

@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
+const router = useRouter();
 const auth = useAuthStore();
+
+// Redirect as soon as Firebase resolves the authenticated user.
+// The guard only runs during navigation, so we must watch here too.
+watch(
+  () => auth.user,
+  (user) => {
+    if (user) router.push({ name: 'lists' });
+  },
+);
 
 const loading = ref(false);
 const error = ref<string | null>(null);
