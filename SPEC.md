@@ -16,7 +16,8 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a collaborator, I can leave a shared list on my own (self-remove) without the owner having to do anything.
 - As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog and from my "most used" items.
 - As a user, if a product is not in my catalog I create it as a custom item (private, visible only to me).
-- As a user, I see a "MostUsedShelf" — a dense, always-visible grid of my recurring items (recency-weighted frequency), with one tap to add to the current list. All entries stay visible at once (no carousel, no collapse); the shelf grows the page rather than scrolling internally.
+- As a user, I see "Lo Scaffale" (MostUsedShelf) — a dense, always-visible 2-column grid of my recurring items (recency-weighted frequency), with one tap to add to the current list. All entries stay visible at once (no carousel, no internal scroll); the shelf grows the page rather than scrolling internally. The top-2 items show an editorial accent bar + bolder name. Items already in the current list are dimmed with strikethrough + `✓` badge. The shelf header has a chevron toggle to collapse/expand the grid (state persisted in the session; default open).
+- As a user, on the list detail screen I can clear the entire list in one action via a ghost-destructive pill ("Svuota lista" / "Empty list") under the categories, separated from them by a dashed hairline. The button is visible only when the list is not empty and not in autocomplete mode, and shows the total item count as a badge. Tapping it asks for confirmation before removing all items.
 - As a user, while shopping I uncheck items as I buy them; the `checked` state persists.
 - As a user, I can use the app offline and changes sync when connectivity is restored.
 - As a user, I can switch the UI language between Italian and English.
@@ -97,7 +98,7 @@ These hues color category icons only. They are never used to tint surfaces, butt
 **Required derived assets (generated from `logo-original.png` in Task 30):**
 
 - Square 1024×1024 icon (cart only, no wordmark) → source for PWA icons
-- PWA icons: `icons/icon-192.png`, `icons/icon-512.png`, `icons/icon-maskable-512.png`
+- PWA icons: `icons/icon-192.png`, `icons/icon-512.png`
 - Favicon `icons/favicon.ico` (16/32/48 multi-size)
 - Apple touch icon `icons/apple-touch-icon.png` (180×180)
 - Wordmark-only SVG `branding/wordmark.svg` (for the in-app header, no tagline, uses `currentColor`, supports i18n)
@@ -169,7 +170,8 @@ buy-the-way/
 │   │   │   ├── ItemAutocomplete.vue  # Input + inline suggestions
 │   │   │   ├── CategoryHeader.vue
 │   │   │   ├── CategorySection.vue
-│   │   │   └── MostUsedShelf.vue     # Dense always-visible grid (replaces chip strip)
+│   │   │   ├── MostUsedShelf.vue     # Dense always-visible grid with collapse toggle ("Lo Scaffale")
+│   │   │   └── EmptyListButton.vue   # Ghost-destructive pill to clear list with count badge
 │   │   ├── collaborators/
 │   │   │   ├── AddCollaboratorForm.vue   # Lookup by email + add
 │   │   │   └── CollaboratorList.vue      # Member list + remove (owner) / leave (self)
@@ -478,6 +480,8 @@ const onToggle = () => {
 - [ ] Inline autocomplete: suggests from the personal catalog + top "most used" (recency-weighted).
 - [ ] Custom items: creatable inline, persisted into the personal catalog, never visible to others.
 - [ ] `checked` toggle persists; no automatic reset.
+- [ ] MostUsedShelf collapse toggle works (default open, persists across re-renders within a session).
+- [ ] "Empty list" button clears all items after explicit confirmation; visible only with items present and not in autocomplete mode.
 - [ ] Offline: edits work without connectivity; sync is automatic when back online; per-item conflict is last-write-wins.
 - [ ] Language switchable between it/en at runtime; no hardcoded UI string.
 - [ ] PWA installable (valid manifest, active SW, offline shell).
