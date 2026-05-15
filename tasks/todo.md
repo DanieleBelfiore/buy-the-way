@@ -8,8 +8,8 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
 ## Phase 0 — Foundation
 
-- [ ] **Task 1** [M] — Project scaffold (Vite + Vue 3 + TS strict + Pinia + router + Tailwind + Vitest + Playwright + ESLint + Prettier)
-- [ ] **Task 2** [S] — Design tokens CSS + Tailwind bridge + Hanken Grotesk
+- [x] **Task 1** [M] — Project scaffold (Vite + Vue 3 + TS strict + Pinia + router + Tailwind + Vitest + Playwright + ESLint + Prettier)
+- [x] **Task 2** [S] — Design tokens CSS + Tailwind bridge + Hanken Grotesk
 - [ ] **Task 3** [M] — Domain layer (id, types, categories, ranking) — 100% coverage
 - [ ] **Task 4** [S] — i18n setup (it/en, persisted)
 - [ ] **Task 5** [M] — Firebase init + emulator config + default-deny rules
