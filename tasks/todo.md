@@ -26,11 +26,11 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
 ## Phase 1 — Sign in + Lists Home
 
-- [ ] **Task 7** [M] — auth.service + users/{uid} upsert on login
-- [ ] **Task 8** [S] — auth Pinia store + guard wiring
-- [ ] **Task 9** [S] — LoginView (Google CTA only, no Apple)
-- [ ] **Task 10** [M] — lists.service: createList + subscribeUserLists
-- [ ] **Task 11** [M] — lists Pinia store + ListsView (cards + FAB + empty state)
+- [x] **Task 7** [M] — auth.service + users/{uid} upsert on login
+- [x] **Task 8** [S] — auth Pinia store + guard wiring
+- [x] **Task 9** [S] — LoginView (Google CTA only, no Apple)
+- [x] **Task 10** [M] — lists.service: createList + subscribeUserLists
+- [x] **Task 11** [M] — lists Pinia store + ListsView (cards + FAB + empty state)
 
 ### Checkpoint B — Auth + Home
 - [ ] E2E login → create list → reload → still visible
