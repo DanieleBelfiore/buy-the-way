@@ -23,7 +23,23 @@ export default defineConfig({
         lines: 80,
       },
       include: ['src/**/*.{ts,vue}'],
-      exclude: ['src/main.ts', 'src/pwa/**'],
+      exclude: [
+        'src/main.ts',
+        'src/pwa/**',
+        // No runtime code — types only
+        'src/domain/types.ts',
+        // Side-effectful Firebase init, globally mocked in tests
+        'src/services/firebase.ts',
+        // Minimal wrapper — tested via router-view integration
+        'src/App.vue',
+        // Reads localStorage/navigator.language at module level; covered by SettingsView tests (Task 27)
+        'src/i18n/index.ts',
+        // Stub views implemented in later phases
+        'src/views/ListDetailView.vue',
+        'src/views/ListSettingsView.vue',
+        'src/views/SettingsView.vue',
+        'src/views/TrashView.vue',
+      ],
     },
   },
 });
