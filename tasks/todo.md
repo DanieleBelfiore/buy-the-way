@@ -13,7 +13,7 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 - [x] **Task 3** [M] — Domain layer (id, types, categories, ranking) — 100% coverage
 - [x] **Task 4** [S] — i18n setup (it/en, persisted)
 - [x] **Task 5** [M] — Firebase init + emulator config + default-deny rules
-- [ ] **Task 6** [M] — Router + auth guard stub + 7 view shells
+- [x] **Task 6** [M] — Router + auth guard stub + 7 view shells
 
 ### Checkpoint A — Foundation
 - [ ] lint + typecheck + test:run + build green
