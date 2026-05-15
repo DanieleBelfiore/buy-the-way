@@ -1,0 +1,111 @@
+{
+  "app": {
+    "name": "Buy The Way",
+    "tagline": "Your smart grocery list"
+  },
+  "nav": {
+    "lists": "Lists",
+    "settings": "Settings",
+    "trash": "Trash"
+  },
+  "auth": {
+    "continueWithGoogle": "Continue with Google",
+    "signOut": "Sign out",
+    "signingIn": "Signing in…",
+    "signInError": "Sign in failed. Please try again."
+  },
+  "list": {
+    "new": "New list",
+    "newPlaceholder": "List name…",
+    "empty": "No items yet",
+    "emptyHint": "Add items above",
+    "create": "Create",
+    "cancel": "Cancel",
+    "noLists": "No lists yet",
+    "noListsHint": "Tap + to create your first list"
+  },
+  "item": {
+    "addPlaceholder": "Add an item…",
+    "markAsBought": "Mark as bought",
+    "markAsToBuy": "Mark as to buy",
+    "addCustom": "Add \"{name}\" as a custom item",
+    "quantity": "Quantity",
+    "note": "Note"
+  },
+  "emptyList": {
+    "button": "Empty list",
+    "confirmTitle": "Empty list?",
+    "confirmMessage": "This will remove all {count} items. This cannot be undone.",
+    "confirm": "Empty",
+    "cancel": "Cancel"
+  },
+  "shelf": {
+    "title": "Most Used",
+    "empty": "Add items to populate your shelf",
+    "collapse": "Collapse shelf",
+    "expand": "Expand shelf"
+  },
+  "collaborators": {
+    "add": "Add collaborator",
+    "addPlaceholder": "Email address…",
+    "search": "Search",
+    "notFound": "No registered user with that email.",
+    "added": "Collaborator added.",
+    "remove": "Remove",
+    "leave": "Leave list",
+    "leaveConfirmTitle": "Leave this list?",
+    "leaveConfirmMessage": "You will no longer have access to \"{name}\".",
+    "confirm": "Leave",
+    "cancel": "Cancel",
+    "owner": "Owner"
+  },
+  "listSettings": {
+    "title": "List settings",
+    "rename": "Rename",
+    "renamePlaceholder": "New name…",
+    "save": "Save",
+    "deleteList": "Delete list",
+    "deleteConfirmTitle": "Delete list?",
+    "deleteConfirmMessage": "Move \"{name}\" to trash?",
+    "confirmDelete": "Delete",
+    "cancel": "Cancel",
+    "members": "Members"
+  },
+  "trash": {
+    "title": "Trash",
+    "empty": "Trash is empty",
+    "recover": "Recover",
+    "purge": "Delete permanently",
+    "purgeConfirmTitle": "Delete permanently?",
+    "purgeConfirmMessage": "This will permanently delete \"{name}\" and all its items. This cannot be undone.",
+    "confirmPurge": "Delete",
+    "cancel": "Cancel"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "account": "Account",
+    "signOut": "Sign out"
+  },
+  "category": {
+    "fruit_vegetables": "Fruit & Veg",
+    "dairy": "Dairy",
+    "meat_fish": "Meat & Fish",
+    "bakery": "Bakery",
+    "beverages": "Beverages",
+    "frozen": "Frozen",
+    "cleaning": "Cleaning",
+    "hygiene": "Hygiene",
+    "other": "Other"
+  },
+  "offline": {
+    "banner": "Offline — changes will sync when back online"
+  },
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "listNotFound": "List not found."
+  },
+  "badge": {
+    "new": "New"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "app": {
+    "name": "Buy The Way",
+    "tagline": "La tua lista della spesa intelligente"
+  },
+  "nav": {
+    "lists": "Liste",
+    "settings": "Impostazioni",
+    "trash": "Cestino"
+  },
+  "auth": {
+    "continueWithGoogle": "Continua con Google",
+    "signOut": "Esci",
+    "signingIn": "Accesso in corso…",
+    "signInError": "Accesso fallito. Riprova."
+  },
+  "list": {
+    "new": "Nuova lista",
+    "newPlaceholder": "Nome della lista…",
+    "empty": "Nessun articolo",
+    "emptyHint": "Aggiungi articoli sopra",
+    "create": "Crea",
+    "cancel": "Annulla",
+    "noLists": "Nessuna lista",
+    "noListsHint": "Tocca + per creare la tua prima lista"
+  },
+  "item": {
+    "addPlaceholder": "Aggiungi un articolo…",
+    "markAsBought": "Segna come acquistato",
+    "markAsToBuy": "Segna come da acquistare",
+    "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
+    "quantity": "Quantità",
+    "note": "Nota"
+  },
+  "emptyList": {
+    "button": "Svuota lista",
+    "confirmTitle": "Svuotare la lista?",
+    "confirmMessage": "Verranno rimossi tutti i {count} articoli. Questa azione è irreversibile.",
+    "confirm": "Svuota",
+    "cancel": "Annulla"
+  },
+  "shelf": {
+    "title": "Lo Scaffale",
+    "empty": "Aggiungi articoli per popolare lo scaffale",
+    "collapse": "Comprimi scaffale",
+    "expand": "Espandi scaffale"
+  },
+  "collaborators": {
+    "add": "Aggiungi collaboratore",
+    "addPlaceholder": "Indirizzo email…",
+    "search": "Cerca",
+    "notFound": "Nessun utente registrato con questa email.",
+    "added": "Collaboratore aggiunto.",
+    "remove": "Rimuovi",
+    "leave": "Lascia la lista",
+    "leaveConfirmTitle": "Lasciare questa lista?",
+    "leaveConfirmMessage": "Non avrai più accesso a \"{name}\".",
+    "confirm": "Lascia",
+    "cancel": "Annulla",
+    "owner": "Proprietario"
+  },
+  "listSettings": {
+    "title": "Impostazioni lista",
+    "rename": "Rinomina",
+    "renamePlaceholder": "Nuovo nome…",
+    "save": "Salva",
+    "deleteList": "Elimina lista",
+    "deleteConfirmTitle": "Eliminare la lista?",
+    "deleteConfirmMessage": "Spostare \"{name}\" nel cestino?",
+    "confirmDelete": "Elimina",
+    "cancel": "Annulla",
+    "members": "Membri"
+  },
+  "trash": {
+    "title": "Cestino",
+    "empty": "Il cestino è vuoto",
+    "recover": "Recupera",
+    "purge": "Elimina definitivamente",
+    "purgeConfirmTitle": "Eliminare definitivamente?",
+    "purgeConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli. Questa azione è irreversibile.",
+    "confirmPurge": "Elimina",
+    "cancel": "Annulla"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "language": "Lingua",
+    "account": "Account",
+    "signOut": "Esci"
+  },
+  "category": {
+    "fruit_vegetables": "Frutta e verdura",
+    "dairy": "Latticini",
+    "meat_fish": "Carne e pesce",
+    "bakery": "Pane e dolci",
+    "beverages": "Bevande",
+    "frozen": "Surgelati",
+    "cleaning": "Pulizie",
+    "hygiene": "Igiene",
+    "other": "Altro"
+  },
+  "offline": {
+    "banner": "Offline — le modifiche saranno sincronizzate al rientro"
+  },
+  "error": {
+    "generic": "Qualcosa è andato storto. Riprova.",
+    "listNotFound": "Lista non trovata."
+  },
+  "badge": {
+    "new": "Nuovo"
+  }
+}
