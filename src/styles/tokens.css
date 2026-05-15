@@ -1,0 +1,32 @@
+:root {
+  /* Surfaces */
+  --cream: #f7f4ed;
+  --cream-soft: #eceae4;
+  --offwhite: #fcfbf8;
+
+  /* Ink */
+  --charcoal: #1c1c1c;
+  --muted-gray: #5f5f5d;
+
+  /* Focus */
+  --ring-blue: rgba(59, 130, 246, 0.5);
+
+  /* Ink opacity variants (all from --charcoal) */
+  --ink-04: rgba(28, 28, 28, 0.04);
+  --ink-03: rgba(28, 28, 28, 0.03);
+  --ink-40: rgba(28, 28, 28, 0.4);
+  --ink-82: rgba(28, 28, 28, 0.82);
+  --ink-83: rgba(28, 28, 28, 0.83);
+  --ink-100: rgba(28, 28, 28, 1);
+
+  /* Category icon hues (icon-only, never used as fill) */
+  --cat-fruit: #4a7048;
+  --cat-dairy: #3e5b7a;
+  --cat-meat: #8a3d3d;
+  --cat-bakery: #8a6a2c;
+  --cat-bev: #2c6c8a;
+  --cat-frozen: #3a6a8a;
+  --cat-clean: #5a4a8a;
+  --cat-hyg: #8a5a7a;
+  --cat-other: #5f5f5d;
+}
