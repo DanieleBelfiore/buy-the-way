@@ -43,7 +43,8 @@
     "title": "Most Used",
     "empty": "Add items to populate your shelf",
     "collapse": "Collapse shelf",
-    "expand": "Expand shelf"
+    "expand": "Expand shelf",
+    "alreadyInList": "Already in list"
   },
   "collaborators": {
     "add": "Add collaborator",

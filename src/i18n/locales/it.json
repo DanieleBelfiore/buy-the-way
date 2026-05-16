@@ -43,7 +43,8 @@
     "title": "Lo Scaffale",
     "empty": "Aggiungi articoli per popolare lo scaffale",
     "collapse": "Comprimi scaffale",
-    "expand": "Espandi scaffale"
+    "expand": "Espandi scaffale",
+    "alreadyInList": "Già nella lista"
   },
   "collaborators": {
     "add": "Aggiungi collaboratore",

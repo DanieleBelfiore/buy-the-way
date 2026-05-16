@@ -9,7 +9,8 @@ import { useCatalogStore } from '@/stores/catalog';
 import { addItem, toggleChecked } from '@/services/items.service';
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import CategorySection from '@/components/list/CategorySection.vue';
-import type { Category } from '@/domain/types';
+import MostUsedShelf from '@/components/list/MostUsedShelf.vue';
+import type { Category, CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const { t } = useI18n();
@@ -24,6 +25,25 @@ const listId = computed(() => route.params.id as ULID);
 const list = computed(() => listsStore.lists.find((l) => l.id === listId.value));
 const itemsByCategory = computed(() => itemsStore.itemsByCategory);
 const hasItems = computed(() => itemsStore.items.length > 0);
+const shelfEntries = computed(() => catalogStore.rankedEntries);
+const shelfTopIds = computed(() => catalogStore.topIds);
+const itemNamesInList = computed(() => new Set(itemsStore.items.map((i) => i.name)));
+
+const handleShelfAdd = async (entry: CatalogEntry) => {
+  if (!authStore.user) return;
+  try {
+    await addItem({
+      listId: listId.value,
+      name: entry.name,
+      quantity: '',
+      category: entry.category,
+      note: '',
+      createdByUid: authStore.user.uid,
+    });
+  } catch (err) {
+    console.error('[ListDetailView] shelf addItem failed:', err);
+  }
+};
 
 const handleAddItem = async (params: {
   name: string;
@@ -103,6 +123,13 @@ onUnmounted(() => {
     <div class="px-0">
       <ItemAutocomplete @add-item="handleAddItem" />
     </div>
+
+    <MostUsedShelf
+      :entries="shelfEntries"
+      :top-ids="shelfTopIds"
+      :item-names-in-list="itemNamesInList"
+      @add-from-shelf="handleShelfAdd"
+    />
 
     <div v-if="!hasItems" class="px-5 py-12 text-center">
       <p class="text-sm text-muted-gray">{{ t('list.empty') }}</p>

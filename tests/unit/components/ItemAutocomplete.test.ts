@@ -179,9 +179,6 @@ describe('ItemAutocomplete', () => {
     await flushPromises();
 
     await input.trigger('keydown', { key: 'ArrowUp' });
-    const options = wrapper.findAll('[data-testid="suggestion-option"]');
-    // ArrowUp from -1 wraps to last suggestion index (1), but custom option exists so last = 2
-    // Just verify no crash and dropdown still open
     expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
   });
 

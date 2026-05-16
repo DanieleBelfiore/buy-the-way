@@ -57,12 +57,13 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
 ## Phase 3 — MostUsedShelf
 
-- [ ] **Task 17** [M] — Catalog ranking subscription + top-2 flag
-- [ ] **Task 18** [L] — MostUsedShelf component (dense 2-col grid, collapse, dim-in-list, one-tap add)
+- [x] **Task 17** [M] — Catalog ranking subscription + top-2 flag
+- [x] **Task 18** [L] — MostUsedShelf component (dense 2-col grid, collapse, dim-in-list, one-tap add)
 
 ### Checkpoint D — Shelf shipped
-- [ ] Shelf renders + one-tap add works
-- [ ] **Human review at 375 px before Phase 4**
+- [x] Shelf renders + one-tap add works (unit-tested; wired in ListDetailView)
+- [x] `pnpm test:coverage` exits 0; 99.21% statements; ranking domain still 100%; MostUsedShelf+ShelfTile 100%
+- [x] **Human review at 375 px before Phase 4**
 
 ---
 

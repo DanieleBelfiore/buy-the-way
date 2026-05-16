@@ -75,6 +75,46 @@ describe('useCatalogStore', () => {
     expect(store.error).toBe('permission-denied');
   });
 
+  describe('topIds', () => {
+    it('returns empty set when no entries', () => {
+      const store = useCatalogStore();
+      expect(store.topIds.size).toBe(0);
+    });
+
+    it('returns set of first 2 ranked entry ids', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      const now = Date.now();
+      capturedOnChange([
+        makeEntry({ id: '01A' as ULID, usageCount: 1, lastUsedAt: now - 86_400_000 }),
+        makeEntry({ id: '01B' as ULID, usageCount: 10, lastUsedAt: now }),
+        makeEntry({ id: '01C' as ULID, usageCount: 5, lastUsedAt: now }),
+      ]);
+      expect(store.topIds.size).toBe(2);
+      expect(store.topIds.has('01B' as ULID)).toBe(true);
+      expect(store.topIds.has('01C' as ULID)).toBe(true);
+    });
+
+    it('returns set of size 1 when only 1 entry', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([makeEntry({ id: '01A' as ULID })]);
+      expect(store.topIds.size).toBe(1);
+    });
+
+    it('updates reactively when entries change', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([makeEntry({ id: '01A' as ULID })]);
+      expect(store.topIds.size).toBe(1);
+      capturedOnChange([
+        makeEntry({ id: '01A' as ULID }),
+        makeEntry({ id: '01B' as ULID }),
+      ]);
+      expect(store.topIds.size).toBe(2);
+    });
+  });
+
   describe('suggestFor', () => {
     it('returns all entries when query is empty', () => {
       const store = useCatalogStore();

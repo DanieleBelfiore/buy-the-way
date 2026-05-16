@@ -4,11 +4,11 @@ import en from './locales/en.json';
 import it from './locales/it.json';
 
 const STORAGE_KEY = 'locale';
-const FALLBACK: Locale = 'en';
+const DEFAULT: Locale = 'it';
+const FALLBACK: Locale = 'it';
 
 const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
-const browserLocale = navigator.language.startsWith('it') ? 'it' : 'en';
-const initialLocale: Locale = savedLocale ?? browserLocale;
+const initialLocale: Locale = savedLocale ?? DEFAULT;
 
 export const i18n = createI18n({
   legacy: false,
