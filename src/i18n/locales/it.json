@@ -30,7 +30,8 @@
     "markAsToBuy": "Segna come da acquistare",
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
     "quantity": "Quantità",
-    "note": "Nota"
+    "note": "Nota",
+    "remove": "Rimuovi articolo"
   },
   "emptyList": {
     "button": "Svuota lista",

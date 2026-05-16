@@ -5,7 +5,10 @@ import type { Category, Item } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const props = defineProps<{ category: Category; items: Item[] }>();
-const emit = defineEmits<{ 'toggle-checked': [id: ULID, checked: boolean] }>();
+const emit = defineEmits<{
+  'toggle-checked': [id: ULID, checked: boolean];
+  'remove-item': [id: ULID];
+}>();
 </script>
 
 <template>
@@ -16,6 +19,7 @@ const emit = defineEmits<{ 'toggle-checked': [id: ULID, checked: boolean] }>();
       :key="item.id"
       :item="item"
       @toggle-checked="(val) => emit('toggle-checked', item.id, val)"
+      @remove="emit('remove-item', item.id)"
     />
   </section>
 </template>

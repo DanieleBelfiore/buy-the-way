@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const batchDelete = vi.fn();
+const batchCommit = vi.fn().mockResolvedValue(undefined);
+const writeBatchMock = vi.fn(() => ({ delete: batchDelete, commit: batchCommit }));
+
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn().mockReturnValue({ id: 'items' }),
-  doc: vi.fn().mockReturnValue({ id: 'mock-doc' }),
+  doc: vi.fn((_col, id) => ({ id })),
   setDoc: vi.fn().mockResolvedValue(undefined),
   updateDoc: vi.fn().mockResolvedValue(undefined),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
@@ -10,13 +14,20 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn().mockReturnValue({ type: 'query' }),
   where: vi.fn().mockReturnValue({ type: 'where' }),
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
+  writeBatch: (...args: unknown[]) => writeBatchMock(...args),
 }));
 
 vi.mock('@/services/catalog.service', () => ({
   upsertCatalogEntry: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { subscribeItems, addItem, toggleChecked, removeItem } from '@/services/items.service';
+import {
+  subscribeItems,
+  addItem,
+  toggleChecked,
+  removeItem,
+  emptyList,
+} from '@/services/items.service';
 import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
 import type { ULID } from '@/domain/id';
@@ -40,6 +51,9 @@ describe('items.service', () => {
     vi.mocked(updateDoc).mockResolvedValue(undefined);
     vi.mocked(deleteDoc).mockResolvedValue(undefined);
     vi.mocked(upsertCatalogEntry).mockResolvedValue(undefined);
+    batchDelete.mockReset();
+    batchCommit.mockReset().mockResolvedValue(undefined);
+    writeBatchMock.mockClear();
   });
 
   describe('addItem', () => {
@@ -125,6 +139,48 @@ describe('items.service', () => {
       await removeItem(listId, itemId);
       expect(setDoc).not.toHaveBeenCalled();
       expect(updateDoc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('emptyList', () => {
+    const mkIds = (n: number): ULID[] =>
+      Array.from({ length: n }, (_, i) => `01ARZ3NDEKTSV4RRFFQ69G5${String(i).padStart(3, '0')}` as ULID);
+
+    it('does nothing when itemIds is empty', async () => {
+      await emptyList(listId, []);
+      expect(writeBatchMock).not.toHaveBeenCalled();
+      expect(batchCommit).not.toHaveBeenCalled();
+    });
+
+    it('uses a single batch for <= 500 items', async () => {
+      const ids = mkIds(3);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchDelete).toHaveBeenCalledTimes(3);
+      expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('paginates into 500-item chunks for > 500 items', async () => {
+      const ids = mkIds(600);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
+      expect(batchDelete).toHaveBeenCalledTimes(600);
+      expect(batchCommit).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles exactly 500 items in a single batch', async () => {
+      const ids = mkIds(500);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchDelete).toHaveBeenCalledTimes(500);
+      expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('handles 1000 items as two full batches', async () => {
+      const ids = mkIds(1000);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
+      expect(batchCommit).toHaveBeenCalledTimes(2);
     });
   });
 

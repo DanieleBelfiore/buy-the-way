@@ -36,8 +36,9 @@ const makeEntry = (name: string, category = 'dairy' as const): CatalogEntry => (
 
 const mockSuggestFor = vi.fn();
 
-const mountComponent = () =>
+const mountComponent = (props: Record<string, unknown> = {}) =>
   mount(ItemAutocomplete, {
+    props,
     global: {
       plugins: [i18n],
     },
@@ -201,6 +202,71 @@ describe('ItemAutocomplete', () => {
 
     await input.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('add-item')![0][0]).toMatchObject({ name: 'Tofu', category: 'other' });
+  });
+
+  it('emits active-change(true) when input has text and active-change(false) when cleared', async () => {
+    mockSuggestFor.mockReturnValue([]);
+    const wrapper = mountComponent();
+    const input = wrapper.find('input');
+    await input.setValue('Tofu');
+    await input.trigger('input');
+    await flushPromises();
+    const events = wrapper.emitted('active-change');
+    expect(events).toBeTruthy();
+    expect(events![events!.length - 1]).toEqual([true]);
+
+    await input.setValue('');
+    await input.trigger('input');
+    await flushPromises();
+    const events2 = wrapper.emitted('active-change')!;
+    expect(events2[events2.length - 1]).toEqual([false]);
+  });
+
+  it('filters out suggestions whose name is already in list (case-insensitive)', async () => {
+    mockSuggestFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
+    const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
+    const input = wrapper.find('input');
+    await input.setValue('lat');
+    await input.trigger('input');
+    await flushPromises();
+
+    const options = wrapper.findAll('[data-testid="suggestion-option"]');
+    expect(options).toHaveLength(1);
+    expect(options[0].text()).toContain('Latte Scremato');
+  });
+
+  it('hides custom-item option when typed name already in list (case-insensitive)', async () => {
+    mockSuggestFor.mockReturnValue([]);
+    const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
+    const input = wrapper.find('input');
+    await input.setValue('LATTE');
+    await input.trigger('input');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="custom-option"]').exists()).toBe(false);
+  });
+
+  it('Enter does not commit when typed name already in list', async () => {
+    mockSuggestFor.mockReturnValue([]);
+    const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
+    const input = wrapper.find('input');
+    await input.setValue('Latte');
+    await input.trigger('input');
+    await flushPromises();
+
+    await input.trigger('keydown', { key: 'Enter' });
+    expect(wrapper.emitted('add-item')).toBeFalsy();
+  });
+
+  it('closes dropdown entirely when all options filtered out', async () => {
+    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
+    const input = wrapper.find('input');
+    await input.setValue('Latte');
+    await input.trigger('input');
+    await flushPromises();
+
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
   });
 
   it('has role=listbox on dropdown', async () => {

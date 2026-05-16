@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useItemsStore } from '@/stores/items';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
-import { addItem, toggleChecked } from '@/services/items.service';
+import { addItem, toggleChecked, removeItem, emptyList } from '@/services/items.service';
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import CategorySection from '@/components/list/CategorySection.vue';
 import MostUsedShelf from '@/components/list/MostUsedShelf.vue';
+import EmptyListButton from '@/components/list/EmptyListButton.vue';
 import type { Category, CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -28,6 +29,11 @@ const hasItems = computed(() => itemsStore.items.length > 0);
 const shelfEntries = computed(() => catalogStore.rankedEntries);
 const shelfTopIds = computed(() => catalogStore.topIds);
 const itemNamesInList = computed(() => new Set(itemsStore.items.map((i) => i.name)));
+const itemNamesLowerInList = computed(
+  () => new Set(itemsStore.items.map((i) => i.name.toLowerCase())),
+);
+const itemCount = computed(() => itemsStore.items.length);
+const autocompleteActive = ref(false);
 
 const handleShelfAdd = async (entry: CatalogEntry) => {
   if (!authStore.user) return;
@@ -71,6 +77,23 @@ const handleToggleChecked = async (itemId: ULID, checked: boolean) => {
     await toggleChecked(listId.value, itemId, checked);
   } catch (err) {
     console.error('[ListDetailView] toggleChecked failed:', err);
+  }
+};
+
+const handleRemoveItem = async (itemId: ULID) => {
+  try {
+    await removeItem(listId.value, itemId);
+  } catch (err) {
+    console.error('[ListDetailView] removeItem failed:', err);
+  }
+};
+
+const handleEmptyList = async () => {
+  const ids = itemsStore.items.map((i) => i.id);
+  try {
+    await emptyList(listId.value, ids);
+  } catch (err) {
+    console.error('[ListDetailView] emptyList failed:', err);
   }
 };
 
@@ -121,7 +144,11 @@ onUnmounted(() => {
     </header>
 
     <div class="px-0">
-      <ItemAutocomplete @add-item="handleAddItem" />
+      <ItemAutocomplete
+        :exclude-names="itemNamesLowerInList"
+        @add-item="handleAddItem"
+        @active-change="(v) => (autocompleteActive = v)"
+      />
     </div>
 
     <MostUsedShelf
@@ -143,8 +170,14 @@ onUnmounted(() => {
         :category="category"
         :items="items"
         @toggle-checked="(id, val) => handleToggleChecked(id, val)"
+        @remove-item="(id) => handleRemoveItem(id)"
       />
       <div class="mx-5 my-4 border-t border-dashed border-cream-soft" />
+      <EmptyListButton
+        v-if="!autocompleteActive"
+        :count="itemCount"
+        @empty="handleEmptyList"
+      />
     </div>
   </main>
 </template>

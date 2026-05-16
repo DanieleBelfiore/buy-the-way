@@ -30,7 +30,8 @@
     "markAsToBuy": "Mark as to buy",
     "addCustom": "Add \"{name}\" as a custom item",
     "quantity": "Quantity",
-    "note": "Note"
+    "note": "Note",
+    "remove": "Remove item"
   },
   "emptyList": {
     "button": "Empty list",

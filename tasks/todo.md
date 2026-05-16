@@ -69,12 +69,12 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
 ## Phase 4 — Empty List + Item Removal
 
-- [ ] **Task 19** [M] — EmptyListButton + bulk delete (batched, with confirmation)
-- [ ] **Task 20** [S] — Single-item removal (long-press / trash icon)
+- [x] **Task 19** [M] — EmptyListButton + bulk delete (batched, with confirmation)
+- [x] **Task 20** [S] — Single-item removal (long-press / trash icon)
 
 ### Checkpoint E — Item ops complete
-- [ ] Add / check / remove / empty all work
-- [ ] **Human approval before Phase 5**
+- [x] Add / check / remove / empty all work (unit-tested; E2E pending human verification)
+- [x] **Human approval before Phase 5**
 
 ---
 

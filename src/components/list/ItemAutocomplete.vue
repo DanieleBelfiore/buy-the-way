@@ -8,22 +8,36 @@ import type { CatalogEntry, Category } from '@/domain/types';
 const { t } = useI18n();
 const catalog = useCatalogStore();
 
+const props = withDefaults(
+  defineProps<{ excludeNames?: Set<string> }>(),
+  { excludeNames: () => new Set<string>() },
+);
+
 const emit = defineEmits<{
   'add-item': [{ name: string; category: Category; quantity: string; note: string }];
+  'active-change': [boolean];
 }>();
 
 const { immediate: rawQuery, debounced: query } = useDebouncedRef('', 120);
 const isOpen = ref(false);
 const highlightIndex = ref(-1);
 
-const suggestions = computed<CatalogEntry[]>(() => catalog.suggestFor(query.value));
+const suggestions = computed<CatalogEntry[]>(() =>
+  catalog.suggestFor(query.value).filter((e) => !props.excludeNames.has(e.name.toLowerCase())),
+);
 const hasText = computed(() => rawQuery.value.trim().length > 0);
+const typedNameInList = computed(
+  () => hasText.value && props.excludeNames.has(rawQuery.value.trim().toLowerCase()),
+);
+const showCustom = computed(() => hasText.value && !typedNameInList.value);
 
-const totalOptions = computed(() => suggestions.value.length + (hasText.value ? 1 : 0));
+const totalOptions = computed(() => suggestions.value.length + (showCustom.value ? 1 : 0));
 
 watch(rawQuery, (val) => {
-  isOpen.value = val.trim().length > 0;
+  const active = val.trim().length > 0;
+  isOpen.value = active;
   highlightIndex.value = -1;
+  emit('active-change', active);
 });
 
 const optionId = (i: number) => `autocomplete-option-${i}`;
@@ -33,6 +47,7 @@ const commit = (entry: CatalogEntry | null) => {
   const name = entry ? entry.name : rawQuery.value.trim();
   const category: Category = entry ? entry.category : 'other';
   if (!name) return;
+  if (props.excludeNames.has(name.toLowerCase())) return;
   emit('add-item', { name, category, quantity: '', note: '' });
   rawQuery.value = '';
   isOpen.value = false;
@@ -52,9 +67,9 @@ const onKeydown = (e: KeyboardEvent) => {
     e.preventDefault();
     if (highlightIndex.value >= 0 && highlightIndex.value < suggestions.value.length) {
       commit(suggestions.value[highlightIndex.value]);
-    } else if (highlightIndex.value === suggestions.value.length && hasText.value) {
+    } else if (highlightIndex.value === suggestions.value.length && showCustom.value) {
       commit(null);
-    } else if (hasText.value) {
+    } else if (showCustom.value) {
       commit(null);
     }
   } else if (e.key === 'Escape') {
@@ -105,7 +120,7 @@ const onKeydown = (e: KeyboardEvent) => {
       </li>
 
       <li
-        v-if="hasText"
+        v-if="showCustom"
         :id="optionId(suggestions.length)"
         role="option"
         :aria-selected="highlightIndex === suggestions.length"

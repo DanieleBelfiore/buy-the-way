@@ -7,6 +7,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
@@ -77,4 +78,17 @@ export const toggleChecked = async (
 export const removeItem = async (listId: ULID, itemId: ULID): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
   await deleteDoc(doc(itemsCol, itemId));
+};
+
+const EMPTY_LIST_BATCH_SIZE = 500;
+
+export const emptyList = async (listId: ULID, itemIds: ULID[]): Promise<void> => {
+  if (itemIds.length === 0) return;
+  const itemsCol = collection(db, 'lists', listId, 'items');
+  for (let i = 0; i < itemIds.length; i += EMPTY_LIST_BATCH_SIZE) {
+    const chunk = itemIds.slice(i, i + EMPTY_LIST_BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const id of chunk) batch.delete(doc(itemsCol, id));
+    await batch.commit();
+  }
 };

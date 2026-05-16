@@ -26,6 +26,7 @@ const i18n = createI18n({
       item: {
         markAsBought: 'Mark as bought',
         markAsToBuy: 'Mark as to buy',
+        remove: 'Remove item',
       },
     },
   },
@@ -108,7 +109,14 @@ describe('CategorySection', () => {
   it('emits toggle-checked with item id and new value', async () => {
     const item = makeItem({ checked: false });
     const wrapper = mount_([item]);
-    await wrapper.find('button').trigger('click');
+    await wrapper.get('[data-testid="row-toggle"]').trigger('click');
     expect(wrapper.emitted('toggle-checked')?.[0]).toEqual([item.id, true]);
+  });
+
+  it('emits remove-item with item id when row remove fires', async () => {
+    const item = makeItem();
+    const wrapper = mount_([item]);
+    await wrapper.get('[data-testid="row-remove"]').trigger('click');
+    expect(wrapper.emitted('remove-item')?.[0]).toEqual([item.id]);
   });
 });
