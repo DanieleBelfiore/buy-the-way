@@ -14,10 +14,16 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - If the email I search for does not match any registered user, the app shows an explicit error; no pending invite is created and no email is sent.
 - As a collaborator, the new list automatically appears on my home the next time I open the app after being added; a badge highlights lists that are new since my last visit.
 - As a collaborator, I can leave a shared list on my own (self-remove) without the owner having to do anything.
-- As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog and from my "most used" items.
-- As a user, if a product is not in my catalog I create it as a custom item (private, visible only to me).
-- As a user, I see "Lo Scaffale" (MostUsedShelf) — a dense, always-visible 2-column grid of my recurring items (recency-weighted frequency), with one tap to add to the current list. All entries stay visible at once (no carousel, no internal scroll); the shelf grows the page rather than scrolling internally. The top-2 items show an editorial accent bar + bolder name. Items already in the current list are dimmed with strikethrough + `✓` badge. The shelf header has a chevron toggle to collapse/expand the grid (state persisted in the session; default open).
+- As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog **and** from a built-in public catalog of common grocery items (it/en), with my catalog overriding on conflicts.
+- As a user, if a product matches nothing in either catalog I create it as a custom item (private, visible only to me).
+- As a user, I see "I preferiti" (MostUsedShelf, formerly "Lo Scaffale") — a dense, always-visible 2-column grid of my recurring items (recency-weighted frequency), with one tap to add to the current list. The header has a star icon and shows a chevron; clicking either the title text or the chevron collapses/expands the grid. All entries stay visible at once (no carousel, no internal scroll). The top-2 items show an editorial accent bar + bolder name. Items already in the current list are dimmed with strikethrough + `✓` badge.
 - As a user, on the list detail screen I can clear the entire list in one action via a ghost-destructive pill ("Svuota lista" / "Empty list") under the categories, separated from them by a dashed hairline. The button is visible only when the list is not empty and not in autocomplete mode, and shows the total item count as a badge. Tapping it asks for confirmation before removing all items.
+- As a user, on the list detail screen, categories and the items inside each category are sorted alphabetically (locale-aware). I can collapse any category section by clicking its header; the header shows a `bought/total` counter (e.g. "Latticini · 2/5") that updates live. Collapse state is persisted per-list in `localStorage`.
+- As a user, long-pressing (≥ 500 ms) on an item opens an edit sheet where I can change its name, quantity, note, and category. A short tap still toggles `checked`.
+- As a user, every primary action button shows a leading icon (lucide-vue-next) for at-a-glance recognition. The Google sign-in button uses the official Google G mark per Google brand guidelines.
+- As a user, on first-load and empty states I see friendly illustrations (e.g. a cactus) above the empty-state text on `ListsView`, `ListDetailView`, and the empty shelf.
+- As a user, I cannot create two lists with the same name (case-insensitive, trimmed) within my own scope.
+- As a user, when I check the last unchecked item in a list, I get a brief confetti animation + "Tutto comprato!" / "All done!" toast. All add/check/remove gestures emit a short haptic tick (`navigator.vibrate(10)`) on supported devices. Reduced-motion users see no animation; haptic can be turned off in settings.
 - As a user, while shopping I uncheck items as I buy them; the `checked` state persists.
 - As a user, I can use the app offline and changes sync when connectivity is restored.
 - As a user, I can switch the UI language between Italian and English.
@@ -95,13 +101,16 @@ Opacity-derived neutrals (all from `--charcoal`) are used for hover tints and de
 
 These hues color category icons only. They are never used to tint surfaces, buttons, or text body.
 
-**Required derived assets (generated from `logo-original.png` in Task 30):**
+**Required derived assets (generated from `logo-original.png` in Task 30, plus Phase 7.5 polish assets):**
 
 - Square 1024×1024 icon (cart only, no wordmark) → source for PWA icons
 - PWA icons: `icons/icon-192.png`, `icons/icon-512.png`
 - Favicon `icons/favicon.ico` (16/32/48 multi-size)
 - Apple touch icon `icons/apple-touch-icon.png` (180×180)
 - Wordmark-only SVG `branding/wordmark.svg` (for the in-app header, no tagline, uses `currentColor`, supports i18n)
+- Logo-icon SVG `branding/logo-icon.svg` (cart only, large, used on `LoginView` + small inline on `ListsView` header)
+- Google G mark `branding/google-g.svg` (official, used on the Google sign-in button)
+- Empty-state illustrations under `src/assets/illustrations/` (e.g. `empty-lists.svg`, `empty-items.svg`, `empty-shelf.svg`), inline SVG, `currentColor`-friendly
 
 **Tagline:** the tagline "YOUR SMART GROCERY LIST" baked into the logo is in English. Inside the app, the tagline is a separate i18n string (`i18n/locales/it.json` + `en.json`), NOT part of the rendered logo. The app header uses only the wordmark.
 
@@ -452,7 +461,7 @@ const onToggle = () => {
 
 **Ask first:**
 
-- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB).
+- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB). Phase 7.5 introduces `lucide-vue-next` (icons) and `canvas-confetti` (lazy-imported on the "all done" event); no other libs added.
 - Changing the Firestore data schema (adding/renaming fields on existing collections).
 - Modifying `firestore.rules`.
 - Adding new categories to the `Category` enum.
@@ -485,10 +494,16 @@ const onToggle = () => {
 - [ ] Collaborator can leave a list on their own (self-remove).
 - [ ] Only the owner can add/remove collaborators and rename/delete the list. `ownerUid` is non-removable.
 - [ ] Realtime sync: an edit by one collaborator is visible to the others in < 1s.
-- [ ] Inline autocomplete: suggests from the personal catalog + top "most used" (recency-weighted).
+- [ ] Inline autocomplete: suggests from the personal catalog + built-in public catalog + top "most used" (recency-weighted); user catalog wins on dedupe.
 - [ ] Custom items: creatable inline, persisted into the personal catalog, never visible to others.
 - [ ] `checked` toggle persists; no automatic reset.
-- [ ] MostUsedShelf collapse toggle works (default open, persists across re-renders within a session).
+- [ ] Long-press on item opens edit sheet (name, quantity, note, category) and persists changes.
+- [ ] Categories and items sorted alphabetically (locale-aware); category sections collapsible; header shows `bought/total` counter.
+- [ ] No two lists with the same name (case-insensitive, trimmed) per user.
+- [ ] MostUsedShelf renamed "I preferiti"; clicking title or chevron toggles collapse; default open, persists within session.
+- [ ] All primary buttons render a leading icon (lucide-vue-next); Google sign-in uses the official Google G mark.
+- [ ] Empty states show friendly illustrations above the headline text.
+- [ ] Haptic tick fires on add/check/remove on supported devices; "All done!" confetti + toast triggers on transition to fully-checked; reduced-motion users opt out automatically.
 - [ ] "Empty list" button clears all items after explicit confirmation; visible only with items present and not in autocomplete mode.
 - [ ] Offline: edits work without connectivity; sync is automatic when back online; per-item conflict is last-write-wins.
 - [ ] Language switchable between it/en at runtime; no hardcoded UI string.

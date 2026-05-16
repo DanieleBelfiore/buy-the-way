@@ -103,10 +103,32 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 
 ## Phase 7 — Settings + Firestore Rules
 
-- [ ] **Task 27** [L] — SettingsView (lang/account/logout) + firestore.rules + rules unit tests
+- [x] **Task 27** [L] — SettingsView (lang/account/logout) + firestore.rules + rules unit tests
 
 ### Checkpoint H — Rules locked
-- [ ] `pnpm test:rules` green; no unauthorized path
+- [x] `pnpm test:rules` green (30 rules tests pass against emulator); no unauthorized path
+- [x] **Human approval before Phase 7.5**
+
+---
+
+## Phase 7.5 — UX / Polish (pre-PWA)
+
+- [ ] **Task 27.A** [S] — i18n rename (Owner→Admin, Rename→Name, Most Used→Favorites)
+- [ ] **Task 27.B** [S] — Quick UX fixes (red delete button, shelf-title click toggles collapse)
+- [ ] **Task 27.H** [S] — Alphabetical sort (categories + items, locale-aware)
+- [ ] **Task 27.I** [M] — Category collapse + bought/total counter (persisted per-list)
+- [ ] **Task 27.C** [L] — Icon system (lucide-vue-next) + leading icons on every button + star on "Favorites" + CategoryIcon replaces color dot
+- [ ] **Task 27.G** [M] — Item edit via long-press (500ms) → bottom-sheet edit + `updateItem` service
+- [ ] **Task 27.D** [M] — Visual polish: logo on Login (animated) + small logo on Lists header + empty-state illustrations
+- [ ] **Task 27.E** [M] — Public catalog seed (~200 items, it+en) + ItemAutocomplete merge with user catalog
+- [ ] **Task 27.F1** [S] — Prevent duplicate list names per user (case-insensitive)
+- [ ] **Task 27.F2** [S] — Per-item icon for non-custom items (from public catalog)
+- [ ] **Task 27.J** [M] — Polish bundle: haptic (vibrate 10ms), confetti on all-done, skeleton loaders, slide-out animation on remove
+
+### Checkpoint H.5 — UX/Polish complete
+- [ ] All 11 tasks shipped as separate commits
+- [ ] `pnpm test:coverage` ≥ 80%; `pnpm build` green; `pnpm lint` clean
+- [ ] Manual 375 px smoke: icons everywhere, sort + collapse + counter, long-press edit, duplicate-name guard, haptic + confetti + skeleton + slide-out
 - [ ] **Human approval before Phase 8**
 
 ---
@@ -158,7 +180,8 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 | 5 Collaborators | 5 | 5 |
 | ~~6 Trash~~ | ~~1~~ | — cancelled |
 | 7 Settings + Rules | 1 | 2 |
+| 7.5 UX / Polish | 11 | ~6 |
 | 8 PWA + Offline | 3 | 3 |
 | 9 Tests | 1 | 2 |
 | 10 Ship | 1 | 1 |
-| **Total** | **31** | **~30 sessions** |
+| **Total** | **42** | **~36 sessions** |

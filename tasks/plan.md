@@ -682,6 +682,239 @@ Trash + recover/purge dropped from v1. List deletion in Task 25 is immediate and
 ### Checkpoint H — Rules locked
 
 - [ ] No unauthorized access path remains; emulator rules suite green.
+- [ ] **Human approval before Phase 7.5.**
+
+---
+
+## Phase 7.5 — UX / Polish (pre-PWA)
+
+Pre-PWA polish slice covering copy, icon system, illustrations, sort order, category collapse + counter, public catalog seed, item edit (long-press), duplicate-name guard, haptic, confetti, skeletons, slide-out animation. Each task is its own commit. Ordered by dependency / blast-radius.
+
+### Task 27.A — i18n + copy rename
+
+**Description:** Rename three user-facing labels across `it.json` + `en.json` and update all dependent component strings, tests, and SPEC references.
+
+- `collaborators.owner`: "Proprietario" → "Amministratore"; "Owner" → "Admin".
+- `listSettings.rename`: "Rinomina" → "Nome"; "Rename" → "Name".
+- `shelf.title`: "Lo Scaffale" → "I preferiti"; "Most Used" → "Favorites".
+
+**Acceptance criteria:**
+- [ ] Both locale files updated; no other key affected.
+- [ ] Existing unit tests asserting on old strings updated.
+- [ ] SPEC.md MostUsedShelf user story updated.
+
+**Files likely touched:** `src/i18n/locales/{it,en}.json`, `tests/unit/views/ListSettingsView.test.ts`, `tests/unit/components/MostUsedShelf.test.ts`, `tests/unit/components/CollaboratorList.test.ts`, `SPEC.md`.
+
+**Estimated scope:** S
+
+---
+
+### Task 27.B — Quick UX fixes (red delete, shelf-title collapse)
+
+**Description:**
+- `ListSettingsView` "Elimina lista" button full red: red fill + offwhite text (use existing red tokens; no new hexes).
+- `MostUsedShelf`: clicking the title text toggles collapse (parity with chevron). Keep chevron functional; both targets share the same handler.
+
+**Acceptance criteria:**
+- [ ] Delete-list button background red, text contrasts AA.
+- [ ] Test: click on shelf title node toggles `collapsed` state.
+
+**Files likely touched:** `src/views/ListSettingsView.vue`, `src/components/list/MostUsedShelf.vue`, related tests.
+
+**Estimated scope:** S
+
+---
+
+### Task 27.H — Alphabetical sort (categories + items)
+
+**Description:** Categories rendered in alphabetical order **by translated label** (locale-aware via `Intl.Collator`). Items within each category sorted alphabetically by name (locale-aware). Sort is a pure function in `domain/sort.ts` with unit tests; consumed by `ListDetailView` / `CategorySection`. Order recomputes on locale change.
+
+**Acceptance criteria:**
+- [ ] `sortCategories(categories, locale)` deterministic, locale-aware, tested.
+- [ ] `sortItemsByName(items, locale)` deterministic, locale-aware, tested.
+- [ ] No re-ranking of MostUsedShelf (that stays recency-weighted).
+
+**Files likely touched:** `src/domain/sort.ts`, `src/views/ListDetailView.vue`, `src/components/list/CategorySection.vue`, `tests/unit/domain/sort.test.ts`.
+
+**Estimated scope:** S
+
+---
+
+### Task 27.I — Category collapse + bought/total counter
+
+**Description:** Each `CategoryHeader` becomes a button. Click toggles section collapse. Header shows the live counter `bought/total` (e.g. "Latticini · 2/5"). Collapsed sections still show the counter; the items list is hidden. Collapse state persisted per-list in `localStorage` (`buy-the-way:list:{listId}:collapsedCategories`).
+
+**Acceptance criteria:**
+- [ ] Click header toggles section.
+- [ ] Counter updates live when items added/checked/removed.
+- [ ] State restored on reload of same list.
+
+**Files likely touched:** `src/components/list/CategoryHeader.vue`, `src/components/list/CategorySection.vue`, `src/composables/useCollapsedCategories.ts`, tests.
+
+**Estimated scope:** M
+
+**Dependencies:** Task 27.H (counter rendered after sort is in place).
+
+---
+
+### Task 27.C — Icon system + leading icons on every button
+
+**Description:** Install `lucide-vue-next` (tree-shake, ~1 KB per icon). Add a thin `IconButton.vue` wrapper or apply pattern: every CTA has `<Icon class="size-4 mr-2" />` then label. Apply across:
+
+- FAB (Plus)
+- Add item (Plus)
+- Save / Confirm (Check)
+- Cancel (X)
+- Delete / Empty list (Trash2)
+- Leave list (LogOut)
+- Sign out (LogOut)
+- Add collaborator (UserPlus)
+- Google login (custom official Google SVG, in `public/branding/google-g.svg`)
+- "I preferiti" header (Star) and shelf chevron (existing)
+
+Replace category-color dot in `ListItemRow` with `CategoryIcon` (already exists). Replace dot in any other category-marker site.
+
+**Acceptance criteria:**
+- [ ] `pnpm add lucide-vue-next` recorded in lockfile.
+- [ ] Every primary button on every view renders an icon left of its label.
+- [ ] Google button uses official Google G SVG (per Google Brand Guidelines).
+- [ ] Star icon on "I preferiti" title.
+- [ ] No category-color dot remains; CategoryIcon used instead.
+
+**Files likely touched:** `package.json`, `src/components/ui/IconButton.vue`, all views and components with CTAs, `public/branding/google-g.svg`, related tests.
+
+**Estimated scope:** L (cross-cutting)
+
+**Dependencies:** Task 27.A (label keys final).
+
+---
+
+### Task 27.G — Item edit via long-press
+
+**Description:** Long-press (500 ms) on `ListItemRow` opens a bottom-sheet edit panel (`ItemEditSheet.vue`): name, quantity, note, category. `updateItem(listId, itemId, patch)` service. Realtime sync verified. Long-press detection uses `pointerdown`/`pointerup` with timer (no external lib); cancels on scroll. Tap remains the toggle-checked action.
+
+**Acceptance criteria:**
+- [ ] Long-press 500 ms opens sheet; tap < 500 ms still toggles checked.
+- [ ] Edit persists name/quantity/note/category; `updatedAt` updated.
+- [ ] Sheet has Cancel + Save (with icons per 27.C).
+- [ ] Two-context realtime: edit on one tab visible on the other < 1 s.
+
+**Files likely touched:** `src/services/items.service.ts` (`updateItem`), `src/stores/items.ts`, `src/components/list/ListItemRow.vue`, `src/components/list/ItemEditSheet.vue`, tests.
+
+**Estimated scope:** M
+
+**Dependencies:** Task 27.C (icons in sheet CTAs).
+
+---
+
+### Task 27.D — Visual polish: logo + illustrations
+
+**Description:**
+- `LoginView`: large logo (`public/branding/logo-icon.svg` derived from `logo-original.png`, square cart-only) above the wordmark, with a CSS keyframe animation on mount (scale 0.9 → 1, opacity 0 → 1, ~600 ms, ease-out; gentle hover float optional). Respects `prefers-reduced-motion`.
+- `ListsView` header: small logo (24 px) next to the "Buy The Way" title.
+- Empty-state illustrations (cactus SVG or equivalent friendly mark, in `src/assets/illustrations/`):
+  - `ListsView` empty: above "Nessuna lista".
+  - `ListDetailView` empty: above "Nessun articolo".
+  - `MostUsedShelf` empty: above the empty hint.
+
+Illustrations are inline SVG via Vue `<component>` or `<img>` with `loading="lazy"`. Size ~120 px. Tinted with `currentColor` where possible.
+
+**Acceptance criteria:**
+- [ ] Logo on LoginView visible + animated; reduced-motion users see static.
+- [ ] Logo small next to ListsView title.
+- [ ] Three empty-state illustrations present and a11y-friendly (`aria-hidden="true"` since the heading carries semantic).
+
+**Files likely touched:** `src/views/LoginView.vue`, `src/views/ListsView.vue`, `src/views/ListDetailView.vue`, `src/components/list/MostUsedShelf.vue`, `src/assets/illustrations/*.svg`, `public/branding/logo-icon.svg`.
+
+**Estimated scope:** M
+
+---
+
+### Task 27.E — Public catalog seed + autocomplete merge
+
+**Description:** Add `src/domain/public-catalog.ts` exporting `PUBLIC_CATALOG: ReadonlyArray<{ slug: string; name_it: string; name_en: string; category: Category; icon?: string }>` with ~200 common Italian grocery items spread across all categories. Normalized slugs to enable dedupe.
+
+`ItemAutocomplete`:
+- Builds search index from user catalog + public catalog (locale-aware name).
+- Dedupes by normalized name (user entry wins on conflict).
+- Results sorted: exact prefix match → contains match → ranked by user-catalog usage (if present).
+- Custom-item path remains as fallback when 0 matches and input is non-empty.
+
+**Acceptance criteria:**
+- [ ] ≥ 200 entries covering all 9 categories with reasonable distribution.
+- [ ] Typing "lat" suggests "Latte" (it) / "Milk" (en) from public catalog.
+- [ ] User-catalog entry with same name overrides public.
+- [ ] Custom-item creation path still works for novel names.
+- [ ] Unit tests for merge + dedupe + locale switch.
+
+**Files likely touched:** `src/domain/public-catalog.ts`, `src/components/list/ItemAutocomplete.vue`, `src/stores/catalog.ts`, tests.
+
+**Estimated scope:** M
+
+**Dependencies:** Task 27.A (locale field names stable).
+
+---
+
+### Task 27.F1 — Prevent duplicate list names per user
+
+**Description:** `createList(name, ownerUid)` rejects when the user already owns or collaborates on a list whose name matches case-insensitive trim. Check runs client-side against the in-memory `listsStore.lists`. New error `DuplicateListNameError` shown via i18n in `ListsView` create flow.
+
+**Acceptance criteria:**
+- [ ] Create list "Spesa" then "spesa " → second fails with explicit error.
+- [ ] Error toast/message uses `list.duplicateName` i18n key.
+- [ ] Unit test for the duplicate check; no Firestore call when duplicate detected.
+
+**Files likely touched:** `src/services/lists.service.ts` (signature accepts the existing-names set), `src/stores/lists.ts`, `src/views/ListsView.vue`, i18n locales, tests.
+
+**Estimated scope:** S
+
+---
+
+### Task 27.F2 — Per-item icon for non-custom items
+
+**Description:** Use `PUBLIC_CATALOG` slug → icon mapping (emoji or lucide). `ListItemRow` and `ShelfTile` render the matched icon to the left of the name; custom items (no public match) show a generic neutral icon. Icon is purely decorative (`aria-hidden`).
+
+**Acceptance criteria:**
+- [ ] Public-catalog items render their dedicated icon.
+- [ ] Custom items render a generic placeholder icon.
+- [ ] No layout shift; CategoryIcon already on row stays where it is.
+
+**Files likely touched:** `src/domain/public-catalog.ts` (icon field), `src/components/list/ListItemRow.vue`, `src/components/list/ShelfTile.vue`, tests.
+
+**Estimated scope:** S
+
+**Dependencies:** Tasks 27.C and 27.E.
+
+---
+
+### Task 27.J — Polish bundle (haptic, confetti, skeleton, slide-out)
+
+**Description:**
+- **Haptic**: `navigator.vibrate(10)` on add-item, toggle-checked, and confirm-remove. Feature-detect; respect `prefers-reduced-motion` and a `localStorage` opt-out key `buy-the-way:haptic` (default on).
+- **Confetti**: when the last unchecked item is checked (transition from "any unchecked" → "all checked"), trigger a brief confetti burst (canvas-confetti, lazy import) + toast "Tutto comprato!" / "All done!". Respect reduced-motion.
+- **Skeleton loaders**: `ListsView` shows 3 skeleton cards while `loading`. `ListDetailView` shows a skeleton block while items are initial-loading.
+- **Slide-out animation**: removing an item plays a 200 ms slide-left + fade transition before unmount (`<TransitionGroup>` on the items list). Respects reduced-motion (instant unmount).
+
+**Acceptance criteria:**
+- [ ] Haptic fires only on touch-capable devices; no errors on desktop.
+- [ ] Confetti triggers exactly once per "all done" transition; no replay if user re-checks something.
+- [ ] Skeletons visible until first snapshot.
+- [ ] Slide-out animates on remove; reduced-motion bypasses.
+
+**Files likely touched:** `src/composables/useHaptic.ts`, `src/composables/useReducedMotion.ts`, `src/components/ui/Confetti.vue`, `src/components/ui/Toast.vue`, `src/components/ui/SkeletonCard.vue`, `src/views/ListsView.vue`, `src/views/ListDetailView.vue`, `src/components/list/CategorySection.vue`, tests.
+
+**Estimated scope:** M
+
+**Dependencies:** Tasks 27.C (icons in toast), 27.H/I (no conflicts).
+
+---
+
+### Checkpoint H.5 — UX/Polish complete
+
+- [ ] All 11 Phase 7.5 tasks shipped; each is its own commit.
+- [ ] `pnpm test:run` + `pnpm test:coverage` green; coverage ≥ 80%.
+- [ ] `pnpm build` green; `pnpm lint` clean.
+- [ ] Manual smoke at 375 px: every CTA has an icon; sort + collapse + counter work; long-press edit works; duplicate name rejected; haptic + confetti + skeleton + slide-out verified on a touch device.
 - [ ] **Human approval before Phase 8.**
 
 ---
@@ -854,7 +1087,8 @@ After Phase 0, sequential foundations don't permit much parallelism. Possible pa
 | 5 Collaborators | 21–25 | 5 |
 | 6 Trash | 26 | 1 |
 | 7 Settings + Rules | 27 | 1 |
+| 7.5 UX / Polish | 27.A–27.J | 11 |
 | 8 PWA + Offline | 28–30 | 3 |
 | 9 Tests | 31 | 1 |
 | 10 Ship | 32 | 1 |
-| **Total** | | **32 tasks** |
+| **Total** | | **43 tasks** |

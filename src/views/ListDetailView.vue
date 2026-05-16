@@ -100,10 +100,7 @@ const handleEmptyList = async () => {
 let _listsUnsub: (() => void) | null = null;
 
 onMounted(() => {
-  // Subscribe to lists if arriving directly (e.g. page refresh)
-  if (listsStore.lists.length === 0) {
-    _listsUnsub = listsStore.subscribe();
-  }
+  _listsUnsub = listsStore.subscribe();
   itemsStore.setCurrentList(listId.value);
   if (authStore.user) {
     catalogStore.subscribe(authStore.user.uid);

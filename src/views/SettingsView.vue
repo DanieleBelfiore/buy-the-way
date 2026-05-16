@@ -12,6 +12,7 @@ const { t, locale } = useI18n();
 const signingOut = ref(false);
 
 const currentLocale = computed<Locale>(() => locale.value as Locale);
+const user = computed(() => authStore.user);
 
 const handleSetLocale = (next: Locale) => {
   setLocale(next);
@@ -82,6 +83,27 @@ const handleSignOut = async () => {
         >
           English
         </button>
+      </div>
+    </section>
+
+    <section
+      v-if="user"
+      data-testid="account-section"
+      class="px-5 pt-8"
+    >
+      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
+        {{ t('settings.account') }}
+      </h2>
+      <div class="bg-white rounded-xl border border-cream-soft px-4 py-3">
+        <div
+          v-if="user.displayName"
+          class="text-charcoal font-medium"
+        >
+          {{ user.displayName }}
+        </div>
+        <div class="text-sm text-muted-gray">
+          {{ user.email }}
+        </div>
       </div>
     </section>
 

@@ -69,9 +69,7 @@ watch(
 );
 
 onMounted(() => {
-  if (listsStore.lists.length === 0) {
-    listsUnsub = listsStore.subscribe();
-  }
+  listsUnsub = listsStore.subscribe();
   if (list.value) {
     nameDraft.value = list.value.name;
     void loadMembers(list.value.collaboratorUids);

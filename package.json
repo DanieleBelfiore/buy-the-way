@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:rules": "vitest run tests/rules",
+    "test:rules": "firebase emulators:exec --only firestore --project=demo-buy-the-way 'vitest run --config vitest.rules.config.ts'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -30,9 +30,14 @@
     "vue-router": "^4.4.5"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "protobufjs", "vue-demi"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "protobufjs",
+      "vue-demi"
+    ]
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.48.2",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
@@ -42,7 +47,6 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.15.0",
     "eslint-plugin-vue": "^9.31.0",
-    "vue-eslint-parser": "^9.4.3",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
@@ -51,6 +55,7 @@
     "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^2.1.5",
+    "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "^2.1.10"
   }
 }

@@ -24,6 +24,7 @@ const i18n = createI18n({
       settings: {
         title: 'Impostazioni',
         language: 'Lingua',
+        account: 'Account',
         signOut: 'Esci',
       },
       auth: { signingIn: 'Accesso in corso…' },
@@ -32,6 +33,7 @@ const i18n = createI18n({
       settings: {
         title: 'Settings',
         language: 'Language',
+        account: 'Account',
         signOut: 'Sign out',
       },
       auth: { signingIn: 'Signing in…' },
@@ -97,6 +99,31 @@ describe('SettingsView', () => {
     const wrapper = mountView();
     await wrapper.find('[data-testid="locale-it"]').trigger('click');
     expect(setLocale).toHaveBeenCalledWith('it');
+  });
+
+  it('renders account section with email and displayName', () => {
+    const wrapper = mountView();
+    expect(wrapper.text()).toContain('Account');
+    expect(wrapper.text()).toContain('a@b.com');
+    expect(wrapper.text()).toContain('A');
+  });
+
+  it('renders email only when displayName missing', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { uid: 'u1', email: 'a@b.com', displayName: null },
+      signOut: mockSignOut,
+    } as any);
+    const wrapper = mountView();
+    expect(wrapper.text()).toContain('a@b.com');
+  });
+
+  it('does not crash when user is null', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: null,
+      signOut: mockSignOut,
+    } as any);
+    const wrapper = mountView();
+    expect(wrapper.find('[data-testid="account-section"]').exists()).toBe(false);
   });
 
   it('renders sign-out button', () => {
