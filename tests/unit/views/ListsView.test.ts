@@ -43,9 +43,11 @@ describe('ListsView', () => {
   const mountView = () =>
     mount(ListsView, { global: { plugins: [i18n, router] } });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    await router.push('/lists');
+    await router.isReady();
     mockSubscribe.mockReturnValue(vi.fn());
     mockCreateList.mockResolvedValue('01ABC');
     vi.mocked(useListsStore).mockReturnValue({

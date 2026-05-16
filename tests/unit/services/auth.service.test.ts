@@ -148,6 +148,7 @@ describe('auth.service', () => {
     });
 
     it('still calls callback even when setDoc throws', async () => {
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       let capturedCb: ((u: any) => Promise<void>) | undefined;
       mOnAuthStateChanged.mockImplementation((_auth, cb) => {
         capturedCb = cb as any;
@@ -160,10 +161,12 @@ describe('auth.service', () => {
 
       await capturedCb!({ uid: 'uid-1', email: 'test@example.com', displayName: 'Test' });
 
-      // callback must be called even when setDoc fails
-      expect(callback).toHaveBeenCalledWith(
-        expect.objectContaining({ uid: 'uid-1' }),
+      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ uid: 'uid-1' }));
+      expect(consoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining('[auth]'),
+        expect.any(Error),
       );
+      consoleWarn.mockRestore();
     });
 
     it('handles null email gracefully', async () => {

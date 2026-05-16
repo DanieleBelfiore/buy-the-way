@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
@@ -45,6 +45,7 @@ const mountComponent = () =>
 
 describe('ItemAutocomplete', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     setActivePinia(createPinia());
     vi.clearAllMocks();
     vi.mocked(useCatalogStore).mockReturnValue({
@@ -54,6 +55,10 @@ describe('ItemAutocomplete', () => {
       rankedEntries: [],
     } as any);
     mockSuggestFor.mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders input with correct placeholder', () => {
