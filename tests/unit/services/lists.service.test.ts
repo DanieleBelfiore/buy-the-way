@@ -32,8 +32,8 @@ describe('lists.service', () => {
         name: 'Spesa',
         ownerUid: 'uid-1',
         collaboratorUids: ['uid-1'],
-        deletedAt: null,
       });
+      expect(data).not.toHaveProperty('deletedAt');
       expect(typeof (data as any).createdAt).toBe('number');
       expect(typeof (data as any).updatedAt).toBe('number');
     });
@@ -82,7 +82,6 @@ describe('lists.service', () => {
               name: 'Spesa',
               ownerUid: 'uid-1',
               collaboratorUids: ['uid-1'],
-              deletedAt: null,
               createdAt: 100,
               updatedAt: 200,
             }),

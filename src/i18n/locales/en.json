@@ -5,8 +5,7 @@
   },
   "nav": {
     "lists": "Lists",
-    "settings": "Settings",
-    "trash": "Trash"
+    "settings": "Settings"
   },
   "auth": {
     "continueWithGoogle": "Continue with Google",
@@ -50,7 +49,7 @@
   "collaborators": {
     "add": "Add collaborator",
     "addPlaceholder": "Email address…",
-    "search": "Search",
+    "submit": "Add",
     "notFound": "No registered user with that email.",
     "added": "Collaborator added.",
     "remove": "Remove",
@@ -67,21 +66,11 @@
     "renamePlaceholder": "New name…",
     "save": "Save",
     "deleteList": "Delete list",
-    "deleteConfirmTitle": "Delete list?",
-    "deleteConfirmMessage": "Move \"{name}\" to trash?",
-    "confirmDelete": "Delete",
+    "deleteConfirmTitle": "Delete list permanently?",
+    "deleteConfirmMessage": "This will permanently delete \"{name}\" and all its items. This action cannot be undone.",
+    "confirmDelete": "Delete permanently",
     "cancel": "Cancel",
     "members": "Members"
-  },
-  "trash": {
-    "title": "Trash",
-    "empty": "Trash is empty",
-    "recover": "Recover",
-    "purge": "Delete permanently",
-    "purgeConfirmTitle": "Delete permanently?",
-    "purgeConfirmMessage": "This will permanently delete \"{name}\" and all its items. This cannot be undone.",
-    "confirmPurge": "Delete",
-    "cancel": "Cancel"
   },
   "settings": {
     "title": "Settings",

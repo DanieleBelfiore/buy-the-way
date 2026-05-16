@@ -62,11 +62,6 @@ const router = createRouter({
       component: () => import('@/views/ListSettingsView.vue'),
     },
     {
-      path: '/trash',
-      name: 'trash',
-      component: () => import('@/views/TrashView.vue'),
-    },
-    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),

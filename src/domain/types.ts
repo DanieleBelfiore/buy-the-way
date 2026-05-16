@@ -18,7 +18,6 @@ export interface List {
   name: string;
   ownerUid: string;
   collaboratorUids: readonly string[];
-  deletedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -50,4 +49,5 @@ export interface UserProfile {
   email: string;
   displayName: string;
   lastLoginAt: number;
+  lastSeenLists?: number;
 }

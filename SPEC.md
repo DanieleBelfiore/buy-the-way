@@ -160,8 +160,7 @@ buy-the-way/
 │   │   ├── LoginView.vue
 │   │   ├── ListsView.vue             # Home: all user lists + new-lists badge
 │   │   ├── ListDetailView.vue        # Single list detail
-│   │   ├── ListSettingsView.vue      # Owner: rename, manage collaborators, soft-delete. Collaborator: leave
-│   │   ├── TrashView.vue             # Deleted lists (recover/purge) - owner only
+│   │   ├── ListSettingsView.vue      # Owner: rename, manage collaborators, hard-delete (irreversible). Collaborator: leave
 │   │   └── SettingsView.vue          # Language, account, logout
 │   ├── components/
 │   │   ├── list/
@@ -269,7 +268,6 @@ export interface List {
   name: string;
   ownerUid: string;
   collaboratorUids: readonly string[];   // uids resolved via users/{uid} lookup, never emails
-  deletedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -471,7 +469,7 @@ const onToggle = () => {
 - Allow a non-owner to invite/remove collaborators.
 - Allow an unauthenticated user to access any application route.
 - Run a mutation that does not update `updatedAt`.
-- Hard-delete lists or items: always soft-delete (`deletedAt`).
+- Soft-delete lists: deletion is immediate hard-delete (purges items + list doc), guarded by an irreversible-action confirm modal. No trash, no recovery.
 - Mutate domain objects in place.
 - Skip `--no-verify` on git, skip hooks, skip CI.
 - Use `v-html` with non-sanitized user-generated content.
@@ -481,7 +479,7 @@ const onToggle = () => {
 
 - [ ] Google login working end-to-end (emulator + production).
 - [ ] On login, the `users/{uid}` profile is created/updated (lowercase email, displayName, lastLoginAt).
-- [ ] Owner-side list CRUD with soft delete + restore from Trash.
+- [ ] Owner-side list CRUD with irreversible hard-delete (purges items + list doc, confirmed via modal).
 - [ ] Collaborator addition via email lookup: existing user → added immediately; unregistered user → visible error, no outbound email, no pending invite.
 - [ ] Collaborator sees the new list on first open after being added; "new" badge on the home.
 - [ ] Collaborator can leave a list on their own (self-remove).
@@ -508,6 +506,6 @@ None blocking. All v1 decisions locked. Out-of-scope items below are deferred or
 - Ownership transfer: out of scope for v1 (owner is fixed).
 - User-defined custom categories: out of scope for v1.
 - Dark theme: **rejected.** Single direction (Editorial Cream) only, v1 and v1.x.
-- Trash auto-purge after 30 days (Cloud Function): **rejected.** Soft-deleted lists persist indefinitely.
+- Trash / soft-delete with recovery: **rejected for v1.** List deletion is immediate hard-delete from List Settings, gated by an irreversible-action confirm. Reintroducible as a separate phase if usage shows real demand for undo.
 - Error tracking (Sentry/Highlight): deferred to v1.x.
 - Analytics: never on v1; reconsider v1.x only if usage data is genuinely needed.

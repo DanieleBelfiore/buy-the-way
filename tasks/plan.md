@@ -4,14 +4,14 @@
 
 Mobile-first PWA for real-time shared shopping lists. Stack: Vue 3 + TS + Pinia + Firebase (Auth + Firestore) + Vite + vite-plugin-pwa. UI direction: Editorial Cream (single canonical look, no dark mode, no Apple sign-in).
 
-Plan is **vertically sliced**: each phase after Phase 0 ships one complete user-visible capability (auth → list home → list detail → shelf → collaborators → trash → settings → PWA → ship). Foundation (Phase 0) is bottom-up because nothing else can stand without it.
+Plan is **vertically sliced**: each phase after Phase 0 ships one complete user-visible capability (auth → list home → list detail → shelf → collaborators → settings → PWA → ship). Foundation (Phase 0) is bottom-up because nothing else can stand without it.
 
 ## Architecture Decisions
 
 - **Firestore data model**: `lists/{listId}` with `ownerUid: string` and `collaboratorUids: string[]`; items as subcollection `lists/{listId}/items/{itemId}`; per-user `catalog/{ownerUid}/entries/{entryId}`; global `users/{uid}` (uid, email lowercased, displayName, lastLoginAt) populated on auth.
 - **IDs**: ULID via `newId()`; never raw timestamps or non-ordered random.
 - **Last-write-wins**: every mutation updates `updatedAt`; conflict resolution is the latest `updatedAt` per item. No CRDT.
-- **Soft delete**: `deletedAt: number | null` on `lists`; Trash view filters with `deletedAt != null`; no hard delete in v1.
+- **Hard delete**: list deletion from List Settings is immediate and irreversible — purges all items in batched writes then deletes the list doc. No soft-delete, no trash, no recovery (Phase 6 cancelled).
 - **Service boundary**: components/stores never touch Firestore SDK directly; only `services/*.service.ts` do.
 - **Offline**: rely on Firestore SDK persistence (IndexedDB); SW caches static shell only.
 - **Realtime**: `onSnapshot` subscriptions wrapped via `useFirestoreCollection` composable.
@@ -619,11 +619,11 @@ User story: As owner I add a collaborator by email; as collaborator I see the ne
 
 ### Task 25 — ListSettingsView
 
-**Description:** Per-list settings: rename (owner only), manage collaborators (owner: add/remove; non-owner: leave), soft-delete (owner only, sets `deletedAt = now`).
+**Description:** Per-list settings: rename (owner only), manage collaborators (owner: add/remove; non-owner: leave), hard-delete (owner only — purges all items in batches then deletes the list doc; irreversible, confirmed by modal).
 
 **Acceptance criteria:**
 - [ ] Rename writes `name` + bumps `updatedAt`.
-- [ ] Soft-delete navigates back to home; list disappears from active list.
+- [ ] Hard-delete navigates back to home; list + all items removed from Firestore; irreversible.
 - [ ] Non-owner cannot see rename/delete UI.
 
 **Verification:**
@@ -644,34 +644,9 @@ User story: As owner I add a collaborator by email; as collaborator I see the ne
 
 ---
 
-## Phase 6 — Vertical Slice: Trash + Soft-delete Recovery
+## Phase 6 — **CANCELLED** (Trash + Soft-delete Recovery)
 
-User story: owner soft-deletes a list and can recover it from Trash, or purge it permanently.
-
-### Task 26 — TrashView + recover/purge
-
-**Description:** Owner-only view. Subscribes to `lists` where `ownerUid == uid AND deletedAt != null`. Each row: "Recover" (sets `deletedAt = null`) + "Purge permanently" (confirmation → recursive subcollection delete via callable? No callable in v1 — instead, recursive client-side delete: load all items + delete; then delete list doc). Purge is the only hard delete.
-
-**Acceptance criteria:**
-- [ ] Recover restores the list to home immediately.
-- [ ] Purge with confirmation removes the list + all items.
-- [ ] Non-owner cannot reach TrashView (router guard or empty result).
-
-**Verification:**
-- [ ] E2E: soft-delete → trash shows list → recover → home shows list.
-
-**Dependencies:** Task 25.
-
-**Files likely touched:** `src/views/TrashView.vue`, `src/services/lists.service.ts` (purgeList helper), `src/router/index.ts`.
-
-**Estimated scope:** M
-
----
-
-### Checkpoint G — Trash done
-
-- [ ] All v1 list lifecycle flows shipped: create → share → leave → soft-delete → recover/purge.
-- [ ] **Human approval before Phase 7.**
+Trash + recover/purge dropped from v1. List deletion in Task 25 is immediate and irreversible (purges items + deletes list doc), guarded by a confirmation modal that explicitly states the action cannot be undone. Rationale: trash adds storage cost + query complexity for a feature with minimal real-world value at this product's scale. If users later request recovery, reintroduce as a separate phase.
 
 ---
 
@@ -683,7 +658,7 @@ User story: owner soft-deletes a list and can recover it from Trash, or purge it
 
 **Rules summary:**
 - `users/{uid}`: any authenticated user can read; user can write only their own doc.
-- `lists/{id}`: read if `request.auth.uid in resource.data.collaboratorUids`. Create requires `ownerUid == request.auth.uid` and `ownerUid in collaboratorUids`. Update of `name`, `updatedAt`, `deletedAt` only by owner. Update of `collaboratorUids`: owner can add/remove anyone except cannot remove `ownerUid`; non-owner can only remove their own uid.
+- `lists/{id}`: read if `request.auth.uid in resource.data.collaboratorUids`. Create requires `ownerUid == request.auth.uid` and `ownerUid in collaboratorUids`. Update of `name`, `updatedAt` only by owner. Update of `collaboratorUids`: owner can add/remove anyone except cannot remove `ownerUid`; non-owner can only remove their own uid. Delete only by owner.
 - `lists/{id}/items/{itemId}`: read + write if requesting user is in parent list's `collaboratorUids`.
 - `catalog/{uid}/entries/{eid}`: read + write only by `uid` itself.
 

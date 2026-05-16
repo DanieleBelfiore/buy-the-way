@@ -9,6 +9,7 @@ vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
 
 import ListsView from '@/views/ListsView.vue';
 import { useListsStore } from '@/stores/lists';
+import { useAuthStore } from '@/stores/auth';
 
 const i18n = createI18n({
   legacy: false,
@@ -24,6 +25,7 @@ const i18n = createI18n({
         noLists: 'No lists yet',
         noListsHint: 'Tap + to create your first list',
       },
+      badge: { new: 'New' },
     },
   },
 });
@@ -39,6 +41,9 @@ const router = createRouter({
 describe('ListsView', () => {
   const mockSubscribe = vi.fn();
   const mockCreateList = vi.fn();
+  const mockLoadLastSeen = vi.fn();
+  const mockMarkSeen = vi.fn();
+  const mockIsNewForUser = vi.fn();
 
   const mountView = () =>
     mount(ListsView, { global: { plugins: [i18n, router] } });
@@ -50,17 +55,28 @@ describe('ListsView', () => {
     await router.isReady();
     mockSubscribe.mockReturnValue(vi.fn());
     mockCreateList.mockResolvedValue('01ABC');
+    mockLoadLastSeen.mockResolvedValue(undefined);
+    mockMarkSeen.mockResolvedValue(undefined);
+    mockIsNewForUser.mockReturnValue(false);
     vi.mocked(useListsStore).mockReturnValue({
       lists: [],
       loading: false,
       error: null,
+      lastSeenLists: 0,
       subscribe: mockSubscribe,
       createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
+    } as any);
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
     } as any);
   });
 
-  it('calls subscribe on mount', () => {
+  it('calls subscribe on mount', async () => {
     mountView();
+    await flushPromises();
     expect(mockSubscribe).toHaveBeenCalledOnce();
   });
 
@@ -107,13 +123,17 @@ describe('ListsView', () => {
   it('renders a ListCard for each list', () => {
     vi.mocked(useListsStore).mockReturnValue({
       lists: [
-        { id: '01A', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], deletedAt: null, createdAt: 1, updatedAt: 2 },
-        { id: '01B', name: 'Pasta', ownerUid: 'u', collaboratorUids: ['u'], deletedAt: null, createdAt: 1, updatedAt: 3 },
+        { id: '01A', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 2 },
+        { id: '01B', name: 'Pasta', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 3 },
       ],
       loading: false,
       error: null,
+      lastSeenLists: 0,
       subscribe: mockSubscribe,
       createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
     } as any);
 
     const wrapper = mountView();
@@ -126,18 +146,23 @@ describe('ListsView', () => {
       lists: [],
       loading: true,
       error: null,
+      lastSeenLists: 0,
       subscribe: mockSubscribe,
       createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
     } as any);
 
     const wrapper = mountView();
     expect(wrapper.find('.animate-pulse').exists()).toBe(true);
   });
 
-  it('calls unsubscribe on unmount', () => {
+  it('calls unsubscribe on unmount', async () => {
     const unsub = vi.fn();
     mockSubscribe.mockReturnValue(unsub);
     const wrapper = mountView();
+    await flushPromises();
     wrapper.unmount();
     expect(unsub).toHaveBeenCalledOnce();
   });
@@ -157,12 +182,16 @@ describe('ListsView', () => {
 
     vi.mocked(useListsStore).mockReturnValue({
       lists: [
-        { id: '01ABCXYZ', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], deletedAt: null, createdAt: 1, updatedAt: 2 },
+        { id: '01ABCXYZ', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 2 },
       ],
       loading: false,
       error: null,
+      lastSeenLists: 0,
       subscribe: mockSubscribe,
       createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
     } as any);
 
     const wrapper = mountView();
@@ -170,5 +199,41 @@ describe('ListsView', () => {
     await flushPromises();
     expect(router.currentRoute.value.name).toBe('list-detail');
     expect(router.currentRoute.value.params.id).toBe('01ABCXYZ');
+  });
+
+  it('calls loadLastSeen on mount before subscribing', async () => {
+    mountView();
+    await flushPromises();
+    expect(mockLoadLastSeen).toHaveBeenCalledOnce();
+    expect(mockSubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('calls markSeen on unmount', () => {
+    const wrapper = mountView();
+    wrapper.unmount();
+    expect(mockMarkSeen).toHaveBeenCalledOnce();
+  });
+
+  it('passes isNew=true to ListCard when isNewForUser returns true', async () => {
+    mockIsNewForUser.mockImplementation((list: any) => list.id === '01NEW');
+    vi.mocked(useListsStore).mockReturnValue({
+      lists: [
+        { id: '01NEW', name: 'Shared', ownerUid: 'someone-else', collaboratorUids: ['uid-me', 'someone-else'], createdAt: 1, updatedAt: 99 },
+        { id: '01OLD', name: 'Mine', ownerUid: 'uid-me', collaboratorUids: ['uid-me'], createdAt: 1, updatedAt: 50 },
+      ],
+      loading: false,
+      error: null,
+      lastSeenLists: 70,
+      subscribe: mockSubscribe,
+      createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
+    } as any);
+
+    const wrapper = mountView();
+    await flushPromises();
+    const badges = wrapper.findAll('[data-testid="new-badge"]');
+    expect(badges).toHaveLength(1);
   });
 });

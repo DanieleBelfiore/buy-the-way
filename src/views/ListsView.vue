@@ -3,12 +3,14 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
+import { useAuthStore } from '@/stores/auth';
 import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const listsStore = useListsStore();
+const authStore = useAuthStore();
 
 const showCreateInput = ref(false);
 const newListName = ref('');
@@ -17,12 +19,14 @@ const createError = ref<string | null>(null);
 
 let unsubscribe: (() => void) | undefined;
 
-onMounted(() => {
+onMounted(async () => {
+  await listsStore.loadLastSeen();
   unsubscribe = listsStore.subscribe();
 });
 
 onUnmounted(() => {
   unsubscribe?.();
+  void listsStore.markSeen();
 });
 
 const openCreateInput = () => {
@@ -138,6 +142,7 @@ const openList = (id: string) => {
           v-for="list in listsStore.lists"
           :key="list.id"
           :list="list"
+          :is-new="authStore.user ? listsStore.isNewForUser(list, authStore.user.uid) : false"
           @open="openList"
         />
       </template>

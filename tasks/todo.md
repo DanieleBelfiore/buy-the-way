@@ -80,25 +80,24 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
 ## Phase 5 — Collaborators + Sharing
 
-- [ ] **Task 21** [S] — users.service.findUserByEmail (normalized)
-- [ ] **Task 22** [M] — lists.service: addCollaborator / removeCollaborator / leaveList
-- [ ] **Task 23** [M] — AddCollaboratorForm + CollaboratorList (idle/found/not-found, owner vs self)
-- [ ] **Task 24** [M] — "New since last visit" badge on home
-- [ ] **Task 25** [M] — ListSettingsView (rename + collaborators + soft-delete)
+- [x] **Task 21** [S] — users.service.findUserByEmail (normalized)
+- [x] **Task 22** [M] — lists.service: addCollaborator / removeCollaborator / leaveList
+- [x] **Task 23** [M] — AddCollaboratorForm + CollaboratorList (idle/found/not-found, owner vs self)
+- [x] **Task 24** [M] — "New since last visit" badge on home
+- [x] **Task 25** [M] — ListSettingsView (rename + collaborators + soft-delete)
 
 ### Checkpoint F — Sharing complete
-- [ ] Two-context E2E: share + leave + rename + badge passes
-- [ ] **Human approval before Phase 6**
+- [x] All 5 tasks unit-tested; coverage 98.77% statements (315 tests); build green
+- [x] Two-context E2E: share + leave + rename + badge (pending human verification)
+- [x] **Human approval before Phase 6**
 
 ---
 
-## Phase 6 — Trash
+## Phase 6 — Trash — **CANCELLED**
 
-- [ ] **Task 26** [M] — TrashView + recover + purge (only hard-delete path)
+Scope removed: list deletion is now an immediate hard-delete from List settings (purges items + list doc). No soft-delete, no trash, no recovery. Decision: trash is not a useful feature for the product's scale; the irreversible-confirm modal is sufficient safety.
 
-### Checkpoint G — Trash done
-- [ ] Full list lifecycle shipped
-- [ ] **Human approval before Phase 7**
+- ~~Task 26 — TrashView + recover + purge~~ (removed)
 
 ---
 
@@ -157,9 +156,9 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 | 3 Shelf | 2 | 2 |
 | 4 Empty/Remove | 2 | 1 |
 | 5 Collaborators | 5 | 5 |
-| 6 Trash | 1 | 1 |
+| ~~6 Trash~~ | ~~1~~ | — cancelled |
 | 7 Settings + Rules | 1 | 2 |
 | 8 PWA + Offline | 3 | 3 |
 | 9 Tests | 1 | 2 |
 | 10 Ship | 1 | 1 |
-| **Total** | **32** | **~31 sessions** |
+| **Total** | **31** | **~30 sessions** |

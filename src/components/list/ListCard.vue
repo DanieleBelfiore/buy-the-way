@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import type { List } from '@/domain/types';
 
-const props = defineProps<{ list: List }>();
+const props = withDefaults(
+  defineProps<{ list: List; isNew?: boolean }>(),
+  { isNew: false },
+);
 const emit = defineEmits<{ (e: 'open', id: string): void }>();
+const { t } = useI18n();
 </script>
 
 <template>
@@ -14,7 +19,16 @@ const emit = defineEmits<{ (e: 'open', id: string): void }>();
     :aria-label="props.list.name"
     @click="emit('open', props.list.id)"
   >
-    <span class="font-medium text-charcoal truncate">{{ props.list.name }}</span>
+    <span class="flex items-center gap-2 min-w-0">
+      <span class="font-medium text-charcoal truncate">{{ props.list.name }}</span>
+      <span
+        v-if="props.isNew"
+        data-testid="new-badge"
+        class="shrink-0 rounded-full bg-charcoal text-offwhite px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      >
+        {{ t('badge.new') }}
+      </span>
+    </span>
     <svg
       class="shrink-0 text-muted-gray"
       width="16"

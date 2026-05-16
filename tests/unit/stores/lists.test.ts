@@ -6,12 +6,18 @@ vi.mock('@/services/lists.service', () => ({
   subscribeUserLists: vi.fn(),
 }));
 
+vi.mock('@/services/users.service', () => ({
+  getUserProfile: vi.fn(),
+  touchLastSeenLists: vi.fn(),
+}));
+
 vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(),
 }));
 
 import { useListsStore } from '@/stores/lists';
 import { createList, subscribeUserLists } from '@/services/lists.service';
+import { getUserProfile, touchLastSeenLists } from '@/services/users.service';
 import { useAuthStore } from '@/stores/auth';
 
 const mockUser = { uid: 'uid-1', email: 'a@b.com', displayName: 'A' };
@@ -63,7 +69,7 @@ describe('useListsStore', () => {
     store.subscribe();
 
     const mockLists = [
-      { id: '01ABC', name: 'Spesa', ownerUid: 'uid-1', collaboratorUids: ['uid-1'], deletedAt: null, createdAt: 100, updatedAt: 200 },
+      { id: '01ABC', name: 'Spesa', ownerUid: 'uid-1', collaboratorUids: ['uid-1'], createdAt: 100, updatedAt: 200 },
     ];
     capturedOnChange!(mockLists);
 
@@ -99,5 +105,80 @@ describe('useListsStore', () => {
     vi.mocked(useAuthStore).mockReturnValue({ user: null } as any);
     const store = useListsStore();
     await expect(store.createList('Spesa')).rejects.toThrow();
+  });
+
+  describe('loadLastSeen', () => {
+    it('reads profile.lastSeenLists into store', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'uid-1',
+        email: 'a@b.com',
+        displayName: 'A',
+        lastLoginAt: 0,
+        lastSeenLists: 12345,
+      });
+      const store = useListsStore();
+      await store.loadLastSeen();
+      expect(store.lastSeenLists).toBe(12345);
+    });
+
+    it('defaults to 0 when profile missing lastSeenLists', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'uid-1',
+        email: 'a@b.com',
+        displayName: 'A',
+        lastLoginAt: 0,
+      });
+      const store = useListsStore();
+      await store.loadLastSeen();
+      expect(store.lastSeenLists).toBe(0);
+    });
+
+    it('no-op when no user signed in', async () => {
+      vi.mocked(useAuthStore).mockReturnValue({ user: null } as any);
+      const store = useListsStore();
+      await store.loadLastSeen();
+      expect(getUserProfile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('markSeen', () => {
+    it('calls touchLastSeenLists with current uid', async () => {
+      vi.mocked(touchLastSeenLists).mockResolvedValue(undefined);
+      const store = useListsStore();
+      await store.markSeen();
+      expect(touchLastSeenLists).toHaveBeenCalledWith('uid-1', expect.any(Number));
+    });
+
+    it('swallows errors with warning', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(touchLastSeenLists).mockRejectedValue(new Error('offline'));
+      const store = useListsStore();
+      await expect(store.markSeen()).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+      warn.mockRestore();
+    });
+  });
+
+  describe('isNewForUser', () => {
+    it('returns false when uid is owner', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 0;
+      const list = { id: '01A', name: 'X', ownerUid: 'uid-1', collaboratorUids: ['uid-1'], createdAt: 1, updatedAt: 999 } as any;
+      expect(store.isNewForUser(list, 'uid-1')).toBe(false);
+    });
+
+    it('returns true when not owner and updatedAt > lastSeenLists', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 100;
+      const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
+      expect(store.isNewForUser(list, 'uid-1')).toBe(true);
+    });
+
+    it('returns false when not owner but updatedAt <= lastSeenLists', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 300;
+      const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
+      expect(store.isNewForUser(list, 'uid-1')).toBe(false);
+    });
   });
 });

@@ -36,9 +36,7 @@ export default defineConfig({
         'src/i18n/index.ts',
         // Stub views implemented in later phases
         'src/views/ListDetailView.vue',
-        'src/views/ListSettingsView.vue',
         'src/views/SettingsView.vue',
-        'src/views/TrashView.vue',
       ],
     },
   },

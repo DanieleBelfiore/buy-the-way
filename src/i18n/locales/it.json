@@ -5,8 +5,7 @@
   },
   "nav": {
     "lists": "Liste",
-    "settings": "Impostazioni",
-    "trash": "Cestino"
+    "settings": "Impostazioni"
   },
   "auth": {
     "continueWithGoogle": "Continua con Google",
@@ -50,7 +49,7 @@
   "collaborators": {
     "add": "Aggiungi collaboratore",
     "addPlaceholder": "Indirizzo email…",
-    "search": "Cerca",
+    "submit": "Aggiungi",
     "notFound": "Nessun utente registrato con questa email.",
     "added": "Collaboratore aggiunto.",
     "remove": "Rimuovi",
@@ -67,21 +66,11 @@
     "renamePlaceholder": "Nuovo nome…",
     "save": "Salva",
     "deleteList": "Elimina lista",
-    "deleteConfirmTitle": "Eliminare la lista?",
-    "deleteConfirmMessage": "Spostare \"{name}\" nel cestino?",
-    "confirmDelete": "Elimina",
+    "deleteConfirmTitle": "Eliminare la lista definitivamente?",
+    "deleteConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli. L'operazione è irreversibile.",
+    "confirmDelete": "Elimina definitivamente",
     "cancel": "Annulla",
     "members": "Membri"
-  },
-  "trash": {
-    "title": "Cestino",
-    "empty": "Il cestino è vuoto",
-    "recover": "Recupera",
-    "purge": "Elimina definitivamente",
-    "purgeConfirmTitle": "Eliminare definitivamente?",
-    "purgeConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli. Questa azione è irreversibile.",
-    "confirmPurge": "Elimina",
-    "cancel": "Annulla"
   },
   "settings": {
     "title": "Impostazioni",
