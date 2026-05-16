@@ -90,6 +90,45 @@ Rules:
 
 ---
 
+## Testing standards
+
+These rules apply to every test file. Violations caused recurring hard-to-diagnose failures during Phase 2.
+
+### Timers
+
+Any test file that mounts a component using a debounced composable (`useDebouncedRef` or similar) must call `vi.useFakeTimers()` in `beforeEach` and `vi.useRealTimers()` in `afterEach`. Real timers fire after test teardown and produce spurious `[Vue warn]: Unhandled error during component update`.
+
+### Router in component tests
+
+When mounting a component that uses `vue-router`, navigate the router to a real route before mounting:
+
+```ts
+beforeEach(async () => {
+  await router.push('/your-route');
+  await router.isReady();
+});
+```
+
+Skipping this produces `[Vue Router warn]: No match found for location with path ""`.
+
+### Console spy precision
+
+Match exactly what production code uses: spy on `console.warn` if the code calls `console.warn`, `console.error` if it calls `console.error`. A wrong spy makes error-handling tests pass silently while real errors go undetected.
+
+---
+
+## Firestore rules invariant
+
+Every task that introduces a new Firestore collection or subcollection must update `firebase/firestore.rules` in the same commit. Firestore is default-deny: a missing rule silently blocks all reads/writes at runtime and is invisible to unit tests.
+
+---
+
+## View self-containment
+
+Any view reachable via direct URL (e.g. `/lists/:id`) must subscribe to all required Pinia stores in its own `onMounted`. Never assume a parent view has already mounted and populated shared state — the user may have hard-refreshed or navigated directly.
+
+---
+
 ## Design constraints
 
 These constraints are fixed for v1 and must not be relaxed:

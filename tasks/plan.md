@@ -18,6 +18,20 @@ Plan is **vertically sliced**: each phase after Phase 0 ships one complete user-
 - **i18n**: `vue-i18n` Composition API, `legacy: false`; every UI string in `i18n/locales/{it,en}.json`.
 - **Auth guard**: router beforeEach blocks all routes except `/login` until `onAuthStateChanged` fires with a user.
 - **Style isolation**: design tokens live in `styles/tokens.css` as CSS custom properties; Tailwind theme bridges to them. No new hex codes outside the canonical palette.
+- **Firestore rules per task**: whenever a task introduces a new Firestore collection or subcollection, `firebase/firestore.rules` must be updated in that same task — never deferred. Default-deny means missing rules cause silent failures at runtime.
+- **View self-containment**: any view reachable via direct URL (e.g. `/lists/:id`) must subscribe to all required stores in its own `onMounted`. Never assume a parent view has already run and populated shared state.
+
+## Invariants (enforced at every checkpoint)
+
+Run these before marking a checkpoint complete — do not wait for user to ask:
+
+```bash
+pnpm test:coverage   # must exit 0; ≥ 80% on all files; zero stderr warnings
+pnpm typecheck       # must exit 0
+pnpm build           # must exit 0
+```
+
+If `pnpm test:coverage` produces any `[Vue warn]`, `[auth]`, or Vitest unhandled-error lines in stderr, treat them as failures and fix before proceeding.
 
 ## Phase 0 — Foundation
 

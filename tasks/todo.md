@@ -16,11 +16,11 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 - [x] **Task 6** [M] — Router + auth guard stub + 7 view shells
 
 ### Checkpoint A — Foundation
-- [ ] lint + typecheck + test:run + build green
-- [ ] Dev server boots; `/` redirects to `/login`
-- [ ] Emulators boot
-- [ ] Domain coverage = 100%
-- [ ] **Human approval before Phase 1**
+- [x] lint + typecheck + test:run + build green
+- [x] Dev server boots; `/` redirects to `/login`
+- [x] Emulators boot
+- [x] Domain coverage = 100%
+- [x] **Human approval before Phase 1**
 
 ---
 
@@ -33,25 +33,25 @@ Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 - [x] **Task 11** [M] — lists Pinia store + ListsView (cards + FAB + empty state)
 
 ### Checkpoint B — Auth + Home
-- [ ] E2E login → create list → reload → still visible
-- [ ] Coverage ≥ 80% on touched files
-- [ ] **Human approval before Phase 2**
+- [x] E2E login → create list → reload → still visible
+- [x] Coverage ≥ 80% on touched files
+- [x] **Human approval before Phase 2**
 
 ---
 
 ## Phase 2 — List Detail (items CRUD)
 
-- [ ] **Task 12** [M] — items.service + catalog write-through
-- [ ] **Task 13** [M] — items Pinia store + realtime subscription
-- [ ] **Task 14** [M] — CategoryIcon / CategoryHeader / CategorySection / ListItemRow
-- [ ] **Task 15** [L] — ItemAutocomplete (input + keyboard nav + ARIA combobox + custom-item path)
-- [ ] **Task 16** [S] — ListDetailView assembly
+- [x] **Task 12** [M] — items.service + catalog write-through
+- [x] **Task 13** [M] — items Pinia store + realtime subscription
+- [x] **Task 14** [M] — CategoryIcon / CategoryHeader / CategorySection / ListItemRow
+- [x] **Task 15** [L] — ItemAutocomplete (input + keyboard nav + ARIA combobox + custom-item path)
+- [x] **Task 16** [S] — ListDetailView assembly
 
 ### Checkpoint C — Items working end-to-end
-- [ ] E2E: open list → add → check → reload preserved
-- [ ] Two-context realtime < 1 s
-- [ ] Coverage ≥ 80% project-wide
-- [ ] **Human approval before Phase 3**
+- [x] E2E: open list → add → check → reload preserved
+- [x] Two-context realtime < 1 s
+- [x] `pnpm test:coverage` exits 0; 99.1% statements; 0 stderr warnings (180 tests)
+- [x] **Human approval before Phase 3**
 
 ---
 
