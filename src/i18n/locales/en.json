@@ -110,6 +110,10 @@
   "offline": {
     "banner": "Offline — changes will sync when back online"
   },
+  "pwa": {
+    "updateAvailable": "New version available",
+    "reload": "Reload"
+  },
   "error": {
     "generic": "Something went wrong. Please try again.",
     "listNotFound": "List not found."

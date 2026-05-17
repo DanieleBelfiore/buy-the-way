@@ -1,3 +1,4 @@
+@import '@fontsource-variable/hanken-grotesk/index.css';
 @import './tokens.css';
 
 @tailwind base;

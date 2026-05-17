@@ -4,6 +4,7 @@ import App from './App.vue';
 import router from './router/index';
 import { i18n } from './i18n/index';
 import { useAuthStore } from '@/stores/auth';
+import { setupServiceWorker } from '@/pwa/registerSW';
 import '@/styles/global.css';
 
 const app = createApp(App);
@@ -20,3 +21,5 @@ app.use(router);
 app.use(i18n);
 
 app.mount('#app');
+
+void setupServiceWorker();

@@ -34,6 +34,18 @@ pnpm build           # must exit 0
 
 If `pnpm test:coverage` produces any `[Vue warn]`, `[auth]`, or Vitest unhandled-error lines in stderr, treat them as failures and fix before proceeding.
 
+## Checkpoint recap protocol
+
+At the end of every phase/checkpoint, before asking for human approval, the agent MUST emit a **Human Verification Recap** with:
+
+1. **Automated gates run** — list each command + result (tests count, coverage %, build status, lint).
+2. **What the human must check manually** — bullet list of UI/UX/device/browser/Lighthouse/E2E items not covered by automated gates, with exact steps (URL, viewport, action) and expected outcome.
+3. **Files changed** — clickable list grouped by purpose.
+4. **Pending / deferred** — anything blocked by external action (Lighthouse, install test, E2E spec in later phase).
+5. **Commit plan** — proposed commit messages, one per task, awaiting `I authorize this commit`.
+
+Recap is non-optional. No "phase done" message without it.
+
 ## Phase 0 — Foundation
 
 Bottom-up. No user-visible value yet. Required by every later slice.

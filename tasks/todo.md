@@ -4,6 +4,8 @@
 
 Legend: **S** = 1–2 files, **M** = 3–5 files, **L** = 5–8 files.
 
+> **Checkpoint recap protocol (mandatory).** At end of every checkpoint, before requesting human approval, emit a **Human Verification Recap** covering: (1) automated gates run, (2) manual checks the human must perform with exact steps + expected outcome, (3) files changed, (4) pending/deferred items, (5) commit plan awaiting authorization. See [plan.md § Checkpoint recap protocol](./plan.md#checkpoint-recap-protocol).
+
 ---
 
 ## Phase 0 — Foundation
@@ -135,13 +137,14 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 
 ## Phase 8 — PWA + Offline
 
-- [ ] **Task 28** [S] — vite-plugin-pwa + manifest + generated icons
-- [ ] **Task 29** [M] — SW registration + update prompt + OfflineBanner
-- [ ] **Task 30** [M] — Firestore IndexedDB persistence + last-write-wins verification
+- [x] **Task 28** [S] — vite-plugin-pwa + manifest + generated icons
+- [x] **Task 29** [M] — SW registration + update prompt + OfflineBanner
+- [x] **Task 30** [M] — Firestore IndexedDB persistence + last-write-wins verification
 
 ### Checkpoint I — PWA ready
-- [ ] Lighthouse PWA ≥ 90, Perf ≥ 85, A11y ≥ 95
-- [ ] Offline E2E green
+- [x] `pnpm test:coverage` 94.49% statements (438 tests); `pnpm build` green; `pnpm lint` clean
+- [ ] Lighthouse PWA ≥ 90, Perf ≥ 85, A11y ≥ 95 (pending human run)
+- [ ] Offline E2E green (Task 31 — Phase 9)
 - [ ] **Human install + offline test before Phase 9**
 
 ---

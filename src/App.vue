@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import OfflineBanner from '@/components/ui/OfflineBanner.vue';
+import UpdatePrompt from '@/components/ui/UpdatePrompt.vue';
 </script>
 
 <template>
+  <OfflineBanner />
   <router-view v-slot="{ Component }">
     <Transition name="view-fade" mode="out-in">
       <component :is="Component" />
     </Transition>
   </router-view>
+  <UpdatePrompt />
 </template>
 
 <style>
