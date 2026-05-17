@@ -16,14 +16,16 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a collaborator, I can leave a shared list on my own (self-remove) without the owner having to do anything.
 - As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog **and** from a built-in public catalog of common grocery items (it/en), with my catalog overriding on conflicts.
 - As a user, if a product matches nothing in either catalog I create it as a custom item (private, visible only to me).
-- As a user, I see "I preferiti" (MostUsedShelf, formerly "Lo Scaffale") — a dense, always-visible 2-column grid of my recurring items (recency-weighted frequency), with one tap to add to the current list. The header has a star icon and shows a chevron; clicking either the title text or the chevron collapses/expands the grid. All entries stay visible at once (no carousel, no internal scroll). The top-2 items show an editorial accent bar + bolder name. Items already in the current list are dimmed with strikethrough + `✓` badge.
-- As a user, on the list detail screen I can clear the entire list in one action via a ghost-destructive pill ("Svuota lista" / "Empty list") under the categories, separated from them by a dashed hairline. The button is visible only when the list is not empty and not in autocomplete mode, and shows the total item count as a badge. Tapping it asks for confirmation before removing all items.
-- As a user, on the list detail screen, categories and the items inside each category are sorted alphabetically (locale-aware). I can collapse any category section by clicking its header; the header shows a `bought/total` counter (e.g. "Latticini · 2/5") that updates live. Collapse state is persisted per-list in `localStorage`.
-- As a user, long-pressing (≥ 500 ms) on an item opens an edit sheet where I can change its name, quantity, note, and category. A short tap still toggles `checked`.
-- As a user, every primary action button shows a leading icon (lucide-vue-next) for at-a-glance recognition. The Google sign-in button uses the official Google G mark per Google brand guidelines.
-- As a user, on first-load and empty states I see friendly illustrations (e.g. a cactus) above the empty-state text on `ListsView`, `ListDetailView`, and the empty shelf.
+- As a user, I see "I preferiti" — a dense 2-column grid of my recurring items, recency-weighted (`usageCount * exp(-Δt·ln2 / 30d)`, min 2 uses, cap 30). The grid is only rendered when at least one entry qualifies. The header has a filled star icon and a chevron; clicking either the title or the chevron collapses/expands the grid. Items already in the current list render with strikethrough + dimmed opacity. Each tile has a small × button (and a 500 ms long-press alternative) that excludes the entry from favorites permanently — you can re-enable it later from the item edit sheet via the "I preferiti" checkbox.
+- As a user, on the list detail screen I can clear the entire list in one action via a full-width red button ("Svuota lista" / "Empty list") pinned to the bottom of the screen. The button is visible only when the list is not empty and not in autocomplete mode. Tapping it opens a confirmation modal.
+- As a user, on the list detail screen, categories and items inside each category are sorted alphabetically (locale-aware). I can collapse any category section by clicking its header; the header shows a `bought/total` counter beside the name. Collapse state is persisted per-list in `localStorage`. When all items in a category are checked, the section auto-collapses.
+- As a user, long-pressing (≥ 500 ms) on an item opens an edit sheet where I can change its name, quantity, note, category, and toggle the "I preferiti" flag (forces the entry into favorites or excludes it from the algorithm). A short tap still toggles `checked`. Deleting a single item (red trash icon) prompts a confirmation modal.
+- As a user, the list detail header shows a stats strip below the title: `Articoli: {n} · Comprati: {b}/{t} · Utenti: {u}`.
+- As a user, every primary action button shows a leading icon (`@lucide/vue`) for at-a-glance recognition. The Google sign-in button uses the official Google G mark per Google brand guidelines. Category and per-item icons use Unicode emoji tinted with the category cssVar.
+- As a user, on first-load and empty states I see friendly illustrations (e.g. a cactus) above the empty-state text on `ListsView` and `ListDetailView`. Errors render as a rounded `AlertMessage` chip with an icon.
 - As a user, I cannot create two lists with the same name (case-insensitive, trimmed) within my own scope.
-- As a user, when I check the last unchecked item in a list, I get a brief confetti animation + "Tutto comprato!" / "All done!" toast. All add/check/remove gestures emit a short haptic tick (`navigator.vibrate(10)`) on supported devices. Reduced-motion users see no animation; haptic can be turned off in settings.
+- As a user, when I check the last unchecked item in a category, the category auto-collapses. All add/check/remove gestures emit a short haptic tick (`navigator.vibrate(10)`) on supported devices. Reduced-motion users see no animation; haptic can be turned off via `localStorage` key `buy-the-way:haptic`.
+- As a user, on the lists home each list card shows a coloured-circle avatar cluster of its collaborators (up to 3 visible, +N overflow), the item count, and the last-modified date with time (locale-aware). The home page itself shows the brand logo (`logo-original.png`) as a hero block; the settings button sits in the top-right corner labelled "Impostazioni"; the list detail page exposes a separate "Impostazioni lista" button.
 - As a user, while shopping I uncheck items as I buy them; the `checked` state persists.
 - As a user, I can use the app offline and changes sync when connectivity is restored.
 - As a user, I can switch the UI language between Italian and English.
@@ -178,7 +180,7 @@ buy-the-way/
 │   │   │   ├── ItemAutocomplete.vue  # Input + inline suggestions
 │   │   │   ├── CategoryHeader.vue
 │   │   │   ├── CategorySection.vue
-│   │   │   ├── MostUsedShelf.vue     # Dense always-visible grid with collapse toggle ("Lo Scaffale")
+│   │   │   ├── MostUsedShelf.vue     # Dense always-visible grid with collapse toggle ("I preferiti")
 │   │   │   └── EmptyListButton.vue   # Ghost-destructive pill to clear list with count badge
 │   │   ├── collaborators/
 │   │   │   ├── AddCollaboratorForm.vue   # Lookup by email + add

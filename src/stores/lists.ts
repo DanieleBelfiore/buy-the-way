@@ -56,7 +56,8 @@ export const useListsStore = defineStore('lists', () => {
   const createList = async (name: string): Promise<string> => {
     const auth = useAuthStore();
     if (!auth.user) throw new Error('Not authenticated');
-    return serviceCreateList(name, auth.user.uid);
+    const existing = lists.value.map((l) => l.name);
+    return serviceCreateList(name, auth.user.uid, existing);
   };
 
   return {

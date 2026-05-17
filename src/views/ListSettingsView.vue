@@ -12,6 +12,7 @@ import {
   deleteList,
 } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
+import { ArrowLeft, Check, LogOut, Trash2 } from '@lucide/vue';
 import AddCollaboratorForm from '@/components/collaborators/AddCollaboratorForm.vue';
 import CollaboratorList from '@/components/collaborators/CollaboratorList.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
@@ -134,26 +135,14 @@ const handleDelete = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream pb-24">
+  <main class="min-h-screen bg-cream pb-6 flex flex-col">
     <header class="px-5 pt-12 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
         @click="router.back()"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
       </button>
       <h1 class="text-xl font-semibold text-charcoal tracking-tight truncate">
         {{ t('listSettings.title') }}
@@ -164,7 +153,7 @@ const handleDelete = async () => {
       <p class="text-sm text-muted-gray">{{ t('error.listNotFound') }}</p>
     </div>
 
-    <div v-else class="px-5 space-y-6">
+    <div v-else class="px-5 flex-1 flex flex-col gap-6">
       <section v-if="isOwner" data-testid="rename-section" class="space-y-2">
         <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
           {{ t('listSettings.rename') }}
@@ -181,9 +170,10 @@ const handleDelete = async () => {
             data-testid="rename-save"
             type="button"
             :disabled="renaming || !nameDraft.trim() || nameDraft.trim() === list.name"
-            class="px-4 py-3 bg-charcoal text-offwhite text-sm font-medium rounded-xl disabled:opacity-40"
+            class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
             @click="handleRename"
           >
+            <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
             {{ t('listSettings.save') }}
           </button>
         </div>
@@ -198,6 +188,7 @@ const handleDelete = async () => {
           :members="members"
           :owner-uid="list.ownerUid"
           :self-uid="selfUid"
+          hide-leave
           @remove="handleRemove"
           @leave="handleLeave"
         />
@@ -205,20 +196,28 @@ const handleDelete = async () => {
         <p v-if="actionError" class="text-red-500 text-xs">{{ actionError }}</p>
       </section>
 
-      <section
-        v-if="isOwner"
-        data-testid="delete-section"
-        class="pt-4 border-t border-cream-soft"
-      >
+      <div class="mt-auto pt-4 border-t border-cream-soft">
         <button
+          v-if="!isOwner"
+          data-testid="leave-list-bottom"
+          type="button"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
+          @click="handleLeave"
+        >
+          <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
+          {{ t('listSettings.leaveList') }}
+        </button>
+        <button
+          v-if="isOwner"
           data-testid="delete-list"
           type="button"
-          class="inline-flex items-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
           @click="deleteOpen = true"
         >
+          <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
           {{ t('listSettings.deleteList') }}
         </button>
-      </section>
+      </div>
 
       <ConfirmModal
         v-if="list"

@@ -12,7 +12,7 @@ const i18n = createI18n({
   messages: {
     en: {
       shelf: {
-        title: 'Most Used',
+        title: 'Favorites',
         empty: 'Add items to populate your shelf',
         collapse: 'Collapse shelf',
         expand: 'Expand shelf',
@@ -65,19 +65,16 @@ describe('ShelfTile', () => {
     expect(wrapper.emitted('add')).toBeUndefined();
   });
 
-  it('applies top accent marker when isTop', () => {
-    const wrapper = mount_({ entry: makeEntry(), isTop: true });
-    expect(wrapper.find('[data-testid="shelf-tile-top"]').exists()).toBe(true);
+  it('does not render shelf-tile-top accent bar', () => {
+    const wrapperTop = mount_({ entry: makeEntry(), isTop: true });
+    expect(wrapperTop.find('[data-testid="shelf-tile-top"]').exists()).toBe(false);
+    const wrapperNot = mount_({ entry: makeEntry(), isTop: false });
+    expect(wrapperNot.find('[data-testid="shelf-tile-top"]').exists()).toBe(false);
   });
 
-  it('omits top accent marker when not top', () => {
-    const wrapper = mount_({ entry: makeEntry(), isTop: false });
-    expect(wrapper.find('[data-testid="shelf-tile-top"]').exists()).toBe(false);
-  });
-
-  it('shows checkmark badge when in list', () => {
+  it('does not render shelf-tile-check element', () => {
     const wrapper = mount_({ entry: makeEntry(), isInList: true });
-    expect(wrapper.find('[data-testid="shelf-tile-check"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="shelf-tile-check"]').exists()).toBe(false);
   });
 
   it('applies dimmed style when in list', () => {
@@ -136,13 +133,9 @@ describe('MostUsedShelf', () => {
       global: { plugins: [i18n] },
     });
 
-  it('renders empty state when entries is empty', () => {
+  it('renders nothing when entries is empty', () => {
     const wrapper = mount_({ entries: [] });
-    expect(wrapper.text()).toContain('Add items to populate your shelf');
-  });
-
-  it('does not render tiles when entries is empty', () => {
-    const wrapper = mount_({ entries: [] });
+    expect(wrapper.find('[data-testid="shelf-title"]').exists()).toBe(false);
     expect(wrapper.findAllComponents(ShelfTile)).toHaveLength(0);
   });
 
@@ -156,11 +149,12 @@ describe('MostUsedShelf', () => {
     expect(wrapper.findAllComponents(ShelfTile)).toHaveLength(3);
   });
 
-  it('renders title and count in header', () => {
+  it('renders title in header without count', () => {
     const entries = [makeEntry({ id: '01A' as ULID }), makeEntry({ id: '01B' as ULID })];
     const wrapper = mount_({ entries });
-    expect(wrapper.text()).toContain('Most Used');
-    expect(wrapper.text()).toContain('2');
+    const headerText = wrapper.find('[data-testid="shelf-title"]').text();
+    expect(headerText).toContain('Favorites');
+    expect(headerText).not.toMatch(/\b2\b/);
   });
 
   it('passes isTop to tile when entry id is in topIds', () => {
@@ -192,6 +186,16 @@ describe('MostUsedShelf', () => {
     const wrapper = mount_({ entries: [entry] });
     await wrapper.findComponent(ShelfTile).find('button').trigger('click');
     expect(wrapper.emitted('add-from-shelf')?.[0]).toEqual([entry]);
+  });
+
+  it('toggles open/closed when title clicked', async () => {
+    const entries = [makeEntry({ id: '01A' as ULID })];
+    const wrapper = mount_({ entries });
+    expect(wrapper.findComponent(ShelfTile).exists()).toBe(true);
+    await wrapper.find('[data-testid="shelf-title"]').trigger('click');
+    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
+    await wrapper.find('[data-testid="shelf-title"]').trigger('click');
+    expect(wrapper.findComponent(ShelfTile).exists()).toBe(true);
   });
 
   it('toggles open/closed when chevron clicked', async () => {

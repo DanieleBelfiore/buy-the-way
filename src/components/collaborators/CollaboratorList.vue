@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { LogOut, X } from '@lucide/vue';
 import type { UserProfile } from '@/domain/types';
 
-const props = defineProps<{
-  members: readonly UserProfile[];
-  ownerUid: string;
-  selfUid: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    members: readonly UserProfile[];
+    ownerUid: string;
+    selfUid: string;
+    hideLeave?: boolean;
+  }>(),
+  { hideLeave: false },
+);
 
 const emit = defineEmits<{
   remove: [string];
@@ -43,21 +48,23 @@ const labelFor = (m: UserProfile): string =>
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"
-          class="rounded-full px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 active:bg-red-100"
+          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 active:bg-red-100"
           @click="emit('remove', m.uid)"
         >
+          <X :size="12" :stroke-width="2.25" aria-hidden="true" />
           {{ t('collaborators.remove') }}
         </button>
       </li>
     </ul>
 
     <button
-      v-if="!isOwner"
+      v-if="!isOwner && !props.hideLeave"
       type="button"
       data-testid="leave-list"
-      class="inline-flex items-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
+      class="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
       @click="emit('leave')"
     >
+      <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
       {{ t('collaborators.leave') }}
     </button>
   </div>

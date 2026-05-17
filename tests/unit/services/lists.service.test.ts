@@ -10,7 +10,7 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
 }));
 
-import { createList, subscribeUserLists } from '@/services/lists.service';
+import { createList, subscribeUserLists, DuplicateListNameError } from '@/services/lists.service';
 import { setDoc, onSnapshot } from 'firebase/firestore';
 
 describe('lists.service', () => {
@@ -48,6 +48,21 @@ describe('lists.service', () => {
       const id = await createList('Latte', 'uid-1');
       const [, data] = vi.mocked(setDoc).mock.calls[0];
       expect((data as any).id).toBe(id);
+    });
+
+    it('rejects when existingNames contains case-insensitive trim match', async () => {
+      await expect(createList('  Spesa  ', 'uid-1', ['SPESA'])).rejects.toThrow(DuplicateListNameError);
+      expect(setDoc).not.toHaveBeenCalled();
+    });
+
+    it('does not reject when existingNames has only different names', async () => {
+      await expect(createList('Spesa', 'uid-1', ['Lavoro', 'Casa'])).resolves.toBeTypeOf('string');
+    });
+
+    it('trims input name before writing', async () => {
+      await createList('  Spesa  ', 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).name).toBe('Spesa');
     });
   });
 

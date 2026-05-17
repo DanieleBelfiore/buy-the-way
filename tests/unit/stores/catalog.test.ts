@@ -16,7 +16,7 @@ const makeEntry = (overrides: Partial<CatalogEntry> = {}): CatalogEntry => ({
   ownerUid: 'uid-1',
   name: 'Latte',
   category: 'dairy',
-  usageCount: 1,
+  usageCount: 2,
   lastUsedAt: Date.now(),
   ...overrides,
 });
@@ -154,6 +154,63 @@ describe('useCatalogStore', () => {
       store.subscribe('uid-1');
       capturedOnChange([makeEntry({ name: 'Latte' })]);
       expect(store.suggestFor('  lat  ')).toHaveLength(1);
+    });
+  });
+
+  describe('suggestionsFor (merged user + public catalog)', () => {
+    it('returns matches from public catalog when user catalog is empty (it locale)', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('lat', 'it');
+      expect(results.some((s) => s.name === 'Latte' && s.source === 'public')).toBe(true);
+    });
+
+    it('returns localized name (en) from public catalog', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('milk', 'en');
+      expect(results.some((s) => s.name === 'Milk' && s.source === 'public')).toBe(true);
+    });
+
+    it('user catalog wins when same normalized name appears in both', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([makeEntry({ name: 'Latte', usageCount: 5 })]);
+      const results = store.suggestionsFor('lat', 'it');
+      const latteMatches = results.filter((s) => s.name.toLowerCase() === 'latte');
+      expect(latteMatches).toHaveLength(1);
+      expect(latteMatches[0]!.source).toBe('user');
+    });
+
+    it('exact prefix match ranks before contains-only', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('pane', 'it');
+      expect(results[0]!.name.toLowerCase()).toBe('pane');
+    });
+
+    it('returns custom-item fallback should be triggered: no match for novel name', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('xyzqwerty', 'it');
+      expect(results).toHaveLength(0);
+    });
+
+    it('returns top entries when query is empty', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([makeEntry({ name: 'Latte' })]);
+      const results = store.suggestionsFor('', 'it');
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.some((s) => s.source === 'user')).toBe(true);
+    });
+
+    it('respects limit', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('a', 'it', 3);
+      expect(results.length).toBeLessThanOrEqual(3);
+    });
+
+    it('handles diacritics (caffè ↔ caffe)', () => {
+      const store = useCatalogStore();
+      const results = store.suggestionsFor('caffe', 'it');
+      expect(results.some((s) => s.name.startsWith('Caffè'))).toBe(true);
     });
   });
 });

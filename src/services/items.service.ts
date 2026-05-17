@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
@@ -58,6 +59,10 @@ export const addItem = async (params: {
 
   const itemsCol = collection(db, 'lists', params.listId, 'items');
   await setDoc(doc(itemsCol, id), item);
+  await updateDoc(doc(db, 'lists', params.listId), {
+    itemCount: increment(1),
+    updatedAt: now,
+  });
   await upsertCatalogEntry(params.createdByUid, params.name, params.category);
 
   return id;
@@ -78,6 +83,29 @@ export const toggleChecked = async (
 export const removeItem = async (listId: ULID, itemId: ULID): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
   await deleteDoc(doc(itemsCol, itemId));
+  await updateDoc(doc(db, 'lists', listId), {
+    itemCount: increment(-1),
+    updatedAt: Date.now(),
+  });
+};
+
+export interface ItemPatch {
+  name?: string;
+  quantity?: string;
+  note?: string;
+  category?: Category;
+}
+
+export const updateItem = async (
+  listId: ULID,
+  itemId: ULID,
+  patch: ItemPatch,
+): Promise<void> => {
+  const itemsCol = collection(db, 'lists', listId, 'items');
+  await updateDoc(doc(itemsCol, itemId), {
+    ...patch,
+    updatedAt: Date.now(),
+  });
 };
 
 const EMPTY_LIST_BATCH_SIZE = 500;
@@ -91,4 +119,8 @@ export const emptyList = async (listId: ULID, itemIds: ULID[]): Promise<void> =>
     for (const id of chunk) batch.delete(doc(itemsCol, id));
     await batch.commit();
   }
+  await updateDoc(doc(db, 'lists', listId), {
+    itemCount: 0,
+    updatedAt: Date.now(),
+  });
 };

@@ -113,23 +113,23 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 
 ## Phase 7.5 — UX / Polish (pre-PWA)
 
-- [ ] **Task 27.A** [S] — i18n rename (Owner→Admin, Rename→Name, Most Used→Favorites)
-- [ ] **Task 27.B** [S] — Quick UX fixes (red delete button, shelf-title click toggles collapse)
-- [ ] **Task 27.H** [S] — Alphabetical sort (categories + items, locale-aware)
-- [ ] **Task 27.I** [M] — Category collapse + bought/total counter (persisted per-list)
-- [ ] **Task 27.C** [L] — Icon system (lucide-vue-next) + leading icons on every button + star on "Favorites" + CategoryIcon replaces color dot
-- [ ] **Task 27.G** [M] — Item edit via long-press (500ms) → bottom-sheet edit + `updateItem` service
-- [ ] **Task 27.D** [M] — Visual polish: logo on Login (animated) + small logo on Lists header + empty-state illustrations
-- [ ] **Task 27.E** [M] — Public catalog seed (~200 items, it+en) + ItemAutocomplete merge with user catalog
-- [ ] **Task 27.F1** [S] — Prevent duplicate list names per user (case-insensitive)
-- [ ] **Task 27.F2** [S] — Per-item icon for non-custom items (from public catalog)
-- [ ] **Task 27.J** [M] — Polish bundle: haptic (vibrate 10ms), confetti on all-done, skeleton loaders, slide-out animation on remove
+- [x] **Task 27.A** [S] — i18n rename (Owner→Admin, Rename→Name, Most Used→Favorites)
+- [x] **Task 27.B** [S] — Quick UX fixes (red delete button, shelf-title click toggles collapse)
+- [x] **Task 27.H** [S] — Alphabetical sort (categories + items, locale-aware)
+- [x] **Task 27.I** [M] — Category collapse + bought/total counter (persisted per-list)
+- [x] **Task 27.C** [L] — Icon system (@lucide/vue for UI affordances; emoji for categories/items) + leading icons on every button + star on "Favorites" + CategoryIcon renders emoji tinted with category cssVar
+- [x] **Task 27.G** [M] — Item edit via long-press (500ms) → bottom-sheet edit + `updateItem` service
+- [x] **Task 27.D** [M] — Visual polish: logo on Login (animated) + small logo on Lists header + empty-state illustrations
+- [x] **Task 27.E** [M] — Public catalog seed (~200 items, it+en) + ItemAutocomplete merge with user catalog
+- [x] **Task 27.F1** [S] — Prevent duplicate list names per user (case-insensitive)
+- [x] **Task 27.F2** [S] — Per-item icon for non-custom items (from public catalog)
+- [x] **Task 27.J** [M] — Polish bundle: haptic (vibrate 10ms), auto-collapse category when all checked, skeleton loaders, slide-out animation on remove
 
 ### Checkpoint H.5 — UX/Polish complete
-- [ ] All 11 tasks shipped as separate commits
-- [ ] `pnpm test:coverage` ≥ 80%; `pnpm build` green; `pnpm lint` clean
-- [ ] Manual 375 px smoke: icons everywhere, sort + collapse + counter, long-press edit, duplicate-name guard, haptic + confetti + skeleton + slide-out
-- [ ] **Human approval before Phase 8**
+- [x] All 11 tasks shipped as separate commits
+- [x] `pnpm test:coverage` ≥ 80%; `pnpm build` green; `pnpm lint` clean
+- [x] Manual 375 px smoke: icons everywhere, sort + collapse + counter, long-press edit, duplicate-name guard, haptic + confetti + skeleton + slide-out
+- [x] **Human approval before Phase 8**
 
 ---
 

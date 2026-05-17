@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
+import type { ULID } from '@/domain/id';
 import type { Category, CatalogEntry } from '@/domain/types';
 
 export const subscribeCatalog = (
@@ -55,4 +56,38 @@ export const upsertCatalogEntry = async (
     };
     await setDoc(doc(entriesCol, id), entry);
   }
+};
+
+export const setCatalogPinned = async (
+  ownerUid: string,
+  entryId: ULID,
+  pinned: boolean,
+): Promise<void> => {
+  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
+  const patch: Record<string, unknown> = { pinned };
+  if (pinned) patch.excluded = false;
+  await updateDoc(doc(entriesCol, entryId), patch);
+};
+
+export const setCatalogExcluded = async (
+  ownerUid: string,
+  entryId: ULID,
+  excluded: boolean,
+): Promise<void> => {
+  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
+  const patch: Record<string, unknown> = { excluded };
+  if (excluded) patch.pinned = false;
+  await updateDoc(doc(entriesCol, entryId), patch);
+};
+
+export const findCatalogEntryByName = async (
+  ownerUid: string,
+  name: string,
+): Promise<CatalogEntry | null> => {
+  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
+  const q = query(entriesCol, where('name', '==', name));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const first = snap.docs[0]!;
+  return { id: first.id, ...first.data() } as CatalogEntry;
 };

@@ -2,9 +2,13 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { ArrowLeft, LogOut } from '@lucide/vue';
 import { useAuthStore } from '@/stores/auth';
 import { setLocale } from '@/i18n';
 import type { Locale } from '@/domain/types';
+import pkg from '../../package.json';
+
+const APP_VERSION = pkg.version;
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -30,14 +34,14 @@ const handleSignOut = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream">
+  <main class="min-h-screen bg-cream flex flex-col">
     <header class="px-5 pt-12 pb-4 flex items-center gap-3">
       <button
-        class="text-charcoal"
+        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
         :aria-label="t('settings.title')"
         @click="router.back()"
       >
-        ←
+        <ArrowLeft :size="22" :stroke-width="2.25" aria-hidden="true" />
       </button>
       <h1 class="text-xl font-semibold text-charcoal tracking-tight">
         {{ t('settings.title') }}
@@ -59,14 +63,15 @@ const handleSignOut = async () => {
           :aria-checked="currentLocale === 'it'"
           data-testid="locale-it"
           :class="[
-            'flex-1 px-4 py-3 rounded-xl font-medium border transition-colors',
+            'flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium border transition-colors',
             currentLocale === 'it'
-              ? 'bg-charcoal text-white border-charcoal'
+              ? 'bg-primary text-white border-primary'
               : 'bg-white text-charcoal border-cream-soft',
           ]"
           @click="handleSetLocale('it')"
         >
-          Italiano
+          <span aria-hidden="true" class="text-lg leading-none">🇮🇹</span>
+          <span>Italiano</span>
         </button>
         <button
           type="button"
@@ -74,14 +79,15 @@ const handleSignOut = async () => {
           :aria-checked="currentLocale === 'en'"
           data-testid="locale-en"
           :class="[
-            'flex-1 px-4 py-3 rounded-xl font-medium border transition-colors',
+            'flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium border transition-colors',
             currentLocale === 'en'
-              ? 'bg-charcoal text-white border-charcoal'
+              ? 'bg-primary text-white border-primary'
               : 'bg-white text-charcoal border-cream-soft',
           ]"
           @click="handleSetLocale('en')"
         >
-          English
+          <span aria-hidden="true" class="text-lg leading-none">🇬🇧</span>
+          <span>English</span>
         </button>
       </div>
     </section>
@@ -107,16 +113,26 @@ const handleSignOut = async () => {
       </div>
     </section>
 
-    <section class="px-5 pt-8">
-      <button
-        :disabled="signingOut"
-        data-testid="sign-out-btn"
-        class="w-full px-4 py-3 bg-red-50 text-red-600 font-medium rounded-xl
-               disabled:opacity-40 text-left"
-        @click="handleSignOut"
+    <div class="mt-auto">
+      <section class="px-5 pt-8">
+        <button
+          :disabled="signingOut"
+          data-testid="sign-out-btn"
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-offwhite font-medium rounded-xl
+                 hover:bg-red-700 active:bg-red-800 transition-colors disabled:opacity-40"
+          @click="handleSignOut"
+        >
+          <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
+          {{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}
+        </button>
+      </section>
+
+      <footer
+        data-testid="app-version"
+        class="px-5 pt-4 pb-6 text-center text-xs text-muted-gray"
       >
-        {{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}
-      </button>
-    </section>
+        v{{ APP_VERSION }}
+      </footer>
+    </div>
   </main>
 </template>

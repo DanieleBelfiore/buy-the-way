@@ -10,6 +10,12 @@ export default {
         offwhite: 'var(--offwhite)',
         charcoal: 'var(--charcoal)',
         'muted-gray': 'var(--muted-gray)',
+        primary: 'var(--primary)',
+        'primary-hover': 'var(--primary-hover)',
+        'primary-active': 'var(--primary-active)',
+      },
+      spacing: {
+        '50': '12.5rem',
       },
       fontFamily: {
         sans: ['Hanken Grotesk', 'system-ui', 'sans-serif'],

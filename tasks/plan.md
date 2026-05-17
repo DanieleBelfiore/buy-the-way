@@ -11,6 +11,7 @@ Plan is **vertically sliced**: each phase after Phase 0 ships one complete user-
 - **Firestore data model**: `lists/{listId}` with `ownerUid: string` and `collaboratorUids: string[]`; items as subcollection `lists/{listId}/items/{itemId}`; per-user `catalog/{ownerUid}/entries/{entryId}`; global `users/{uid}` (uid, email lowercased, displayName, lastLoginAt) populated on auth.
 - **IDs**: ULID via `newId()`; never raw timestamps or non-ordered random.
 - **Last-write-wins**: every mutation updates `updatedAt`; conflict resolution is the latest `updatedAt` per item. No CRDT.
+- **Favorites ranking**: `domain/ranking.ts` exposes `FAVORITES_MIN_USES = 2`, `FAVORITES_HALF_LIFE_DAYS = 30`, `FAVORITES_MAX = 30`. `CatalogEntry` carries optional `pinned` and `excluded` flags. `excluded` never surfaces; `pinned` always surfaces and is not counted against the cap; the rest must meet the minimum usage to appear, then are sorted by recency-weighted score and clipped at `FAVORITES_MAX - pinned.length`.
 - **Hard delete**: list deletion from List Settings is immediate and irreversible — purges all items in batched writes then deletes the list doc. No soft-delete, no trash, no recovery (Phase 6 cancelled).
 - **Service boundary**: components/stores never touch Firestore SDK directly; only `services/*.service.ts` do.
 - **Offline**: rely on Firestore SDK persistence (IndexedDB); SW caches static shell only.
@@ -759,7 +760,7 @@ Pre-PWA polish slice covering copy, icon system, illustrations, sort order, cate
 
 ### Task 27.C — Icon system + leading icons on every button
 
-**Description:** Install `lucide-vue-next` (tree-shake, ~1 KB per icon). Add a thin `IconButton.vue` wrapper or apply pattern: every CTA has `<Icon class="size-4 mr-2" />` then label. Apply across:
+**Description:** Install `@lucide/vue` for UI affordances (Plus, Trash2, Check, X, ArrowLeft, LogOut, UserPlus, Star, Settings). Category and per-item icons stay as Unicode emoji rendered through a `<span aria-hidden>` with the category cssVar tint applied. Apply pattern on CTAs: `<Icon class="size-4 mr-2" />` then label. Apply across:
 
 - FAB (Plus)
 - Add item (Plus)
@@ -775,11 +776,11 @@ Pre-PWA polish slice covering copy, icon system, illustrations, sort order, cate
 Replace category-color dot in `ListItemRow` with `CategoryIcon` (already exists). Replace dot in any other category-marker site.
 
 **Acceptance criteria:**
-- [ ] `pnpm add lucide-vue-next` recorded in lockfile.
+- [ ] `pnpm add @lucide/vue` recorded in lockfile.
 - [ ] Every primary button on every view renders an icon left of its label.
 - [ ] Google button uses official Google G SVG (per Google Brand Guidelines).
 - [ ] Star icon on "I preferiti" title.
-- [ ] No category-color dot remains; CategoryIcon used instead.
+- [ ] CategoryIcon renders the category emoji tinted with `--cat-*`.
 
 **Files likely touched:** `package.json`, `src/components/ui/IconButton.vue`, all views and components with CTAs, `public/branding/google-g.svg`, related tests.
 
@@ -872,7 +873,7 @@ Illustrations are inline SVG via Vue `<component>` or `<img>` with `loading="laz
 
 ### Task 27.F2 — Per-item icon for non-custom items
 
-**Description:** Use `PUBLIC_CATALOG` slug → icon mapping (emoji or lucide). `ListItemRow` and `ShelfTile` render the matched icon to the left of the name; custom items (no public match) show a generic neutral icon. Icon is purely decorative (`aria-hidden`).
+**Description:** `PUBLIC_CATALOG` carries a Unicode emoji per entry. `ListItemRow`, `ShelfTile`, and `ItemAutocomplete` suggestion rows render the matched emoji left of the name; custom items (no public match) show the generic `📦` emoji. Icon is purely decorative (`aria-hidden`).
 
 **Acceptance criteria:**
 - [ ] Public-catalog items render their dedicated icon.
@@ -887,25 +888,25 @@ Illustrations are inline SVG via Vue `<component>` or `<img>` with `loading="laz
 
 ---
 
-### Task 27.J — Polish bundle (haptic, confetti, skeleton, slide-out)
+### Task 27.J — Polish bundle (haptic, auto-collapse, skeleton, slide-out)
 
 **Description:**
 - **Haptic**: `navigator.vibrate(10)` on add-item, toggle-checked, and confirm-remove. Feature-detect; respect `prefers-reduced-motion` and a `localStorage` opt-out key `buy-the-way:haptic` (default on).
-- **Confetti**: when the last unchecked item is checked (transition from "any unchecked" → "all checked"), trigger a brief confetti burst (canvas-confetti, lazy import) + toast "Tutto comprato!" / "All done!". Respect reduced-motion.
+- **Auto-collapse**: when the last unchecked item of a category becomes checked (transition any-unchecked → all-checked for that category), auto-collapse that category via `useCollapsedCategories`. No confetti, no toast — just collapse.
 - **Skeleton loaders**: `ListsView` shows 3 skeleton cards while `loading`. `ListDetailView` shows a skeleton block while items are initial-loading.
 - **Slide-out animation**: removing an item plays a 200 ms slide-left + fade transition before unmount (`<TransitionGroup>` on the items list). Respects reduced-motion (instant unmount).
 
 **Acceptance criteria:**
 - [ ] Haptic fires only on touch-capable devices; no errors on desktop.
-- [ ] Confetti triggers exactly once per "all done" transition; no replay if user re-checks something.
+- [ ] Auto-collapse triggers exactly once per category-completion transition; uncheck re-arms the trigger.
 - [ ] Skeletons visible until first snapshot.
 - [ ] Slide-out animates on remove; reduced-motion bypasses.
 
-**Files likely touched:** `src/composables/useHaptic.ts`, `src/composables/useReducedMotion.ts`, `src/components/ui/Confetti.vue`, `src/components/ui/Toast.vue`, `src/components/ui/SkeletonCard.vue`, `src/views/ListsView.vue`, `src/views/ListDetailView.vue`, `src/components/list/CategorySection.vue`, tests.
+**Files likely touched:** `src/composables/useHaptic.ts`, `src/composables/useReducedMotion.ts`, `src/components/ui/SkeletonCard.vue`, `src/views/ListsView.vue`, `src/views/ListDetailView.vue`, `src/components/list/CategorySection.vue`, tests.
 
 **Estimated scope:** M
 
-**Dependencies:** Tasks 27.C (icons in toast), 27.H/I (no conflicts).
+**Dependencies:** Tasks 27.C (icons), 27.H/I (no conflicts).
 
 ---
 

@@ -1,10 +1,58 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Trash2 } from '@lucide/vue';
+import { iconForName } from '@/domain/public-catalog';
 import type { Item } from '@/domain/types';
 
-const { t } = useI18n();
+const LONG_PRESS_MS = 500;
+
+const { t, locale } = useI18n();
 const props = defineProps<{ item: Item }>();
-const emit = defineEmits<{ 'toggle-checked': [boolean]; remove: [] }>();
+const icon = computed(() => iconForName(props.item.name, locale.value));
+const emit = defineEmits<{
+  'toggle-checked': [boolean];
+  remove: [];
+  'long-press': [Item];
+}>();
+
+let pressTimer: ReturnType<typeof setTimeout> | null = null;
+let longPressed = false;
+
+const clearTimer = (): void => {
+  if (pressTimer) {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+};
+
+const onPointerDown = (e: PointerEvent): void => {
+  if (e.pointerType !== 'mouse' && e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+  if ((e as PointerEvent).button && (e as PointerEvent).button !== 0) return;
+  longPressed = false;
+  clearTimer();
+  pressTimer = setTimeout(() => {
+    longPressed = true;
+    emit('long-press', props.item);
+  }, LONG_PRESS_MS);
+};
+
+const onPointerUp = (): void => {
+  clearTimer();
+};
+
+const onPointerCancel = (): void => {
+  clearTimer();
+  longPressed = false;
+};
+
+const onClick = (): void => {
+  if (longPressed) {
+    longPressed = false;
+    return;
+  }
+  emit('toggle-checked', !props.item.checked);
+};
 </script>
 
 <template>
@@ -12,47 +60,59 @@ const emit = defineEmits<{ 'toggle-checked': [boolean]; remove: [] }>();
     <button
       data-testid="row-toggle"
       type="button"
-      class="flex-1 flex items-center gap-3 px-5 min-h-[44px] text-left"
+      class="flex-1 flex items-center gap-3 pl-10 pr-5 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
-      @click="emit('toggle-checked', !props.item.checked)"
+      @click="onClick"
+      @pointerdown="onPointerDown"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerCancel"
+      @pointerleave="onPointerCancel"
     >
       <span
+        aria-hidden="true"
+        data-testid="row-icon"
+        class="text-base leading-none w-5 text-center"
+      >
+        {{ icon }}
+      </span>
+      <span
         :class="[
-          'flex-1 text-sm',
+          'flex-1 text-sm flex items-baseline gap-1.5 flex-wrap',
           props.item.checked ? 'line-through text-ink-40' : 'text-charcoal',
         ]"
       >
-        {{ props.item.name }}
-      </span>
-      <span v-if="props.item.quantity" class="text-xs text-muted-gray">
-        {{ props.item.quantity }}
+        <span class="font-medium">{{ props.item.name }}</span>
+        <span
+          v-if="props.item.quantity"
+          data-testid="row-quantity"
+          class="text-xs text-muted-gray font-normal"
+        >
+          {{ props.item.quantity }}
+        </span>
+        <span
+          v-if="props.item.quantity && props.item.note"
+          aria-hidden="true"
+          class="text-xs text-muted-gray font-normal"
+        >
+          ·
+        </span>
+        <span
+          v-if="props.item.note"
+          data-testid="row-note"
+          class="text-xs text-muted-gray font-normal italic"
+        >
+          {{ props.item.note }}
+        </span>
       </span>
     </button>
     <button
       data-testid="row-remove"
       type="button"
-      class="flex items-center justify-center w-11 h-11 mr-2 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+      class="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-transparent text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
       :aria-label="t('item.remove')"
       @click="emit('remove')"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <polyline points="3 6 5 6 21 6" />
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-        <path d="M10 11v6" />
-        <path d="M14 11v6" />
-        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-      </svg>
+      <Trash2 :size="18" :stroke-width="2" aria-hidden="true" />
     </button>
   </div>
 </template>

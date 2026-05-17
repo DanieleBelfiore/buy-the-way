@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { UserPlus } from '@lucide/vue';
+import AlertMessage from '@/components/ui/AlertMessage.vue';
 import { UserNotFoundError } from '@/services/lists.service';
 import type { UserProfile } from '@/domain/types';
 
@@ -62,18 +64,17 @@ const onSubmit = async () => {
       <button
         type="submit"
         :disabled="!canSubmit"
-        class="px-4 py-3 bg-charcoal text-offwhite text-sm font-medium rounded-xl
-               disabled:opacity-40"
+        class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl
+               hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
       >
+        <UserPlus :size="16" :stroke-width="2" aria-hidden="true" />
         {{ t('collaborators.submit') }}
       </button>
     </div>
-    <p
+    <AlertMessage
       v-if="errorMessage"
       data-testid="add-collaborator-error"
-      class="text-red-500 text-xs"
-    >
-      {{ errorMessage }}
-    </p>
+      :message="errorMessage"
+    />
   </form>
 </template>

@@ -8,47 +8,58 @@
     "settings": "Impostazioni"
   },
   "auth": {
-    "continueWithGoogle": "Continua con Google",
+    "continueWithGoogle": "Accedi con Google",
     "signOut": "Esci",
     "signingIn": "Accesso in corso…",
     "signInError": "Accesso fallito. Riprova."
   },
   "list": {
     "new": "Nuova lista",
-    "newPlaceholder": "Nome della lista…",
+    "newPlaceholder": "Nome della lista",
     "empty": "Nessun articolo",
     "emptyHint": "Aggiungi articoli sopra",
     "create": "Crea",
     "cancel": "Annulla",
     "noLists": "Nessuna lista",
-    "noListsHint": "Tocca + per creare la tua prima lista"
+    "noListsHint": "Tocca + per creare la tua prima lista",
+    "duplicateName": "Hai già una lista con questo nome.",
+    "itemCount": "no articles | 1 articolo | {n} articoli"
   },
   "item": {
-    "addPlaceholder": "Aggiungi un articolo…",
+    "addPlaceholder": "Aggiungi un articolo",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
     "quantity": "Quantità",
     "note": "Nota",
-    "remove": "Rimuovi articolo"
+    "remove": "Rimuovi articolo",
+    "delete": "Elimina",
+    "removeConfirmTitle": "Eliminare l'articolo?",
+    "removeConfirmMessage": "\"{name}\" verrà rimosso dalla lista.\nQuesta azione è irreversibile.",
+    "removeConfirm": "Elimina",
+    "removeCancel": "Annulla"
   },
   "emptyList": {
     "button": "Svuota lista",
     "confirmTitle": "Svuotare la lista?",
-    "confirmMessage": "Verranno rimossi tutti i {count} articoli. Questa azione è irreversibile.",
+    "confirmMessage": "Verranno rimossi tutti i {count} articoli.\nQuesta azione è irreversibile.",
     "confirm": "Svuota",
     "cancel": "Annulla"
   },
   "shelf": {
-    "title": "Lo Scaffale",
+    "title": "I preferiti",
     "empty": "Aggiungi articoli per popolare lo scaffale",
     "collapse": "Comprimi scaffale",
     "expand": "Espandi scaffale",
-    "alreadyInList": "Già nella lista"
+    "alreadyInList": "Già nella lista",
+    "excludeTitle": "Rimuovere dai preferiti?",
+    "excludeMessage": "\"{name}\" non comparirà più nei preferiti, anche se lo aggiungi a nuove liste.\nPuoi sempre riattivarlo dalla modifica articolo.",
+    "excludeConfirm": "Rimuovi",
+    "excludeCancel": "Annulla"
   },
   "collaborators": {
     "add": "Aggiungi collaboratore",
-    "addPlaceholder": "Indirizzo email…",
+    "addPlaceholder": "Indirizzo email",
     "submit": "Aggiungi",
     "notFound": "Nessun utente registrato con questa email.",
     "added": "Collaboratore aggiunto.",
@@ -58,19 +69,25 @@
     "leaveConfirmMessage": "Non avrai più accesso a \"{name}\".",
     "confirm": "Lascia",
     "cancel": "Annulla",
-    "owner": "Proprietario"
+    "owner": "Amministratore"
   },
   "listSettings": {
     "title": "Impostazioni lista",
-    "rename": "Rinomina",
-    "renamePlaceholder": "Nuovo nome…",
+    "rename": "Nome",
+    "renamePlaceholder": "Nuovo nome",
     "save": "Salva",
+    "leaveList": "Abbandona lista",
     "deleteList": "Elimina lista",
+    "stats": {
+      "items": "Articoli",
+      "bought": "Comprati",
+      "users": "Utenti"
+    },
     "deleteConfirmTitle": "Eliminare la lista definitivamente?",
-    "deleteConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli. L'operazione è irreversibile.",
+    "deleteConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli.\nL'operazione è irreversibile.",
     "confirmDelete": "Elimina definitivamente",
     "cancel": "Annulla",
-    "members": "Membri"
+    "members": "Utenti"
   },
   "settings": {
     "title": "Impostazioni",
@@ -79,6 +96,7 @@
     "signOut": "Esci"
   },
   "category": {
+    "label": "Categoria",
     "fruit_vegetables": "Frutta e verdura",
     "dairy": "Latticini",
     "meat_fish": "Carne e pesce",

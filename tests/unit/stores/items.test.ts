@@ -141,28 +141,28 @@ describe('useItemsStore', () => {
       expect(items[1].checked).toBe(true);
     });
 
-    it('within unchecked, sorts by createdAt ascending', () => {
+    it('within unchecked, sorts alphabetically by name', () => {
       const store = useItemsStore();
       store.setCurrentList(listId);
       capturedOnChange([
-        makeItem({ id: '01A' as ULID, checked: false, createdAt: 2000, name: 'Later' }),
-        makeItem({ id: '01B' as ULID, checked: false, createdAt: 1000, name: 'Earlier' }),
+        makeItem({ id: '01A' as ULID, checked: false, name: 'Zebra' }),
+        makeItem({ id: '01B' as ULID, checked: false, name: 'Apple' }),
       ]);
       const items = store.itemsByCategory.get('dairy')!;
-      expect(items[0].name).toBe('Earlier');
-      expect(items[1].name).toBe('Later');
+      expect(items[0].name).toBe('Apple');
+      expect(items[1].name).toBe('Zebra');
     });
 
-    it('within checked, sorts by createdAt ascending', () => {
+    it('within checked, sorts alphabetically by name', () => {
       const store = useItemsStore();
       store.setCurrentList(listId);
       capturedOnChange([
-        makeItem({ id: '01A' as ULID, checked: true, createdAt: 3000, name: 'Later' }),
-        makeItem({ id: '01B' as ULID, checked: true, createdAt: 1000, name: 'Earlier' }),
+        makeItem({ id: '01A' as ULID, checked: true, name: 'Zebra' }),
+        makeItem({ id: '01B' as ULID, checked: true, name: 'Apple' }),
       ]);
       const items = store.itemsByCategory.get('dairy')!;
-      expect(items[0].name).toBe('Earlier');
-      expect(items[1].name).toBe('Later');
+      expect(items[0].name).toBe('Apple');
+      expect(items[1].name).toBe('Zebra');
     });
 
     it('dairy appears before other in map key order (respects CATEGORY_ORDER)', () => {

@@ -18,6 +18,7 @@ export interface List {
   name: string;
   ownerUid: string;
   collaboratorUids: readonly string[];
+  itemCount?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -42,6 +43,8 @@ export interface CatalogEntry {
   category: Category;
   usageCount: number;
   lastUsedAt: number;
+  pinned?: boolean;
+  excluded?: boolean;
 }
 
 export interface UserProfile {

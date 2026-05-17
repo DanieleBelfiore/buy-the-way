@@ -38,9 +38,10 @@ const i18n = createI18n({
     en: {
       listSettings: {
         title: 'List settings',
-        rename: 'Rename',
-        renamePlaceholder: 'New name…',
+        rename: 'Name',
+        renamePlaceholder: 'New name',
         save: 'Save',
+        leaveList: 'Leave list',
         deleteList: 'Delete list',
         deleteConfirmTitle: 'Delete list permanently?',
         deleteConfirmMessage: 'This will permanently delete "{name}" and all its items. This action cannot be undone.',
@@ -50,13 +51,13 @@ const i18n = createI18n({
       },
       collaborators: {
         add: 'Add collaborator',
-        addPlaceholder: 'Email address…',
+        addPlaceholder: 'Email address',
         submit: 'Add',
         notFound: 'No registered user with that email.',
         added: 'Collaborator added.',
         remove: 'Remove',
         leave: 'Leave list',
-        owner: 'Owner',
+        owner: 'Admin',
       },
       error: { listNotFound: 'List not found.' },
     },
@@ -128,22 +129,23 @@ describe('ListSettingsView', () => {
     expect(wrapper.text()).toContain('List not found.');
   });
 
-  it('owner sees rename, members, and delete sections', async () => {
+  it('owner sees rename, members, and delete button', async () => {
     setupStores(ownerList, 'uid-me');
     const wrapper = await mountView();
     await flushPromises();
     expect(wrapper.find('[data-testid="rename-section"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="delete-section"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="delete-list"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="leave-list-bottom"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('Members');
   });
 
-  it('non-owner does not see rename or delete sections', async () => {
+  it('non-owner does not see rename or delete; sees leave-list-bottom', async () => {
     setupStores(guestList, 'uid-me');
     const wrapper = await mountView();
     await flushPromises();
     expect(wrapper.find('[data-testid="rename-section"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="delete-section"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="leave-list"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="delete-list"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="leave-list-bottom"]').exists()).toBe(true);
   });
 
   it('prefills name draft with current list name', async () => {
@@ -180,6 +182,15 @@ describe('ListSettingsView', () => {
     await wrapper.get('[data-testid="rename-save"]').trigger('click');
     await flushPromises();
     expect(renameList).not.toHaveBeenCalled();
+  });
+
+  it('delete-list button uses red fill background', async () => {
+    setupStores(ownerList, 'uid-me');
+    const wrapper = await mountView();
+    await flushPromises();
+    const btn = wrapper.get('[data-testid="delete-list"]');
+    expect(btn.classes().some((c) => c.startsWith('bg-red-'))).toBe(true);
+    expect(btn.classes().some((c) => c.startsWith('text-offwhite') || c.startsWith('text-white'))).toBe(true);
   });
 
   it('opens confirm modal on delete click', async () => {
@@ -243,7 +254,7 @@ describe('ListSettingsView', () => {
     vi.mocked(leaveList).mockResolvedValue(undefined);
     const wrapper = await mountView();
     await flushPromises();
-    await wrapper.get('[data-testid="leave-list"]').trigger('click');
+    await wrapper.get('[data-testid="leave-list-bottom"]').trigger('click');
     await flushPromises();
     expect(leaveList).toHaveBeenCalledWith('list-1', 'uid-me');
     expect(router.currentRoute.value.name).toBe('lists');

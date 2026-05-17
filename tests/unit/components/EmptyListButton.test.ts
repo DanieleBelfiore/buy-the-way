@@ -40,9 +40,10 @@ describe('EmptyListButton', () => {
     expect(btn.text()).toContain('Empty list');
   });
 
-  it('shows count badge', () => {
+  it('does not render a count badge', () => {
     const wrapper = mountBtn(7);
-    expect(wrapper.text()).toContain('7');
+    const btn = wrapper.find('[data-testid="empty-list-button"]');
+    expect(btn.text()).not.toContain('7');
   });
 
   it('opens confirm modal on click', async () => {

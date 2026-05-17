@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
+import { Plus, X, Settings as SettingsIcon } from '@lucide/vue';
 import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
+import SkeletonCard from '@/components/ui/SkeletonCard.vue';
+import AlertMessage from '@/components/ui/AlertMessage.vue';
+import { DuplicateListNameError } from '@/services/lists.service';
+import { getUsersByUids } from '@/services/users.service';
+import type { UserProfile } from '@/domain/types';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -18,6 +24,38 @@ const creating = ref(false);
 const createError = ref<string | null>(null);
 
 let unsubscribe: (() => void) | undefined;
+
+const profileMap = ref<Map<string, UserProfile>>(new Map());
+
+const allUids = computed(() => {
+  const set = new Set<string>();
+  for (const l of listsStore.lists) {
+    for (const uid of l.collaboratorUids) set.add(uid);
+  }
+  return [...set];
+});
+
+const loadProfiles = async (uids: readonly string[]): Promise<void> => {
+  const missing = uids.filter((u) => !profileMap.value.has(u));
+  if (missing.length === 0) return;
+  try {
+    const profiles = await getUsersByUids(missing);
+    const next = new Map(profileMap.value);
+    for (const p of profiles) next.set(p.uid, p);
+    profileMap.value = next;
+  } catch (err) {
+    console.warn('[ListsView] loadProfiles failed:', err);
+  }
+};
+
+watch(allUids, (uids) => {
+  if (uids.length > 0) void loadProfiles(uids);
+});
+
+const profilesFor = (uids: readonly string[]): UserProfile[] =>
+  uids
+    .map((u) => profileMap.value.get(u))
+    .filter((p): p is UserProfile => Boolean(p));
 
 onMounted(async () => {
   await listsStore.loadLastSeen();
@@ -49,7 +87,11 @@ const submitCreate = async () => {
     showCreateInput.value = false;
     newListName.value = '';
   } catch (err) {
-    createError.value = err instanceof Error ? err.message : String(err);
+    if (err instanceof DuplicateListNameError) {
+      createError.value = t('list.duplicateName');
+    } else {
+      createError.value = err instanceof Error ? err.message : String(err);
+    }
   } finally {
     creating.value = false;
   }
@@ -62,26 +104,30 @@ const openList = (id: string) => {
 
 <template>
   <main class="min-h-screen bg-cream pb-24">
-    <!-- Header -->
-    <header class="px-5 pt-12 pb-4 flex items-center justify-between">
-      <h1 class="text-xl font-semibold text-charcoal tracking-tight">
-        {{ t('app.name') }}
-      </h1>
+    <!-- Top bar with settings button -->
+    <header class="px-5 pt-12 pb-2 flex items-center justify-end">
       <button
-        aria-label="Settings"
-        class="flex items-center justify-center w-10 h-10 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        :aria-label="t('settings.title')"
+        class="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
         @click="router.push({ name: 'settings' })"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
+        <SettingsIcon :size="20" :stroke-width="2" aria-hidden="true" />
+        <span class="text-sm font-medium">{{ t('settings.title') }}</span>
       </button>
     </header>
 
+    <!-- Hero brand block -->
+    <section class="px-5 pt-2 pb-6 text-center">
+      <img
+        src="/branding/logo-original.png"
+        :alt="t('app.name')"
+        class="mx-auto h-50 w-auto"
+      />
+    </section>
+
     <!-- Create input (inline, appears when FAB tapped) -->
-    <div v-if="showCreateInput" class="px-5 mb-4">
-      <p v-if="createError" class="text-red-500 text-xs mb-2">{{ createError }}</p>
+    <div v-if="showCreateInput" class="px-5 mb-4 space-y-2">
+      <AlertMessage v-if="createError" :message="createError" />
       <div class="flex gap-2">
         <input
           v-model="newListName"
@@ -96,59 +142,109 @@ const openList = (id: string) => {
         />
         <button
           :disabled="creating || !newListName.trim()"
-          class="px-4 py-3 bg-charcoal text-offwhite text-sm font-medium rounded-xl
-                 disabled:opacity-40"
+          class="inline-flex items-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl
+                 hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="submitCreate"
         >
+          <Plus :size="16" :stroke-width="2.5" aria-hidden="true" />
           {{ t('list.create') }}
         </button>
         <button
-          class="px-3 py-3 text-muted-gray text-sm"
+          class="inline-flex items-center gap-1.5 px-3 py-3 text-muted-gray text-sm"
           @click="cancelCreate"
         >
+          <X :size="16" :stroke-width="2" aria-hidden="true" />
           {{ t('list.cancel') }}
         </button>
       </div>
     </div>
 
     <!-- List of cards -->
-    <section class="px-5 space-y-3">
-      <template v-if="listsStore.loading">
-        <!-- Loading skeleton -->
-        <div
-          v-for="i in 3"
-          :key="i"
-          class="h-14 bg-offwhite rounded-2xl animate-pulse"
-        />
-      </template>
-
-      <template v-else-if="listsStore.error">
-        <!-- Error state -->
-        <div class="text-center pt-16 space-y-2">
-          <p class="text-red-500 text-sm">{{ listsStore.error }}</p>
+    <section class="px-5">
+      <Transition name="state-fade" mode="out-in">
+        <div v-if="listsStore.loading" key="loading" class="space-y-3">
+          <SkeletonCard v-for="i in 3" :key="i" height-class="h-14" />
         </div>
-      </template>
 
-      <template v-else-if="listsStore.lists.length === 0">
-        <!-- Empty state -->
-        <div class="text-center pt-16 space-y-2">
+        <div v-else-if="listsStore.error" key="error" class="pt-8 flex justify-center">
+          <AlertMessage :message="listsStore.error" />
+        </div>
+
+        <div
+          v-else-if="listsStore.lists.length === 0"
+          key="empty"
+          class="text-center pt-16 space-y-3"
+        >
+          <img
+            src="@/assets/illustrations/empty-lists.svg"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            class="mx-auto h-28 w-28 opacity-90"
+          />
           <p class="text-charcoal font-medium">{{ t('list.noLists') }}</p>
           <p class="text-sm text-muted-gray">{{ t('list.noListsHint') }}</p>
         </div>
-      </template>
 
-      <template v-else>
-        <ListCard
-          v-for="list in listsStore.lists"
-          :key="list.id"
-          :list="list"
-          :is-new="authStore.user ? listsStore.isNewForUser(list, authStore.user.uid) : false"
-          @open="openList"
-        />
-      </template>
+        <TransitionGroup v-else key="cards" name="list-card" tag="div" class="space-y-3">
+          <ListCard
+            v-for="list in listsStore.lists"
+            :key="list.id"
+            :list="list"
+            :is-new="authStore.user ? listsStore.isNewForUser(list, authStore.user.uid) : false"
+            :members="profilesFor(list.collaboratorUids)"
+            @open="openList"
+          />
+        </TransitionGroup>
+      </Transition>
     </section>
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
   </main>
 </template>
+
+<style scoped>
+.list-card-enter-active,
+.list-card-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.list-card-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+.list-card-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+.list-card-move {
+  transition: transform 220ms ease;
+}
+.state-fade-enter-active,
+.state-fade-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.state-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.state-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-card-enter-active,
+  .list-card-leave-active,
+  .list-card-move,
+  .state-fade-enter-active,
+  .state-fade-leave-active {
+    transition: none;
+  }
+  .list-card-enter-from,
+  .list-card-leave-to,
+  .state-fade-enter-from,
+  .state-fade-leave-to {
+    transform: none;
+  }
+}
+</style>

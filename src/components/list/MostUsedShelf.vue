@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Star } from '@lucide/vue';
 import ShelfTile from '@/components/list/ShelfTile.vue';
 import type { CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
@@ -13,7 +14,10 @@ defineProps<{
   itemNamesInList: Set<string>;
 }>();
 
-const emit = defineEmits<{ 'add-from-shelf': [CatalogEntry] }>();
+const emit = defineEmits<{
+  'add-from-shelf': [CatalogEntry];
+  'long-press-tile': [CatalogEntry];
+}>();
 
 const { t } = useI18n();
 
@@ -30,16 +34,19 @@ const toggle = () => {
 };
 
 const onAdd = (entry: CatalogEntry) => emit('add-from-shelf', entry);
+const onLongPress = (entry: CatalogEntry) => emit('long-press-tile', entry);
 </script>
 
 <template>
-  <section class="px-5 pt-4 pb-2">
+  <section v-if="entries.length > 0" class="px-5 pt-4 pb-2">
     <header class="flex items-center justify-between mb-2">
-      <h2 class="text-sm font-semibold text-charcoal tracking-tight">
-        {{ t('shelf.title') }}
-        <span v-if="entries.length > 0" class="ml-1 text-xs text-muted-gray font-normal">
-          {{ entries.length }}
-        </span>
+      <h2
+        data-testid="shelf-title"
+        class="inline-flex items-center gap-1.5 text-sm font-semibold text-charcoal tracking-tight cursor-pointer select-none"
+        @click="toggle"
+      >
+        <Star :size="14" :stroke-width="2" fill="currentColor" aria-hidden="true" />
+        <span>{{ t('shelf.title') }}</span>
       </h2>
       <button
         type="button"
@@ -66,20 +73,48 @@ const onAdd = (entry: CatalogEntry) => emit('add-from-shelf', entry);
       </button>
     </header>
 
-    <div v-if="!collapsed">
-      <p v-if="entries.length === 0" class="text-sm text-muted-gray italic py-3">
-        {{ t('shelf.empty') }}
-      </p>
-      <div v-else class="grid grid-cols-2 gap-2">
-        <ShelfTile
-          v-for="entry in entries"
-          :key="entry.id"
-          :entry="entry"
-          :is-top="topIds.has(entry.id)"
-          :is-in-list="itemNamesInList.has(entry.name)"
-          @add="onAdd"
-        />
-      </div>
-    </div>
+    <TransitionGroup v-if="!collapsed" name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
+      <ShelfTile
+        v-for="entry in entries"
+        :key="entry.id"
+        :entry="entry"
+        :is-top="topIds.has(entry.id)"
+        :is-in-list="itemNamesInList.has(entry.name)"
+        @add="onAdd"
+        @long-press="onLongPress"
+      />
+    </TransitionGroup>
   </section>
 </template>
+
+<style scoped>
+.shelf-tile-enter-active,
+.shelf-tile-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.shelf-tile-enter-from {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.shelf-tile-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.shelf-tile-leave-active {
+  position: absolute;
+}
+.shelf-tile-move {
+  transition: transform 260ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-tile-enter-active,
+  .shelf-tile-leave-active,
+  .shelf-tile-move {
+    transition: none;
+  }
+  .shelf-tile-enter-from,
+  .shelf-tile-leave-to {
+    transform: none;
+  }
+}
+</style>

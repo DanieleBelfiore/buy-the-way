@@ -19,7 +19,7 @@ const i18n = createI18n({
       app: { name: 'Buy The Way', tagline: 'Your smart grocery list' },
       list: {
         new: 'New list',
-        newPlaceholder: 'List name…',
+        newPlaceholder: 'List name',
         create: 'Create',
         cancel: 'Cancel',
         noLists: 'No lists yet',

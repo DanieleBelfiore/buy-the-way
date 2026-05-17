@@ -36,12 +36,14 @@ const handleSignIn = async () => {
 <template>
   <main class="min-h-screen bg-cream flex flex-col items-center justify-center px-6">
     <div class="w-full max-w-sm space-y-10">
-      <!-- Wordmark -->
-      <div class="text-center space-y-2">
-        <h1 class="text-2xl font-semibold text-charcoal tracking-tight">
-          {{ t('app.name') }}
-        </h1>
-        <p class="text-sm text-muted-gray">{{ t('app.tagline') }}</p>
+      <!-- Logo + Wordmark -->
+      <div class="text-center space-y-3">
+        <img
+          src="/branding/logo-original.png"
+          alt=""
+          aria-hidden="true"
+          class="login-logo mx-auto h-50 w-auto"
+        />
       </div>
 
       <!-- CTA -->
@@ -49,16 +51,23 @@ const handleSignIn = async () => {
         <button
           data-testid="sign-in-btn"
           :disabled="loading || undefined"
-          class="w-full py-3 px-6 bg-charcoal text-offwhite text-sm font-medium rounded-xl
-                 flex items-center justify-center gap-2
-                 disabled:opacity-50 disabled:cursor-not-allowed
-                 active:scale-95 transition-transform"
+          class="w-full h-12 px-5 bg-primary text-offwhite text-base font-medium rounded-full
+                 hover:bg-primary-hover active:bg-primary-active
+                 flex items-center justify-center gap-3
+                 disabled:opacity-50 disabled:cursor-not-allowed"
           @click="handleSignIn"
         >
           <span
             v-if="loading"
-            class="w-4 h-4 border-2 border-offwhite/30 border-t-offwhite rounded-full animate-spin"
+            class="w-5 h-5 border-2 border-offwhite/30 border-t-offwhite rounded-full animate-spin"
             aria-hidden="true"
+          />
+          <img
+            v-else
+            src="/branding/google-g.svg"
+            alt=""
+            aria-hidden="true"
+            class="w-6 h-6"
           />
           <span>{{ loading ? t('auth.signingIn') : t('auth.continueWithGoogle') }}</span>
         </button>
@@ -75,3 +84,24 @@ const handleSignIn = async () => {
     </div>
   </main>
 </template>
+
+<style scoped>
+.login-logo {
+  animation: login-logo-in 600ms ease-out both;
+}
+@keyframes login-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-logo {
+    animation: none;
+  }
+}
+</style>

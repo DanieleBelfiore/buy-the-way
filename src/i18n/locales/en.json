@@ -8,47 +8,58 @@
     "settings": "Settings"
   },
   "auth": {
-    "continueWithGoogle": "Continue with Google",
+    "continueWithGoogle": "Sign in with Google",
     "signOut": "Sign out",
     "signingIn": "Signing in…",
     "signInError": "Sign in failed. Please try again."
   },
   "list": {
     "new": "New list",
-    "newPlaceholder": "List name…",
+    "newPlaceholder": "List name",
     "empty": "No items yet",
     "emptyHint": "Add items above",
     "create": "Create",
     "cancel": "Cancel",
     "noLists": "No lists yet",
-    "noListsHint": "Tap + to create your first list"
+    "noListsHint": "Tap + to create your first list",
+    "duplicateName": "You already have a list with this name.",
+    "itemCount": "no items | 1 item | {n} items"
   },
   "item": {
-    "addPlaceholder": "Add an item…",
+    "addPlaceholder": "Add an item",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
     "addCustom": "Add \"{name}\" as a custom item",
     "quantity": "Quantity",
     "note": "Note",
-    "remove": "Remove item"
+    "remove": "Remove item",
+    "delete": "Delete",
+    "removeConfirmTitle": "Delete this item?",
+    "removeConfirmMessage": "\"{name}\" will be removed from the list.\nThis cannot be undone.",
+    "removeConfirm": "Delete",
+    "removeCancel": "Cancel"
   },
   "emptyList": {
     "button": "Empty list",
     "confirmTitle": "Empty list?",
-    "confirmMessage": "This will remove all {count} items. This cannot be undone.",
+    "confirmMessage": "This will remove all {count} items.\nThis cannot be undone.",
     "confirm": "Empty",
     "cancel": "Cancel"
   },
   "shelf": {
-    "title": "Most Used",
+    "title": "Favorites",
     "empty": "Add items to populate your shelf",
     "collapse": "Collapse shelf",
     "expand": "Expand shelf",
-    "alreadyInList": "Already in list"
+    "alreadyInList": "Already in list",
+    "excludeTitle": "Remove from favorites?",
+    "excludeMessage": "\"{name}\" won't appear in favorites anymore, even if added to new lists.\nYou can re-enable it from item edit.",
+    "excludeConfirm": "Remove",
+    "excludeCancel": "Cancel"
   },
   "collaborators": {
     "add": "Add collaborator",
-    "addPlaceholder": "Email address…",
+    "addPlaceholder": "Email address",
     "submit": "Add",
     "notFound": "No registered user with that email.",
     "added": "Collaborator added.",
@@ -58,19 +69,25 @@
     "leaveConfirmMessage": "You will no longer have access to \"{name}\".",
     "confirm": "Leave",
     "cancel": "Cancel",
-    "owner": "Owner"
+    "owner": "Admin"
   },
   "listSettings": {
     "title": "List settings",
-    "rename": "Rename",
-    "renamePlaceholder": "New name…",
+    "rename": "Name",
+    "renamePlaceholder": "New name",
     "save": "Save",
+    "leaveList": "Leave list",
     "deleteList": "Delete list",
+    "stats": {
+      "items": "Items",
+      "bought": "Bought",
+      "users": "Users"
+    },
     "deleteConfirmTitle": "Delete list permanently?",
-    "deleteConfirmMessage": "This will permanently delete \"{name}\" and all its items. This action cannot be undone.",
+    "deleteConfirmMessage": "This will permanently delete \"{name}\" and all its items.\nThis action cannot be undone.",
     "confirmDelete": "Delete permanently",
     "cancel": "Cancel",
-    "members": "Members"
+    "members": "Users"
   },
   "settings": {
     "title": "Settings",
@@ -79,6 +96,7 @@
     "signOut": "Sign out"
   },
   "category": {
+    "label": "Category",
     "fruit_vegetables": "Fruit & Veg",
     "dairy": "Dairy",
     "meat_fish": "Meat & Fish",

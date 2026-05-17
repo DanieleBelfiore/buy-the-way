@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Trash2 } from '@lucide/vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 
 const props = defineProps<{ count: number }>();
@@ -25,13 +26,11 @@ const onConfirm = () => {
       data-testid="empty-list-button"
       type="button"
       :aria-label="t('emptyList.button')"
-      class="inline-flex items-center gap-2 rounded-full border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
+      class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
       @click="modalOpen = true"
     >
+      <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
       <span>{{ t('emptyList.button') }}</span>
-      <span class="inline-flex items-center justify-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-        {{ props.count }}
-      </span>
     </button>
 
     <ConfirmModal

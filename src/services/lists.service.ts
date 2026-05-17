@@ -40,14 +40,33 @@ export class ListNotFoundError extends Error {
   }
 }
 
-export const createList = async (name: string, ownerUid: string): Promise<string> => {
+export class DuplicateListNameError extends Error {
+  constructor(name: string) {
+    super(`A list named "${name}" already exists`);
+    this.name = 'DuplicateListNameError';
+  }
+}
+
+const normalizeListName = (name: string): string => name.trim().toLowerCase();
+
+export const createList = async (
+  name: string,
+  ownerUid: string,
+  existingNames: readonly string[] = [],
+): Promise<string> => {
+  const trimmed = name.trim();
+  const target = normalizeListName(trimmed);
+  if (target && existingNames.some((n) => normalizeListName(n) === target)) {
+    throw new DuplicateListNameError(trimmed);
+  }
   const id = newId();
   const now = Date.now();
   const listData: List = {
     id,
-    name,
+    name: trimmed,
     ownerUid,
     collaboratorUids: [ownerUid],
+    itemCount: 0,
     createdAt: now,
     updatedAt: now,
   };

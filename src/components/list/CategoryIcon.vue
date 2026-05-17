@@ -6,14 +6,11 @@ const props = defineProps<{ category: Category }>();
 </script>
 
 <template>
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 14 14"
-    xmlns="http://www.w3.org/2000/svg"
-    :style="{ color: CATEGORIES[props.category].cssVar }"
+  <span
     aria-hidden="true"
+    class="inline-flex items-center justify-center text-base leading-none w-5"
+    :style="{ color: CATEGORIES[props.category].cssVar }"
   >
-    <circle cx="7" cy="7" r="7" fill="currentColor" />
-  </svg>
+    {{ CATEGORIES[props.category].icon }}
+  </span>
 </template>

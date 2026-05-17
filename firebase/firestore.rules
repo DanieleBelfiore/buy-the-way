@@ -52,6 +52,12 @@ service cloud.firestore {
           && request.resource.data.collaboratorUids.toSet()
              == resource.data.collaboratorUids.toSet().difference([uid()].toSet())
         )
+        // Any collaborator may bump itemCount + updatedAt (denormalized counter on item writes).
+        || (
+          uid() in resource.data.collaboratorUids
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['itemCount', 'updatedAt'])
+        )
       );
 
       allow delete: if isSignedIn() && uid() == resource.data.ownerUid;

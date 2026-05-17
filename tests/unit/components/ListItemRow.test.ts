@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import ListItemRow from '@/components/list/ListItemRow.vue';
@@ -97,5 +97,64 @@ describe('ListItemRow', () => {
   it('does not apply strikethrough when unchecked', () => {
     const wrapper = mountRow(makeItem({ checked: false }));
     expect(wrapper.html()).not.toContain('line-through');
+  });
+
+  describe('long-press', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('emits long-press after 500ms hold', async () => {
+      const item = makeItem();
+      const wrapper = mountRow(item);
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('long-press')?.[0]).toEqual([item]);
+    });
+
+    it('does not emit long-press if pointer released before 500ms', async () => {
+      const wrapper = mountRow(makeItem());
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      vi.advanceTimersByTime(300);
+      await toggle.trigger('pointerup');
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('long-press')).toBeFalsy();
+    });
+
+    it('short tap still emits toggle-checked', async () => {
+      const wrapper = mountRow(makeItem({ checked: false }));
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      vi.advanceTimersByTime(100);
+      await toggle.trigger('pointerup');
+      await toggle.trigger('click');
+      expect(wrapper.emitted('toggle-checked')?.[0]).toEqual([true]);
+    });
+
+    it('long-press suppresses subsequent click toggle', async () => {
+      const wrapper = mountRow(makeItem({ checked: false }));
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      vi.advanceTimersByTime(500);
+      await toggle.trigger('pointerup');
+      await toggle.trigger('click');
+      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
+    });
+
+    it('pointercancel aborts the long-press', async () => {
+      const wrapper = mountRow(makeItem());
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      vi.advanceTimersByTime(200);
+      await toggle.trigger('pointercancel');
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('long-press')).toBeFalsy();
+    });
   });
 });

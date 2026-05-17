@@ -11,7 +11,7 @@ const i18n = createI18n({
     en: {
       collaborators: {
         add: 'Add collaborator',
-        addPlaceholder: 'Email address…',
+        addPlaceholder: 'Email address',
         submit: 'Add',
         notFound: 'No registered user with that email.',
         added: 'Collaborator added.',

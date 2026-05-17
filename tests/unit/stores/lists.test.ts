@@ -98,7 +98,7 @@ describe('useListsStore', () => {
     const store = useListsStore();
     await store.createList('Spesa');
 
-    expect(createList).toHaveBeenCalledWith('Spesa', 'uid-1');
+    expect(createList).toHaveBeenCalledWith('Spesa', 'uid-1', []);
   });
 
   it('createList throws when no user is signed in', async () => {

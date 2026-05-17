@@ -36,4 +36,25 @@ describe('i18n locale files', () => {
     expect(enTagline).not.toBe('');
     expect(itTagline).not.toBe('');
   });
+
+  it('shelf.title is "Favorites" (en) / "I preferiti" (it)', () => {
+    const i18n = makeI18n('en');
+    expect(i18n.global.t('shelf.title')).toBe('Favorites');
+    i18n.global.locale.value = 'it';
+    expect(i18n.global.t('shelf.title')).toBe('I preferiti');
+  });
+
+  it('collaborators.owner is "Admin" (en) / "Amministratore" (it)', () => {
+    const i18n = makeI18n('en');
+    expect(i18n.global.t('collaborators.owner')).toBe('Admin');
+    i18n.global.locale.value = 'it';
+    expect(i18n.global.t('collaborators.owner')).toBe('Amministratore');
+  });
+
+  it('listSettings.rename is "Name" (en) / "Nome" (it)', () => {
+    const i18n = makeI18n('en');
+    expect(i18n.global.t('listSettings.rename')).toBe('Name');
+    i18n.global.locale.value = 'it';
+    expect(i18n.global.t('listSettings.rename')).toBe('Nome');
+  });
 });

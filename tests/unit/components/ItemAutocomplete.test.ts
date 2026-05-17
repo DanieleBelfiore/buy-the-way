@@ -8,9 +8,8 @@ vi.mock('@/stores/catalog', () => ({
 }));
 
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
-import { useCatalogStore } from '@/stores/catalog';
-import type { CatalogEntry } from '@/domain/types';
-import type { ULID } from '@/domain/id';
+import { useCatalogStore, type Suggestion } from '@/stores/catalog';
+import type { Category } from '@/domain/types';
 
 const i18n = createI18n({
   legacy: false,
@@ -18,23 +17,22 @@ const i18n = createI18n({
   messages: {
     en: {
       item: {
-        addPlaceholder: 'Add an item…',
+        addPlaceholder: 'Add an item',
         addCustom: 'Add "{name}" as a custom item',
       },
     },
   },
 });
 
-const makeEntry = (name: string, category = 'dairy' as const): CatalogEntry => ({
-  id: `01${name}` as ULID,
-  ownerUid: 'uid-1',
+const makeEntry = (name: string, category: Category = 'dairy'): Suggestion => ({
+  key: `u:${name}`,
   name,
   category,
+  source: 'user',
   usageCount: 1,
-  lastUsedAt: 1000,
 });
 
-const mockSuggestFor = vi.fn();
+const mockSuggestionsFor = vi.fn();
 
 const mountComponent = (props: Record<string, unknown> = {}) =>
   mount(ItemAutocomplete, {
@@ -51,11 +49,12 @@ describe('ItemAutocomplete', () => {
     vi.clearAllMocks();
     vi.mocked(useCatalogStore).mockReturnValue({
       entries: [],
-      suggestFor: mockSuggestFor,
+      suggestFor: vi.fn().mockReturnValue([]),
+      suggestionsFor: mockSuggestionsFor,
       subscribe: vi.fn(),
       rankedEntries: [],
     } as any);
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -66,11 +65,11 @@ describe('ItemAutocomplete', () => {
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     expect(input.exists()).toBe(true);
-    expect(input.attributes('placeholder')).toBe('Add an item…');
+    expect(input.attributes('placeholder')).toBe('Add an item');
   });
 
   it('shows suggestions when input matches catalog entries', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -80,7 +79,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('shows custom item option when input has text', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('Tofu');
@@ -90,7 +89,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('emits add-item when suggestion is clicked', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -104,7 +103,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('emits add-item with custom name when custom option clicked', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('Tofu');
@@ -117,7 +116,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('clears input after adding item', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -129,7 +128,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('ArrowDown moves highlight to first option', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -142,7 +141,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('Enter commits highlighted option', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -155,7 +154,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('Escape closes dropdown', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -172,7 +171,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('ArrowUp wraps from first to last option', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte'), makeEntry('Pane', 'bakery')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte'), makeEntry('Pane', 'bakery')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('l');
@@ -184,7 +183,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('ArrowDown when no options does not crash', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     // Empty query → no options, no custom
@@ -193,7 +192,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('Enter without ArrowDown commits custom item directly', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('Tofu');
@@ -205,7 +204,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('emits active-change(true) when input has text and active-change(false) when cleared', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('Tofu');
@@ -223,7 +222,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('filters out suggestions whose name is already in list (case-insensitive)', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
     const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
     const input = wrapper.find('input');
     await input.setValue('lat');
@@ -236,7 +235,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('hides custom-item option when typed name already in list (case-insensitive)', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
     const input = wrapper.find('input');
     await input.setValue('LATTE');
@@ -247,7 +246,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('Enter does not commit when typed name already in list', async () => {
-    mockSuggestFor.mockReturnValue([]);
+    mockSuggestionsFor.mockReturnValue([]);
     const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
     const input = wrapper.find('input');
     await input.setValue('Latte');
@@ -259,7 +258,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('closes dropdown entirely when all options filtered out', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent({ excludeNames: new Set(['latte']) });
     const input = wrapper.find('input');
     await input.setValue('Latte');
@@ -270,7 +269,7 @@ describe('ItemAutocomplete', () => {
   });
 
   it('has role=listbox on dropdown', async () => {
-    mockSuggestFor.mockReturnValue([makeEntry('Latte')]);
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
     const wrapper = mountComponent();
     const input = wrapper.find('input');
     await input.setValue('lat');

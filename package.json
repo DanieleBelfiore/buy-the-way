@@ -1,7 +1,7 @@
 {
   "name": "buy-the-way",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,6 +22,7 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
   },
   "dependencies": {
+    "@lucide/vue": "^1.16.0",
     "firebase": "^10.14.1",
     "pinia": "^2.2.6",
     "ulid": "^2.3.0",

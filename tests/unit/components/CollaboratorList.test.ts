@@ -12,7 +12,7 @@ const i18n = createI18n({
       collaborators: {
         remove: 'Remove',
         leave: 'Leave list',
-        owner: 'Owner',
+        owner: 'Admin',
       },
     },
   },
@@ -56,14 +56,14 @@ describe('CollaboratorList', () => {
     wrapper.unmount();
   });
 
-  it('shows Owner badge next to owner', () => {
+  it('shows Admin badge next to owner', () => {
     const wrapper = mountList({
       members: [owner, bob],
       ownerUid: 'owner-1',
       selfUid: 'bob-2',
     });
     const ownerChip = wrapper.get('[data-testid="collab-chip-owner-1"]');
-    expect(ownerChip.text()).toContain('Owner');
+    expect(ownerChip.text()).toContain('Admin');
     wrapper.unmount();
   });
 

@@ -15,6 +15,7 @@ vi.mock('firebase/firestore', () => ({
   where: vi.fn().mockReturnValue({ type: 'where' }),
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
   writeBatch: (...args: unknown[]) => writeBatchMock(...args),
+  increment: vi.fn((n: number) => ({ __increment: n })),
 }));
 
 vi.mock('@/services/catalog.service', () => ({
@@ -27,6 +28,7 @@ import {
   toggleChecked,
   removeItem,
   emptyList,
+  updateItem,
 } from '@/services/items.service';
 import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
@@ -135,10 +137,52 @@ describe('items.service', () => {
       expect(deleteDoc).toHaveBeenCalledOnce();
     });
 
-    it('does not call setDoc or updateDoc', async () => {
+    it('does not call setDoc', async () => {
       await removeItem(listId, itemId);
       expect(setDoc).not.toHaveBeenCalled();
-      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('decrements list itemCount via updateDoc', async () => {
+      await removeItem(listId, itemId);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.itemCount).toEqual({ __increment: -1 });
+      expect(typeof payload.updatedAt).toBe('number');
+    });
+  });
+
+  describe('addItem itemCount bump', () => {
+    it('increments list itemCount via updateDoc on add', async () => {
+      await addItem(defaultAddParams);
+      const updateCalls = vi.mocked(updateDoc).mock.calls;
+      expect(updateCalls.length).toBeGreaterThanOrEqual(1);
+      const payloads = updateCalls.map(([, data]) => data as Record<string, unknown>);
+      expect(payloads.some((p) => JSON.stringify(p.itemCount) === JSON.stringify({ __increment: 1 }))).toBe(true);
+    });
+  });
+
+  describe('updateItem', () => {
+    it('calls updateDoc with patch + updatedAt', async () => {
+      await updateItem(listId, itemId, { name: 'Latte fresco', quantity: '2L' });
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const call = vi.mocked(updateDoc).mock.calls[0]!;
+      const payload = call[1] as Record<string, unknown>;
+      expect(payload.name).toBe('Latte fresco');
+      expect(payload.quantity).toBe('2L');
+      expect(typeof payload.updatedAt).toBe('number');
+    });
+
+    it('accepts partial patches (note only)', async () => {
+      await updateItem(listId, itemId, { note: 'biologico' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.note).toBe('biologico');
+      expect(payload.name).toBeUndefined();
+    });
+
+    it('accepts category patch', async () => {
+      await updateItem(listId, itemId, { category: 'bakery' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.category).toBe('bakery');
     });
   });
 

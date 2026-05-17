@@ -47,26 +47,28 @@ const makeItem = (overrides: Partial<Item> = {}): Item => ({
 });
 
 describe('CategoryIcon', () => {
-  it('renders an svg', () => {
+  it('renders an emoji', () => {
     const wrapper = mount(CategoryIcon, { props: { category: 'dairy' } });
-    expect(wrapper.find('svg').exists()).toBe(true);
+    expect(wrapper.text()).toBe('🧀');
   });
 
   it('applies color style from category cssVar', () => {
     const wrapper = mount(CategoryIcon, { props: { category: 'dairy' } });
-    const style = wrapper.find('svg').attributes('style');
-    expect(style).toContain('--cat-dairy');
+    expect(wrapper.html()).toContain('--cat-dairy');
   });
 
-  it('has aria-hidden', () => {
+  it('renders with aria-hidden', () => {
     const wrapper = mount(CategoryIcon, { props: { category: 'dairy' } });
-    expect(wrapper.find('svg').attributes('aria-hidden')).toBe('true');
+    expect(wrapper.attributes('aria-hidden')).toBe('true');
   });
 });
 
 describe('CategoryHeader', () => {
-  const mount_ = (category: Item['category']) =>
-    mount(CategoryHeader, { props: { category }, global: { plugins: [i18n] } });
+  const mount_ = (category: Item['category'], extra: Record<string, unknown> = {}) =>
+    mount(CategoryHeader, {
+      props: { category, ...extra },
+      global: { plugins: [i18n] },
+    });
 
   it('renders category label text', () => {
     const wrapper = mount_('dairy');
@@ -75,19 +77,54 @@ describe('CategoryHeader', () => {
 
   it('renders category icon', () => {
     const wrapper = mount_('dairy');
-    expect(wrapper.find('svg').exists()).toBe(true);
+    expect(wrapper.text()).toContain('🧀');
   });
 
   it('renders correct label for other categories', () => {
     expect(mount_('bakery').text()).toContain('Bakery');
     expect(mount_('other').text()).toContain('Other');
   });
+
+  it('renders bought/total counter when total > 0', () => {
+    const wrapper = mount_('dairy', { bought: 2, total: 5 });
+    expect(wrapper.get('[data-testid="category-counter"]').text()).toBe('2/5');
+  });
+
+  it('hides counter when total is 0', () => {
+    const wrapper = mount_('dairy', { bought: 0, total: 0 });
+    expect(wrapper.find('[data-testid="category-counter"]').exists()).toBe(false);
+  });
+
+  it('renders as button with chevron when interactive', () => {
+    const wrapper = mount_('dairy', { interactive: true, total: 3, bought: 1 });
+    expect(wrapper.element.tagName).toBe('BUTTON');
+    expect(wrapper.find('[data-testid="category-chevron"]').exists()).toBe(true);
+  });
+
+  it('emits toggle on click when interactive', async () => {
+    const wrapper = mount_('dairy', { interactive: true });
+    await wrapper.trigger('click');
+    expect(wrapper.emitted('toggle')).toBeTruthy();
+  });
+
+  it('does not emit toggle when not interactive', async () => {
+    const wrapper = mount_('dairy');
+    await wrapper.trigger('click');
+    expect(wrapper.emitted('toggle')).toBeFalsy();
+  });
+
+  it('reflects collapsed state via aria-expanded', () => {
+    const collapsed = mount_('dairy', { interactive: true, collapsed: true });
+    expect(collapsed.attributes('aria-expanded')).toBe('false');
+    const open = mount_('dairy', { interactive: true, collapsed: false });
+    expect(open.attributes('aria-expanded')).toBe('true');
+  });
 });
 
 describe('CategorySection', () => {
-  const mount_ = (items: Item[]) =>
+  const mount_ = (items: Item[], extra: Record<string, unknown> = {}) =>
     mount(CategorySection, {
-      props: { category: 'dairy', items },
+      props: { category: 'dairy', items, ...extra },
       global: { plugins: [i18n] },
     });
 
@@ -118,5 +155,30 @@ describe('CategorySection', () => {
     const wrapper = mount_([item]);
     await wrapper.get('[data-testid="row-remove"]').trigger('click');
     expect(wrapper.emitted('remove-item')?.[0]).toEqual([item.id]);
+  });
+
+  it('shows bought/total counter from items', () => {
+    const items = [
+      makeItem({ id: '01A' as ULID, checked: true }),
+      makeItem({ id: '01B' as ULID, checked: false }),
+      makeItem({ id: '01C' as ULID, checked: false }),
+    ];
+    const wrapper = mount_(items);
+    expect(wrapper.get('[data-testid="category-counter"]').text()).toBe('1/3');
+  });
+
+  it('hides items when collapsed', () => {
+    const items = [makeItem({ id: '01A' as ULID, name: 'Latte' })];
+    const wrapper = mount_(items, { collapsed: true });
+    expect(wrapper.text()).not.toContain('Latte');
+    expect(wrapper.text()).toContain('Dairy');
+    expect(wrapper.get('[data-testid="category-counter"]').exists()).toBe(true);
+  });
+
+  it('emits toggle-collapse with category on header click', async () => {
+    const items = [makeItem()];
+    const wrapper = mount_(items);
+    await wrapper.get('[data-testid="category-header"]').trigger('click');
+    expect(wrapper.emitted('toggle-collapse')?.[0]).toEqual(['dairy']);
   });
 });

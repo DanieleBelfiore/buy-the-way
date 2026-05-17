@@ -8,6 +8,11 @@
   --charcoal: #1c1c1c;
   --muted-gray: #5f5f5d;
 
+  /* Primary brand */
+  --primary: #113261;
+  --primary-hover: #0d264a;
+  --primary-active: #091a33;
+
   /* Focus */
   --ring-blue: rgba(59, 130, 246, 0.5);
 
