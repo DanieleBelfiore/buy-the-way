@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('firebase/auth', () => ({
-  GoogleAuthProvider: vi.fn().mockImplementation(() => ({})),
+  GoogleAuthProvider: class {},
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),

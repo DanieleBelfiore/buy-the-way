@@ -1066,6 +1066,308 @@ User story: install to home screen; use app offline; edits sync when online.
 
 ---
 
+## Phase 11 — UX additions: shelf, wallpapers, item controls, account ops
+
+Ten user-requested enhancements landing after the v1 ship. Ordered by dependency / blast radius. Each task is its own commit. High-risk irreversible operation (Task 42 — delete account) is gated by an intra-phase checkpoint.
+
+### Task 33 — Auto-reopen collapsed category on new item (S)
+
+**Description:** When a category is collapsed (manually or by Task 27.J auto-collapse-when-all-checked) and a new item is added to that category — via autocomplete, custom-item path, shelf one-tap, or copy/move (Task 39) — the category section must expand. Reuse `useCollapsedCategories` API: drop the category from the `collapsed` Set when its item set transitions from "no items in category" or grows in size while collapsed; arm the auto-collapse-when-completed trigger fresh.
+
+**Acceptance criteria:**
+- [ ] Add item to a collapsed category → section expands; `localStorage` collapse-set persisted state reflects the change.
+- [ ] Re-checking the new item to complete the category re-triggers Task 27.J auto-collapse (trigger re-arms).
+- [ ] No regression on the existing collapse-by-completion behavior.
+
+**Verification:**
+- [ ] Unit test on `ListDetailView` watcher: collapsed Set { Bakery } + add item Bakery via `addItem` → toggleCollapsed called for Bakery.
+- [ ] Manual 375 px: collapse Dairy → add "Latte" → Dairy expanded.
+
+**Dependencies:** Tasks 27.I, 27.J.
+
+**Files likely touched:** `src/views/ListDetailView.vue`, `src/composables/useCollapsedCategories.ts` (only if a helper is added), tests.
+
+**Estimated scope:** S
+
+---
+
+### Task 34 — Favorites grouped by category + stable order on selection (M)
+
+**Description:** Split `MostUsedShelf` rendering into per-category sub-sections (sorted alphabetically by translated category label, reusing `sortCategoriesByLabel`). Within a sub-section, entries keep the ranking order returned by `rankCatalog`. Critically: selecting a tile (one-tap add) MUST NOT reorder the shelf — selection bumps the catalog's `usageCount`/`lastUsedAt` which would re-rank live; capture a stable snapshot in the component when the entry set's id-membership changes and only refresh ordering when membership changes (entry added, removed, pinned/excluded), not when scores change. Pinned vs. non-pinned visual treatment unchanged; "top-2 editorial accent" computed off the snapshot.
+
+**Acceptance criteria:**
+- [ ] Shelf renders one mini-section per category present in `entries`; section header uses CategoryHeader styling (smaller variant), no collapse toggle.
+- [ ] Tapping a tile to add to the list does not visually reorder tiles in the same render-pass or subsequent re-renders triggered solely by score changes.
+- [ ] Adding a NEW entry (first-time use of an item) does refresh the snapshot — the new tile appears in its category section.
+- [ ] Excluding via the X button removes the tile and refreshes the snapshot.
+- [ ] Empty-category sections are not rendered.
+
+**Verification:**
+- [ ] Unit test on `MostUsedShelf`: mount with 3 entries → pointerup-add an entry → snapshot order unchanged; supply new entry-list prop with a new id → snapshot recomputes.
+- [ ] Manual 375 px: open list → tap second tile → first tile still first.
+
+**Dependencies:** Tasks 17, 18, 27.H.
+
+**Files likely touched:** `src/components/list/MostUsedShelf.vue`, `src/domain/sort.ts` (`groupCatalogByCategory` helper), tests.
+
+**Estimated scope:** M
+
+---
+
+### Task 35 — Favorites count title + per-list show/hide toggle (M)
+
+**Description:** Two coupled changes to the favorites surface:
+
+1. **Title rewrite**: shelf header text becomes "I tuoi {n} articoli preferiti" / "Your {n} favorite items", where `{n}` is the count of currently visible (rendered) favorites entries. `FAVORITES_MAX` (30) stays the upper bound. Title falls back to a generic label when n = 0 (shelf is hidden in that case anyway). Pluralized i18n.
+2. **Per-list visibility toggle (admin-only, decision locked)**: new `List.showFavorites?: boolean` field (default `true` when undefined). `ListSettingsView` exposes a toggle visible to the list admin only — non-admins do not see the control. `ListDetailView` conditionally renders `<MostUsedShelf>` based on `list.showFavorites !== false`. Service: `setListShowFavorites(listId, value)`. Firestore rules: owner-update branch already permits arbitrary `name/updatedAt`-bearing patches by owner — extend whitelist if rule narrows fields; otherwise add the field to the allowed owner-update keys explicitly.
+
+**Acceptance criteria:**
+- [ ] `MostUsedShelf` title shows the localized "{n} favorite items" string; updates live as the snapshot count changes.
+- [ ] `ListSettingsView` shows a toggle (admin only); state persists to Firestore and round-trips on reload.
+- [ ] When toggled off, `MostUsedShelf` does not render in `ListDetailView` (DOM absent, no subscription cost).
+- [ ] Collaborator (non-admin) sees the resulting state but cannot toggle it.
+- [ ] Rules test confirms non-owner cannot write `showFavorites`.
+
+**Verification:**
+- [ ] Unit test: shelf title with n=0, 1, 5, 30.
+- [ ] Unit test: `ListDetailView` v-if guards on `list.showFavorites`.
+- [ ] Rules unit test: non-owner update with `showFavorites` patch → denied.
+- [ ] Manual: admin toggles off → reload → shelf gone; non-admin sees no toggle.
+
+**Dependencies:** Tasks 25 (settings view), 34 (snapshot count).
+
+**Files likely touched:** `src/domain/types.ts`, `src/services/lists.service.ts`, `src/views/ListSettingsView.vue`, `src/views/ListDetailView.vue`, `src/components/list/MostUsedShelf.vue`, `src/i18n/locales/{it,en}.json`, `firebase/firestore.rules`, `tests/rules/firestore.rules.test.ts`, unit tests.
+
+**Estimated scope:** M
+
+---
+
+### Task 36 — List wallpapers: random on create + admin picker (L)
+
+**Description:** Use the 10 background images already in `public/wallpapers/` (`01.jpg`–`10.jpg`). Each list gets a wallpaper chosen randomly on creation; admin can change it from list settings; rendered as background on `ListCard` in `ListsView` ONLY (with a darkening scrim for text legibility). `ListDetailView` does NOT render the wallpaper — decision locked.
+
+- `List.wallpaper?: string` (filename, e.g. `"05.jpg"`).
+- New `src/domain/wallpapers.ts`: `WALLPAPERS = ['01.jpg', …, '10.jpg'] as const`, `pickRandomWallpaper()` (uniform).
+- `createList(name, ownerUid, existingNames)` picks random and writes `wallpaper`.
+- New service `setListWallpaper(listId, filename)` (admin only — validated against the allowlist).
+- New `WallpaperPicker.vue` (grid of 10 thumbnails, current one ringed); inserted into `ListSettingsView` admin section.
+- `ListCard.vue` renders the image as a CSS background-image with `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45))` overlay; falls back gracefully when `wallpaper` is undefined (legacy lists). `ListDetailView` is NOT modified — wallpaper appears only on the list-of-lists screen.
+- Firestore rules: owner-update branch allows `wallpaper`; reject non-allowlisted values via field-level shape check (string length, prefix). Non-owners may not write the field.
+- Lazy-loading: `<img loading="lazy">` on picker thumbnails; preload only the assigned wallpaper per card.
+
+**Acceptance criteria:**
+- [ ] Creating a list assigns a random wallpaper from the 10-file set and persists it.
+- [ ] Admin sees a picker grid in list settings; selecting one updates the list and reloads `ListsView` cards with the new background.
+- [ ] Non-admin in settings sees the current wallpaper (read-only) or the picker is hidden — pick UX path during impl.
+- [ ] Existing lists without a `wallpaper` field render the cream-only card (no errors, no 404 on missing image).
+- [ ] Rules test: non-owner write to `wallpaper` → denied; owner write with bogus filename (`"../etc/passwd.jpg"`) → denied.
+
+**Verification:**
+- [ ] Unit test: `createList` writes a wallpaper filename matching the allowlist.
+- [ ] Unit test: `setListWallpaper` rejects out-of-allowlist filenames.
+- [ ] Rules unit test: non-owner blocked.
+- [ ] Manual at 375 px: cards show wallpapers with legible text; picker selects + persists; legacy list still renders.
+
+**Dependencies:** Task 25.
+
+**Files likely touched:** `src/domain/wallpapers.ts`, `src/domain/types.ts`, `src/services/lists.service.ts`, `src/components/list/ListCard.vue`, `src/components/list/WallpaperPicker.vue`, `src/views/ListSettingsView.vue`, `firebase/firestore.rules`, `tests/rules/firestore.rules.test.ts`, unit tests.
+
+**Estimated scope:** L — justified: domain helper + service + 2 views + new component + rules + rules tests in one slice keeps the wallpaper feature coherent; splitting would force a partial-feature merge.
+
+---
+
+### Task 37 — Item priority (urgent / optional) (M)
+
+**Description:** Each item gains an optional priority: `'urgent'`, `'optional'`, or undefined (default). Surface as a **single inline button** on `ListItemRow` next to the trash icon — decision locked. The button cycles none → urgent → optional → none on each tap, with the icon + tooltip changing to reflect the next state. Visual on row: urgent = red dot/flame badge + red accent, optional = muted ghost + smaller font, default unchanged. Sort order within a category: urgent first (preserving alphabetical inside the group), then unprioritized, then optional (each subgroup alphabetical). Service patch via existing `updateItem`. The 3-chip variant inside `ItemEditSheet` is also added for the long-press/settings path so users can jump directly to a state.
+
+**Acceptance criteria:**
+- [ ] `Item.priority` typed as `'urgent' | 'optional' | undefined`.
+- [ ] Cycling button updates Firestore and re-sorts the section live.
+- [ ] Urgent items show a clear visual cue (red); optional items appear muted; default unchanged.
+- [ ] Sort: urgent > none > optional, then alphabetical (locale-aware) within each tier.
+- [ ] Rules: any collaborator can patch `priority` (it's an item field — already covered by item-write rule).
+- [ ] Long-press edit sheet also exposes priority selection (3 chips).
+
+**Verification:**
+- [ ] Unit test on `sortItemsByPriorityThenName`: mixed inputs sorted correctly per locale.
+- [ ] Unit test on `ListItemRow`: clicking priority button emits the right next state.
+- [ ] Manual 375 px: add 3 items, set one urgent → it moves to top of section; set another optional → it sinks to bottom.
+
+**Dependencies:** Tasks 14, 16, 27.G.
+
+**Files likely touched:** `src/domain/types.ts`, `src/domain/sort.ts`, `src/services/items.service.ts` (`ItemPatch` adds `priority`), `src/stores/items.ts` (re-sort), `src/components/list/ListItemRow.vue`, `src/components/list/ItemEditSheet.vue`, `src/i18n/locales/{it,en}.json`, tests.
+
+**Estimated scope:** M
+
+---
+
+### Task 38 — Item settings shortcut button on row (S)
+
+**Description:** Add a `Settings` lucide icon button on `ListItemRow`, placed between the priority button and the trash button. Tapping it emits the existing `long-press` event (same payload), opening `ItemEditSheet`. Provides discoverability for users who don't know about the 500 ms long-press. Tap target ≥ 44×44 px.
+
+**Acceptance criteria:**
+- [ ] Button visible on every `ListItemRow`; aria-label uses `item.openSettings` i18n key.
+- [ ] Tapping opens `ItemEditSheet` with the same item context as long-press.
+- [ ] Long-press still works; both paths produce identical sheet state.
+- [ ] Row layout at 375 px remains legible with all icon buttons (priority + settings + trash); name + qty + note still wraps cleanly.
+
+**Verification:**
+- [ ] Unit test on `ListItemRow`: click settings button emits `long-press` with item.
+- [ ] Visual regression at 375 px: row width remains ≥ legible threshold.
+
+**Dependencies:** Tasks 20, 27.G, 37 (priority button is the neighbor — ordering matters).
+
+**Files likely touched:** `src/components/list/ListItemRow.vue`, `src/i18n/locales/{it,en}.json`, tests.
+
+**Estimated scope:** S
+
+---
+
+### Task 39 — Copy / Move item between lists (M)
+
+**Description:** Add a button to `ListItemRow` (lucide `ArrowRightLeft` icon) that opens a bottom-sheet `ListPickerSheet`. The sheet contains exactly two actions and no others — decision locked: **Copy** (keeps original) and **Move** (deletes original after destination write). User first picks the destination list from the sheet, then taps Copy or Move. Use atomic two-step: write new item in destination → on success, delete from source (move) or no-op (copy). On destination, run the same `addItem` flow so the catalog write-through fires for the destination user too.
+
+**Services:**
+- `copyItem(srcListId, item, dstListId, byUid)` — wraps `addItem` on dst.
+- `moveItem(srcListId, item, dstListId, byUid)` — `copyItem` then `removeItem` on src; not transactional across documents, accept eventual consistency.
+
+**Edge cases:**
+- Destination list has an item with same name (case-insensitive): skip the copy/move with a toast `item.duplicateInDestination`.
+- User has no other lists: sheet shows "No other lists" state, no actions.
+- Source list disappears mid-flow (deleted by another collaborator): catch and surface error.
+
+**Acceptance criteria:**
+- [ ] Sheet opens, lists candidate destinations, each row has Copy + Move buttons.
+- [ ] Copy: original stays, destination has the new item; both lists' realtime subscriptions reflect the change < 1 s.
+- [ ] Move: original removed, destination has it.
+- [ ] Duplicate-name in destination is rejected with toast; nothing is mutated.
+- [ ] Sheet closes after action; trash & priority buttons unaffected.
+
+**Verification:**
+- [ ] Unit test `copyItem`: writes addItem on dst with correct fields.
+- [ ] Unit test `moveItem`: writes dst then deletes src.
+- [ ] Unit test: duplicate detection branch.
+- [ ] Manual two-tab: copy item from A to B → both visible. Move item from A to B → gone from A, present in B.
+
+**Dependencies:** Tasks 12, 20, 38 (row layout).
+
+**Files likely touched:** `src/services/items.service.ts` (`copyItem`, `moveItem`), `src/components/list/ListPickerSheet.vue`, `src/components/list/ListItemRow.vue`, `src/i18n/locales/{it,en}.json`, tests.
+
+**Estimated scope:** M
+
+---
+
+### Checkpoint L.1 — Item-row controls + favorites + wallpapers
+
+- [ ] Tasks 33–39 each landed as separate commits.
+- [ ] `pnpm test:coverage` ≥ 80%; `pnpm typecheck` green; `pnpm build` green; `pnpm lint` clean.
+- [ ] Rules tests for `showFavorites` and `wallpaper` ownership branches green.
+- [ ] Manual smoke at 375 px: auto-reopen, grouped shelf, stable on tap, count title, show-favorites toggle, wallpaper picker, priority cycle, settings icon, copy + move.
+- [ ] **Human approval before Task 40 (cart animation) and Task 42 (delete account).**
+
+---
+
+### Task 40 — Animated cart on list-detail page (S)
+
+**Description:** Render a small shopping-cart SVG (~28 px) inline in the `ListDetailView` header, positioned to the right of the list title (or just below it on narrow screens), as a persistent decorative element. The cart has two visible wheels and a basket. Animation has three states driven purely by CSS classes:
+
+1. **Idle (default, list has at least one unbought item):** wheels rotate continuously at one full turn per ~4 s. The basket itself does not translate — the wheels do the rolling. Imagine the cart parked but ready, wheels turning slowly as if rolling in place. This is the ambient motion the user requested.
+2. **On add-item (one-shot, ~600 ms):** the entire cart translates +12 px to the right, then back to origin, while wheels spin briefly faster (one turn in ~400 ms). Triggered each time `addItem` resolves successfully (also when adding from autocomplete, custom item, shelf one-tap, copy/move into the current list). Re-triggering during an in-flight animation restarts it.
+3. **All bought (sticky):** when `boughtCount === itemCount && itemCount > 0`, wheels stop, the cart tilts back ~6° (subtle "done" pose), and stays there until any item becomes unchecked or the list grows. This is a calm rest-state cue, not a celebration (Task 41 handles the celebration).
+
+Implementation: a single `AnimatedCart.vue` component takes a `state: 'idle' | 'rolling' | 'parked'` prop. `ListDetailView` derives the state from store values and bumps a `triggerKey` on every successful add to retrigger the rolling class. Pure CSS keyframes — no JS animation lib, no canvas. `prefers-reduced-motion`: cart renders as a static icon, all three states resolve to the same frame (no rotation, no translate, no tilt).
+
+**Acceptance criteria:**
+- [ ] Cart SVG visible in `ListDetailView` header; not present on other views.
+- [ ] Idle state: wheels rotate continuously, ~4 s/turn, 60 fps on a mid-tier Android.
+- [ ] Add-item triggers the 600 ms forward-bump + faster wheel spin; rapid successive adds restart the animation cleanly.
+- [ ] Parked state: when list fully bought, wheels stop and cart tilts back; un-checking returns to idle.
+- [ ] `prefers-reduced-motion`: static cart in all states.
+- [ ] No layout shift between states (cart occupies fixed footprint).
+
+**Verification:**
+- [ ] Unit test: state computed from `itemCount` + `boughtCount` (parked when all checked & non-empty; idle otherwise); add-item bumps `triggerKey`.
+- [ ] Unit test: reduced-motion forces static class.
+- [ ] Manual at 375 px: visual on Chrome + Safari iOS.
+
+**Dependencies:** Task 16, Task 27.J (reused `useReducedMotion`).
+
+**Files likely touched:** `src/components/list/AnimatedCart.vue`, `src/views/ListDetailView.vue`, `src/composables/useReducedMotion.ts` (reuse, no changes).
+
+**Estimated scope:** S
+
+---
+
+### Task 41 — Completion celebration effect + message (M)
+
+**Description:** When a list transitions from `itemCount > 0 AND boughtCount < itemCount` to `boughtCount === itemCount` (all items bought), trigger a celebration: CSS-confetti burst over the page (~2 s, ≤ 30 particles, all positioned absolutely under a non-interactive overlay) + a centered toast with a randomly-picked playful message ("Hai conquistato la spesa! 🛒", "Frigorifero, preparati 🎉", etc., ≥ 5 strings per locale). Auto-dismiss after 2.5 s. Reduced-motion: skip confetti, show message only. Trigger fires at most once per "completion transition" (uncheck + re-check does not re-trigger unless the list went off-complete in between).
+
+**Acceptance criteria:**
+- [ ] Triggers exactly once when last unchecked item becomes checked.
+- [ ] Does NOT trigger on initial mount of an already-fully-checked list.
+- [ ] Re-arms after any item becomes unchecked.
+- [ ] Empty list (0 items) never triggers.
+- [ ] Confetti is purely decorative (`aria-hidden`); message has `role="status"` for SR users.
+- [ ] Reduced-motion: no confetti, message-only.
+
+**Verification:**
+- [ ] Unit test on the transition watcher: fixtures for not-triggered cases (initial mount, empty, all already checked, uncheck-then-check without going off-complete).
+- [ ] Unit test: random message pool is non-empty per locale.
+- [ ] Manual 375 px: add 3 items → check all → confetti + message.
+
+**Dependencies:** Tasks 16, 27.J (haptic + useReducedMotion).
+
+**Files likely touched:** `src/components/ui/CompletionCelebration.vue`, `src/views/ListDetailView.vue`, `src/i18n/locales/{it,en}.json`, tests.
+
+**Estimated scope:** M
+
+---
+
+### Task 42 — Delete account (L)
+
+**Description:** Add a `Delete account` button to `SettingsView`, placed next to the existing sign-out button (same red destructive styling). Trigger uses the standard plain `ConfirmModal` (decision locked — no typed-email gate) with explicit destructive copy stating that all data and the account will be permanently removed. Service `deleteAccount(uid)` performs in order:
+
+1. Re-authenticate. If Firebase throws `auth/requires-recent-login`, surface a "Please sign in again to confirm" UI; on success, retry.
+2. For each list with `ownerUid === uid`: call existing `deleteList(listId)` (purges items + list doc, batched).
+3. For each list where `uid` is in `collaboratorUids` but not owner: call `leaveList(listId, uid)`.
+4. Delete every doc under `catalog/{uid}/entries/*` in batches of 500.
+5. Delete the `users/{uid}` doc.
+6. Call `firebaseUser.delete()` on the auth user.
+7. Redirect to `/login`.
+
+Steps 2–5 are best-effort and must not block step 6 if isolated writes fail (log + continue) — orphaned data is acceptable; the auth identity going away is the hard requirement.
+
+**Acceptance criteria:**
+- [ ] Button visible in `SettingsView`, requires explicit confirmation.
+- [ ] On success: user signed out, all owned lists + items + own catalog removed, `users/{uid}` removed, Firebase Auth user removed, redirect to `/login`.
+- [ ] `requires-recent-login` path triggers re-auth and resumes deletion.
+- [ ] Other collaborators on previously-owned lists no longer see those lists (since deleted).
+- [ ] Rules unit tests cover: self can delete own `users/{uid}` doc; self can delete own catalog entries; self can delete own lists (existing rule). Non-self denied for all three.
+
+**Verification:**
+- [ ] Unit test: service orchestration calls each step in order; partial-failure handling logged + continues.
+- [ ] Rules test: cross-user delete attempts denied.
+- [ ] Manual via emulator: create user, create 2 lists with items + catalog usage, run delete → verify Firestore empty for that uid, auth user gone, app at /login.
+
+**Dependencies:** Tasks 7, 25 (deleteList), 27 (rules).
+
+**Files likely touched:** `src/services/auth.service.ts` (`deleteAccount`), `src/views/SettingsView.vue`, `src/stores/auth.ts` (action), `src/i18n/locales/{it,en}.json`, `firebase/firestore.rules` (audit; no new rules expected but verify), `tests/rules/firestore.rules.test.ts`, unit tests.
+
+**Estimated scope:** L — justified: irreversible multi-step cascade across 3 Firestore collections + Firebase Auth + UI gating; bundling avoids leaving the app in a state where the button exists but the cascade is incomplete.
+
+---
+
+### Checkpoint L — Phase 11 complete
+
+- [ ] All 10 Phase 11 tasks landed as separate commits.
+- [ ] `pnpm test:coverage` exits 0 with ≥ 80% statements; zero stderr warnings.
+- [ ] `pnpm typecheck` and `pnpm build` green; `pnpm lint` clean.
+- [ ] `pnpm test:rules` green (new branches for `showFavorites`, `wallpaper`, account-cascade self-deletes).
+- [ ] Manual smoke at 375 px: auto-reopen on add; grouped shelf with stable order; count title; show-favorites toggle (admin-only); wallpaper random + picker; priority cycle + sort; row settings shortcut; copy + move between lists; animated cart; completion celebration; delete account flow (emulator).
+- [ ] **Human Verification Recap emitted per protocol; human approval required before commits land on `main`.**
+
+---
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
@@ -1077,10 +1379,22 @@ User story: install to home screen; use app offline; edits sync when online.
 | Offline persistence not supported in some Safari versions | Medium | Try/catch around `enableIndexedDbPersistence`; degrade to in-memory cache; banner unchanged. |
 | Add-collaborator abuse (mass lookup) | Low | Acknowledged out-of-scope for v1; rate limiting deferred to v1.x via Cloud Function. |
 | Soft-delete + purge UX confusion | Low | Two-step confirmation on purge; recovery is single-tap. |
+| Phase 11 — wallpaper image weight on cellular | Medium | 10 JPGs in `public/wallpapers/` total ~4 MB; lazy-load picker thumbnails; preload only the assigned wallpaper per card. Consider serving WebP variants in a follow-up. |
+| Phase 11 — delete-account leaves orphan data on partial failure | Medium | Best-effort steps 2–5 log + continue; step 6 (auth user delete) is the hard requirement. Document the trade-off in the confirm modal copy. |
+| Phase 11 — confetti perf on low-end Android | Low | Cap particles at 30; pure CSS; reduced-motion bypass. |
+| Phase 11 — row icon-button density at 360 px | Medium | Audit `ListItemRow` width with priority + settings + trash + future copy/move buttons; collapse into a single overflow menu if hit-target shrinks below 44 px. |
 
 ## Open Questions
 
-None blocking. All v1 decisions locked per SPEC.md "Open Questions".
+Phase 11 decisions — all locked (resolved 2026-05-18):
+
+- **Task 35** — `showFavorites` is **admin-only** per-list. Non-admins do not see the toggle.
+- **Task 36** — Wallpaper rendered on **`ListsView` cards only**. `ListDetailView` is unchanged.
+- **Task 36** — Wallpaper changes propagate to collaborators via Firestore subscription (no opt-in needed).
+- **Task 37** — Priority is a **single-button cycle** (none → urgent → optional → none) on `ListItemRow`; the 3-chip selector remains available inside `ItemEditSheet` for direct jumps.
+- **Task 39** — Sheet exposes **Copy or Move only** (no other actions). Trigger icon: `ArrowRightLeft` (lucide).
+- **Task 40** — Animated cart spec rewritten in the task body: persistent SVG in the `ListDetailView` header, three CSS states (idle wheel-spin, on-add bump, parked-when-all-bought), reduced-motion bypass.
+- **Task 42** — **Plain `ConfirmModal`** for delete-account (no typed-email gate). Destructive copy must spell out that data and account are permanently removed.
 
 ## Parallelization Notes
 
@@ -1104,4 +1418,5 @@ After Phase 0, sequential foundations don't permit much parallelism. Possible pa
 | 8 PWA + Offline | 28–30 | 3 |
 | 9 Tests | 31 | 1 |
 | 10 Ship | 32 | 1 |
-| **Total** | | **43 tasks** |
+| 11 UX additions | 33–42 | 10 |
+| **Total** | | **53 tasks** |

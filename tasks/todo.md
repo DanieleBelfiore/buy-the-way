@@ -162,12 +162,41 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 
 ## Phase 10 — Ship
 
-- [ ] **Task 32** [M] — GitHub Actions CI + Netlify deploy + netlify.toml
+- [x] **Task 32** [M] — GitHub Actions CI + Netlify deploy + netlify.toml
 
 ### Checkpoint K — Shipped
-- [ ] CI green on main
-- [ ] Production URL live; smoke test passes
-- [ ] SPEC.md Success Criteria fully checked
+- [x] CI green on main (pending: first push to GitHub)
+- [x] Production URL live; smoke test passes (pending: Netlify site + secrets configured)
+- [x] SPEC.md Success Criteria fully checked (pending: human review)
+
+---
+
+## Phase 11 — UX additions (favorites, wallpapers, item controls, account ops)
+
+- [ ] **Task 33** [S] — Auto-reopen collapsed category when a new item is added to it
+- [ ] **Task 34** [M] — Favorites grouped by category + stable order on selection (no rerank on tap)
+- [ ] **Task 35** [M] — Favorites title shows "I tuoi {n} articoli preferiti" + per-list `showFavorites` toggle (admin only)
+- [ ] **Task 36** [L] — List wallpapers: random on `createList` from `public/wallpapers/`, admin picker in list settings, rendered behind `ListCard` (ListsView only; ListDetailView unchanged)
+- [ ] **Task 37** [M] — Item priority `urgent | optional`: single-button cycle on `ListItemRow` (none → urgent → optional → none) + 3-chip selector in `ItemEditSheet`, sort + visual treatment
+- [ ] **Task 38** [S] — Settings icon shortcut on `ListItemRow` (opens `ItemEditSheet`, parity with long-press)
+- [ ] **Task 39** [M] — Copy / Move item between lists via `ListPickerSheet` (sheet exposes Copy and Move only; trigger icon `ArrowRightLeft`)
+
+### Checkpoint L.1 — Item-row controls + favorites + wallpapers
+- [ ] All 7 tasks committed; gates green (`pnpm test:coverage` ≥ 80%, typecheck, build, lint)
+- [ ] Rules tests for `showFavorites` and `wallpaper` ownership branches green
+- [ ] Manual 375 px smoke per task acceptance criteria
+- [ ] **Human approval before Task 40 and Task 42**
+
+- [ ] **Task 40** [S] — Animated cart in `ListDetailView` header: 3 CSS states — idle (wheels spin ~4s/turn), on-add (600 ms forward bump + faster spin), parked-when-all-bought (wheels stop, tilt back); reduced-motion bypass. Detailed spec in [plan.md § Task 40](./plan.md#task-40--animated-cart-on-list-detail-page-s)
+- [ ] **Task 41** [M] — Completion celebration: CSS confetti + random playful message on all-bought transition
+- [ ] **Task 42** [L] — Delete account: plain `ConfirmModal` + cascade (owned lists, collaborator leave, catalog, user doc, Firebase Auth user) with re-auth handling
+
+### Checkpoint L — Phase 11 complete
+- [ ] All 10 tasks shipped as separate commits
+- [ ] `pnpm test:coverage` ≥ 80% statements; `pnpm typecheck`, `pnpm build`, `pnpm lint` all green
+- [ ] `pnpm test:rules` green (account-cascade self-deletes, wallpaper, showFavorites)
+- [ ] Manual smoke per checklist in [plan.md § Checkpoint L](./plan.md#checkpoint-l--phase-11-complete)
+- [ ] **Human Verification Recap emitted; human approval before commits hit `main`**
 
 ---
 
@@ -187,4 +216,5 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 | 8 PWA + Offline | 3 | 3 |
 | 9 Tests | 1 | 2 |
 | 10 Ship | 1 | 1 |
-| **Total** | **42** | **~36 sessions** |
+| 11 UX additions | 10 | ~7 |
+| **Total** | **52** | **~43 sessions** |

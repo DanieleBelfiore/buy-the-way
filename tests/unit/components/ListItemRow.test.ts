@@ -112,7 +112,7 @@ describe('ListItemRow', () => {
       const item = makeItem();
       const wrapper = mountRow(item);
       const toggle = wrapper.get('[data-testid="row-toggle"]');
-      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(500);
       expect(wrapper.emitted('long-press')?.[0]).toEqual([item]);
     });
@@ -120,7 +120,7 @@ describe('ListItemRow', () => {
     it('does not emit long-press if pointer released before 500ms', async () => {
       const wrapper = mountRow(makeItem());
       const toggle = wrapper.get('[data-testid="row-toggle"]');
-      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(300);
       await toggle.trigger('pointerup');
       vi.advanceTimersByTime(500);
@@ -130,7 +130,7 @@ describe('ListItemRow', () => {
     it('short tap still emits toggle-checked', async () => {
       const wrapper = mountRow(makeItem({ checked: false }));
       const toggle = wrapper.get('[data-testid="row-toggle"]');
-      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(100);
       await toggle.trigger('pointerup');
       await toggle.trigger('click');
@@ -140,7 +140,7 @@ describe('ListItemRow', () => {
     it('long-press suppresses subsequent click toggle', async () => {
       const wrapper = mountRow(makeItem({ checked: false }));
       const toggle = wrapper.get('[data-testid="row-toggle"]');
-      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(500);
       await toggle.trigger('pointerup');
       await toggle.trigger('click');
@@ -150,7 +150,7 @@ describe('ListItemRow', () => {
     it('pointercancel aborts the long-press', async () => {
       const wrapper = mountRow(makeItem());
       const toggle = wrapper.get('[data-testid="row-toggle"]');
-      await toggle.trigger('pointerdown', { pointerType: 'touch', button: 0 });
+      await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(200);
       await toggle.trigger('pointercancel');
       vi.advanceTimersByTime(500);

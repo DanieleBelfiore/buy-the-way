@@ -1,6 +1,11 @@
 # Buy The Way
 
+[![CI](https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci.yml)
+[![Deploy](https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/deploy.yml)
+
 Mobile-first PWA for real-time shared shopping lists. Built for couples and flatmates.
+
+Production: _set after first Netlify deploy_ — e.g. `https://buy-the-way.netlify.app`
 
 ---
 
