@@ -23,3 +23,7 @@ app.use(i18n);
 app.mount('#app');
 
 void setupServiceWorker();
+
+if (import.meta.env.DEV && import.meta.env['VITE_E2E'] === 'true') {
+  void import('./e2e-bridge');
+}
