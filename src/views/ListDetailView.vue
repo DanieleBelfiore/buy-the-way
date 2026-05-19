@@ -71,21 +71,19 @@ const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
 const autocompleteActive = ref(false);
 
 const celebrationKey = ref(0);
-let _wasComplete = false;
-let _completeArmed = false;
+const wasComplete = ref(false);
+// Armed once we observe a non-complete state with items present — prevents
+// celebrating on initial load when a list happens to already be all-checked.
+const everHadIncompleteItems = ref(false);
 watch(
   [itemCount, boughtCount],
   ([items, bought]) => {
     const complete = items > 0 && bought === items;
-    if (complete) {
-      if (_completeArmed && !_wasComplete) {
-        celebrationKey.value += 1;
-      }
-      _wasComplete = true;
-    } else {
-      _wasComplete = false;
-      if (items > 0) _completeArmed = true;
+    if (!complete && items > 0) everHadIncompleteItems.value = true;
+    if (complete && !wasComplete.value && everHadIncompleteItems.value) {
+      celebrationKey.value += 1;
     }
+    wasComplete.value = complete;
   },
   { immediate: false },
 );
@@ -150,15 +148,10 @@ const handlePriorityCancel = (): void => {
 
 const handleTogglePinned = async (item: Item): Promise<void> => {
   if (!authStore.user) return;
-  const isPinned = pinnedNames.value.has(item.name);
   try {
     const entry = await findCatalogEntryByName(authStore.user.uid, item.name);
     if (!entry) return;
-    if (isPinned) {
-      await setCatalogExcluded(authStore.user.uid, entry.id, true);
-    } else {
-      await setCatalogPinned(authStore.user.uid, entry.id, true);
-    }
+    await setCatalogPinned(authStore.user.uid, entry.id, !entry.pinned);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] togglePinned failed:', err);

@@ -123,7 +123,8 @@
     "deleteAccountCancel": "Cancel",
     "deleteAccountReauth": "Please sign in again to confirm deletion.",
     "deleteAccountReauthBtn": "Sign in again",
-    "deleteAccountError": "Delete failed. Please try again."
+    "deleteAccountError": "Delete failed. Please try again.",
+    "deleteAccountPartial": "Some data could not be removed. Your account is still active — please try again."
   },
   "category": {
     "label": "Category",

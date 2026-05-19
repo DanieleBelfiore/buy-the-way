@@ -22,8 +22,7 @@ export const pickRandomWallpaper = (
   rng: () => number = Math.random,
 ): Wallpaper => {
   const idx = Math.floor(rng() * WALLPAPERS.length);
-  const safe = Math.min(idx, WALLPAPERS.length - 1);
-  return WALLPAPERS[safe]!;
+  return WALLPAPERS[idx]!;
 };
 
 export const wallpaperUrl = (filename: string): string =>

@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const batchSet = vi.fn();
 const batchDelete = vi.fn();
+const batchUpdate = vi.fn();
 const batchCommit = vi.fn().mockResolvedValue(undefined);
-const writeBatchMock = vi.fn(() => ({ delete: batchDelete, commit: batchCommit }));
+const writeBatchMock = vi.fn(() => ({
+  set: batchSet,
+  delete: batchDelete,
+  update: batchUpdate,
+  commit: batchCommit,
+}));
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn().mockReturnValue({ id: 'items' }),
@@ -11,10 +18,11 @@ vi.mock('firebase/firestore', () => ({
   updateDoc: vi.fn().mockResolvedValue(undefined),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   deleteField: vi.fn(() => ({ __deleteField: true })),
-  getDocs: vi.fn().mockResolvedValue({ docs: [] }),
+  getDocs: vi.fn().mockResolvedValue({ docs: [], empty: true }),
   onSnapshot: vi.fn(),
   query: vi.fn().mockReturnValue({ type: 'query' }),
   where: vi.fn().mockReturnValue({ type: 'where' }),
+  limit: vi.fn().mockReturnValue({ type: 'limit' }),
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
   writeBatch: (...args: unknown[]) => writeBatchMock(...args),
   increment: vi.fn((n: number) => ({ __increment: n })),
@@ -60,7 +68,9 @@ describe('items.service', () => {
     vi.mocked(updateDoc).mockResolvedValue(undefined);
     vi.mocked(deleteDoc).mockResolvedValue(undefined);
     vi.mocked(upsertCatalogEntry).mockResolvedValue(undefined);
+    batchSet.mockReset();
     batchDelete.mockReset();
+    batchUpdate.mockReset();
     batchCommit.mockReset().mockResolvedValue(undefined);
     writeBatchMock.mockClear();
   });
@@ -361,56 +371,82 @@ describe('items.service', () => {
   };
 
   describe('copyItem', () => {
-    it('writes a new item in the destination list', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+    it('writes a new item in the destination list via batch', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
       await copyItem(sampleItem, dst, 'uid-1');
-      expect(setDoc).toHaveBeenCalledOnce();
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect(batchSet).toHaveBeenCalledOnce();
+      expect(batchCommit).toHaveBeenCalledOnce();
+      const [, data] = batchSet.mock.calls[0]!;
       expect(data).toMatchObject({ listId: dst, name: 'Latte', category: 'dairy' });
     });
 
     it('preserves priority when copying', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem({ ...sampleItem, priority: 'urgent' }, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as any).priority).toBe('urgent');
     });
 
-    it('throws DuplicateInDestinationError on case-insensitive name match', async () => {
+    it('throws DuplicateInDestinationError when destination already has the name', async () => {
       vi.mocked(getDocs).mockResolvedValue({
-        docs: [{ data: () => ({ name: 'latte' }) }],
+        empty: false,
+        docs: [{ data: () => ({ name: 'Latte' }) }],
       } as any);
       await expect(
         copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
       ).rejects.toBeInstanceOf(DuplicateInDestinationError);
-      expect(setDoc).not.toHaveBeenCalled();
+      expect(batchSet).not.toHaveBeenCalled();
+      expect(batchCommit).not.toHaveBeenCalled();
     });
 
     it('does not delete the source item', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(batchDelete).not.toHaveBeenCalled();
       expect(deleteDoc).not.toHaveBeenCalled();
+    });
+
+    it('increments destination itemCount in same batch', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(batchUpdate).toHaveBeenCalledTimes(1);
+      const [, payload] = batchUpdate.mock.calls[0]!;
+      expect((payload as any).itemCount).toEqual({ __increment: 1 });
     });
   });
 
   describe('moveItem', () => {
-    it('writes destination then deletes source', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+    it('writes destination and deletes source in a single batch', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
       await moveItem(listId, sampleItem, dst, 'uid-1');
-      expect(setDoc).toHaveBeenCalledOnce();
-      expect(deleteDoc).toHaveBeenCalledOnce();
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchSet).toHaveBeenCalledOnce();
+      expect(batchDelete).toHaveBeenCalledOnce();
+      expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('updates both source and destination itemCount counters in the batch', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      await moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(batchUpdate).toHaveBeenCalledTimes(2);
+      const increments = batchUpdate.mock.calls.map((c) => (c[1] as any).itemCount);
+      expect(increments).toEqual(
+        expect.arrayContaining([{ __increment: 1 }, { __increment: -1 }]),
+      );
     });
 
     it('throws and does not delete source when destination has duplicate', async () => {
       vi.mocked(getDocs).mockResolvedValue({
-        docs: [{ data: () => ({ name: 'latte' }) }],
+        empty: false,
+        docs: [{ data: () => ({ name: 'Latte' }) }],
       } as any);
       await expect(
         moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
       ).rejects.toBeInstanceOf(DuplicateInDestinationError);
-      expect(deleteDoc).not.toHaveBeenCalled();
+      expect(batchDelete).not.toHaveBeenCalled();
+      expect(batchCommit).not.toHaveBeenCalled();
     });
   });
 });

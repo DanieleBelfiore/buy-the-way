@@ -34,23 +34,26 @@ service cloud.firestore {
         && uid() in request.resource.data.collaboratorUids;
 
       allow update: if isSignedIn() && (
-        // Owner update: ownerUid + createdAt must stay; ownerUid must remain a collaborator.
+        // Owner update: may only touch name, collaboratorUids, wallpaper, showFavorites,
+        // itemCount, updatedAt. ownerUid + createdAt must stay; owner must remain a collaborator.
         (
           uid() == resource.data.ownerUid
           && request.resource.data.ownerUid == resource.data.ownerUid
           && request.resource.data.createdAt == resource.data.createdAt
           && resource.data.ownerUid in request.resource.data.collaboratorUids
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'collaboratorUids', 'wallpaper', 'showFavorites', 'itemCount', 'updatedAt'])
         )
         // Owner-transfer: current owner hands ownership to an existing collaborator,
-        // removing themself from collaboratorUids. Name + createdAt unchanged.
+        // removing themself from collaboratorUids. Only ownerUid + collaboratorUids + updatedAt change.
         || (
           uid() == resource.data.ownerUid
           && request.resource.data.ownerUid != resource.data.ownerUid
           && request.resource.data.ownerUid in resource.data.collaboratorUids
           && request.resource.data.ownerUid in request.resource.data.collaboratorUids
           && !(uid() in request.resource.data.collaboratorUids)
-          && request.resource.data.name == resource.data.name
-          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['ownerUid', 'collaboratorUids', 'updatedAt'])
         )
         // Non-owner update: only allowed to remove own uid from collaboratorUids.
         || (
@@ -58,10 +61,10 @@ service cloud.firestore {
           && uid() in resource.data.collaboratorUids
           && !(uid() in request.resource.data.collaboratorUids)
           && request.resource.data.ownerUid == resource.data.ownerUid
-          && request.resource.data.name == resource.data.name
-          && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.collaboratorUids.toSet()
              == resource.data.collaboratorUids.toSet().difference([uid()].toSet())
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['collaboratorUids', 'updatedAt'])
         )
         // Any collaborator may bump itemCount + updatedAt (denormalized counter on item writes).
         || (

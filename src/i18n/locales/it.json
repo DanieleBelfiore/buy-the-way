@@ -123,7 +123,8 @@
     "deleteAccountCancel": "Annulla",
     "deleteAccountReauth": "Per sicurezza, accedi di nuovo per confermare la cancellazione.",
     "deleteAccountReauthBtn": "Accedi di nuovo",
-    "deleteAccountError": "Eliminazione fallita. Riprova."
+    "deleteAccountError": "Eliminazione fallita. Riprova.",
+    "deleteAccountPartial": "Alcuni dati non sono stati rimossi. L'account è ancora attivo — riprova."
   },
   "category": {
     "label": "Categoria",

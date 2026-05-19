@@ -34,6 +34,13 @@ export class NoCurrentUserError extends Error {
   }
 }
 
+export class PartialDeletionError extends Error {
+  constructor(public readonly failures: ReadonlyArray<string>) {
+    super(`Account data could not be fully deleted (${failures.length} failure(s))`);
+    this.name = 'PartialDeletionError';
+  }
+}
+
 export const signInWithGoogle = async (): Promise<void> => {
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
@@ -71,38 +78,48 @@ export const deleteAccount = async (uid: string): Promise<void> => {
   );
   const listsSnap = await getDocs(listsQuery);
 
-  // 2 + 3. For each list:
+  // 2 + 3. For each list (parallel, best-effort):
   //   - non-owner collaborator → leaveList
-  //   - owner of shared list (≥1 other collaborator) → transfer ownership to next collaborator
+  //   - owner of shared list (≥1 other collaborator) → transfer ownership to next collaborator (lexicographic)
   //   - owner of solo list → deleteList
-  // Best-effort: per-list failure is logged + skipped.
-  for (const docSnap of listsSnap.docs) {
-    const data = docSnap.data() as {
-      ownerUid?: string;
-      collaboratorUids?: string[];
-    };
-    const listId = docSnap.id;
-    try {
+  const failures: string[] = [];
+
+  const listResults = await Promise.allSettled(
+    listsSnap.docs.map(async (docSnap) => {
+      const data = docSnap.data() as {
+        ownerUid?: string;
+        collaboratorUids?: string[];
+      };
+      const listId = docSnap.id;
       if (data.ownerUid === uid) {
-        const others = (data.collaboratorUids ?? []).filter((u) => u !== uid);
-        if (others.length > 0) {
-          await transferListOwnership(listId, uid, others[0]!);
-        } else {
+        // Deterministic next-owner pick: lexicographic order, independent of array storage order.
+        const others = (data.collaboratorUids ?? []).filter((u) => u !== uid).sort();
+        if (others.length === 0) {
           await deleteList(listId);
+        } else {
+          await transferListOwnership(listId, uid, others[0]!);
         }
       } else {
         await leaveList(listId, uid);
       }
-    } catch (err) {
-      console.warn('[auth] deleteAccount: list cleanup failed', listId, err);
+      return listId;
+    }),
+  );
+
+  listResults.forEach((res, idx) => {
+    if (res.status === 'rejected') {
+      const listId = listsSnap.docs[idx]?.id ?? 'unknown';
+      console.warn('[auth] deleteAccount: list cleanup failed', listId, res.reason);
+      failures.push(`list:${listId}`);
     }
-  }
+  });
 
   // 4. Purge catalog entries.
   try {
     await purgeCatalog(uid);
   } catch (err) {
     console.warn('[auth] deleteAccount: catalog purge failed', err);
+    failures.push('catalog');
   }
 
   // 5. Delete user doc.
@@ -110,9 +127,16 @@ export const deleteAccount = async (uid: string): Promise<void> => {
     await deleteDoc(doc(db, 'users', uid));
   } catch (err) {
     console.warn('[auth] deleteAccount: user doc delete failed', err);
+    failures.push('userDoc');
   }
 
-  // 6. Delete Firebase Auth user — hard requirement.
+  // 6. If any Firestore cleanup failed, surface BEFORE deleting the Auth user.
+  // Auth-user deletion is irreversible and the orphaned data would become unreachable.
+  if (failures.length > 0) {
+    throw new PartialDeletionError(failures);
+  }
+
+  // 7. Delete Firebase Auth user — hard requirement, only when data is gone.
   try {
     await current.delete();
   } catch (err) {

@@ -33,7 +33,11 @@ vi.mock('@/services/lists.service', () => ({
   transferListOwnership: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { deleteAccount, RequiresRecentLoginError } from '@/services/auth.service';
+import {
+  deleteAccount,
+  RequiresRecentLoginError,
+  PartialDeletionError,
+} from '@/services/auth.service';
 import {
   getDocs,
   deleteDoc,
@@ -147,7 +151,7 @@ describe('auth.service.deleteAccount', () => {
     expect(mLeaveList).toHaveBeenCalledWith('L-guest', UID);
   });
 
-  it('continues when transferListOwnership fails (best-effort)', async () => {
+  it('throws PartialDeletionError and skips auth-user delete when transferListOwnership fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mTransfer.mockRejectedValueOnce(new Error('boom'));
     mGetDocs.mockImplementation(async (q: unknown) => {
@@ -158,14 +162,14 @@ describe('auth.service.deleteAccount', () => {
       ]) as never;
     });
 
-    await deleteAccount(UID);
+    await expect(deleteAccount(UID)).rejects.toBeInstanceOf(PartialDeletionError);
 
     expect(mTransfer).toHaveBeenCalled();
-    expect(firebaseDelete).toHaveBeenCalledOnce();
+    expect(firebaseDelete).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it('continues when deleteList fails for a single list (best-effort)', async () => {
+  it('throws PartialDeletionError when one of many deleteList calls fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mDeleteList.mockRejectedValueOnce(new Error('boom'));
     mGetDocs.mockImplementation(async (q: unknown) => {
@@ -177,14 +181,14 @@ describe('auth.service.deleteAccount', () => {
       ]) as never;
     });
 
-    await deleteAccount(UID);
+    await expect(deleteAccount(UID)).rejects.toBeInstanceOf(PartialDeletionError);
 
     expect(mDeleteList).toHaveBeenCalledTimes(2);
-    expect(firebaseDelete).toHaveBeenCalledOnce();
+    expect(firebaseDelete).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it('continues when leaveList fails (best-effort)', async () => {
+  it('throws PartialDeletionError when leaveList fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mLeaveList.mockRejectedValueOnce(new Error('boom'));
     mGetDocs.mockImplementation(async (q: unknown) => {
@@ -195,10 +199,34 @@ describe('auth.service.deleteAccount', () => {
       ]) as never;
     });
 
-    await deleteAccount(UID);
+    await expect(deleteAccount(UID)).rejects.toBeInstanceOf(PartialDeletionError);
 
     expect(mLeaveList).toHaveBeenCalled();
-    expect(firebaseDelete).toHaveBeenCalledOnce();
+    expect(firebaseDelete).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('throws PartialDeletionError when catalog purge fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    batchCommit.mockRejectedValueOnce(new Error('catalog boom'));
+    mGetDocs.mockImplementation(async (q: unknown) => {
+      const path = (q as { path?: string }).path ?? '';
+      if (path.includes('catalog')) return makeEntryDocs(3) as never;
+      return makeListDocs([]) as never;
+    });
+
+    await expect(deleteAccount(UID)).rejects.toBeInstanceOf(PartialDeletionError);
+    expect(firebaseDelete).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('throws PartialDeletionError when user-doc delete fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mDeleteDoc.mockRejectedValueOnce(new Error('userdoc boom'));
+    mGetDocs.mockImplementation(async () => makeListDocs([]) as never);
+
+    await expect(deleteAccount(UID)).rejects.toBeInstanceOf(PartialDeletionError);
+    expect(firebaseDelete).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 

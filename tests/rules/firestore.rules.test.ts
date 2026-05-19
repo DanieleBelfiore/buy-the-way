@@ -423,3 +423,38 @@ describe('firestore.rules — owner-transfer', () => {
     }));
   });
 });
+
+describe('firestore.rules — owner update field whitelist', () => {
+  it('denies owner from writing an arbitrary unknown field', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      maliciousField: 'pwn', updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies owner-transfer that also bumps itemCount', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB,
+      collaboratorUids: [BOB],
+      itemCount: 999,
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies non-owner leave that also bumps itemCount', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE],
+      itemCount: 999,
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('allows any collaborator to bump itemCount + updatedAt only', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { itemCount: 0 });
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      itemCount: 5, updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+});

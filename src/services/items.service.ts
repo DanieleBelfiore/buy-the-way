@@ -9,6 +9,8 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
+  limit,
   writeBatch,
   increment,
 } from 'firebase/firestore';
@@ -134,32 +136,56 @@ export class DuplicateInDestinationError extends Error {
   }
 }
 
-const dstItemNamesLower = async (dstListId: ULID): Promise<Set<string>> => {
+const hasDuplicateName = async (dstListId: ULID, name: string): Promise<boolean> => {
   const itemsCol = collection(db, 'lists', dstListId, 'items');
-  const snap = await getDocs(itemsCol);
-  return new Set(
-    snap.docs.map((d) => String((d.data() as Item).name ?? '').toLowerCase()),
-  );
+  const q = query(itemsCol, where('name', '==', name), limit(1));
+  const snap = await getDocs(q);
+  return !snap.empty;
 };
+
+const buildCopiedItem = (
+  src: Item,
+  dstListId: ULID,
+  byUid: string,
+  name: string,
+  now: number,
+): Item => ({
+  id: newId(),
+  listId: dstListId,
+  name,
+  quantity: src.quantity,
+  category: src.category,
+  note: src.note,
+  checked: false,
+  createdByUid: byUid,
+  createdAt: now,
+  updatedAt: now,
+  ...(src.priority ? { priority: src.priority } : {}),
+});
 
 export const copyItem = async (
   item: Item,
   dstListId: ULID,
   byUid: string,
 ): Promise<ULID> => {
-  const lower = await dstItemNamesLower(dstListId);
-  if (lower.has(item.name.toLowerCase())) {
-    throw new DuplicateInDestinationError(item.name);
+  const name = capitalizeInitial(item.name);
+  if (await hasDuplicateName(dstListId, name)) {
+    throw new DuplicateInDestinationError(name);
   }
-  return addItem({
-    listId: dstListId,
-    name: item.name,
-    quantity: item.quantity,
-    category: item.category,
-    note: item.note,
-    createdByUid: byUid,
-    priority: item.priority,
+  const now = Date.now();
+  const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
+  const dstItemsCol = collection(db, 'lists', dstListId, 'items');
+
+  const batch = writeBatch(db);
+  batch.set(doc(dstItemsCol, newItem.id), newItem);
+  batch.update(doc(db, 'lists', dstListId), {
+    itemCount: increment(1),
+    updatedAt: now,
   });
+  await batch.commit();
+
+  await upsertCatalogEntry(byUid, name, item.category);
+  return newItem.id;
 };
 
 export const moveItem = async (
@@ -168,9 +194,30 @@ export const moveItem = async (
   dstListId: ULID,
   byUid: string,
 ): Promise<ULID> => {
-  const newId_ = await copyItem(item, dstListId, byUid);
-  await removeItem(srcListId, item.id);
-  return newId_;
+  const name = capitalizeInitial(item.name);
+  if (await hasDuplicateName(dstListId, name)) {
+    throw new DuplicateInDestinationError(name);
+  }
+  const now = Date.now();
+  const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
+  const srcItemsCol = collection(db, 'lists', srcListId, 'items');
+  const dstItemsCol = collection(db, 'lists', dstListId, 'items');
+
+  const batch = writeBatch(db);
+  batch.set(doc(dstItemsCol, newItem.id), newItem);
+  batch.delete(doc(srcItemsCol, item.id));
+  batch.update(doc(db, 'lists', dstListId), {
+    itemCount: increment(1),
+    updatedAt: now,
+  });
+  batch.update(doc(db, 'lists', srcListId), {
+    itemCount: increment(-1),
+    updatedAt: now,
+  });
+  await batch.commit();
+
+  await upsertCatalogEntry(byUid, name, item.category);
+  return newItem.id;
 };
 
 const EMPTY_LIST_BATCH_SIZE = 500;

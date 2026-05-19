@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth';
 import { setLocale } from '@/i18n';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
-import { RequiresRecentLoginError } from '@/services/auth.service';
+import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
 import type { Locale } from '@/domain/types';
 import pkg from '../../package.json';
 
@@ -64,6 +64,8 @@ const runDelete = async () => {
   } catch (err) {
     if (err instanceof RequiresRecentLoginError) {
       reauthNeeded.value = true;
+    } else if (err instanceof PartialDeletionError) {
+      deleteError.value = t('settings.deleteAccountPartial');
     } else {
       deleteError.value = t('settings.deleteAccountError');
     }

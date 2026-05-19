@@ -54,8 +54,9 @@ describe('pickRandomWallpaper', () => {
     expect(w3).toBe('10.jpg');
   });
 
-  it('clamps the index when rng returns 1', () => {
-    const w = pickRandomWallpaper(() => 1);
+  it('returns a defined wallpaper for the max in-range rng value', () => {
+    // Math.random() ∈ [0, 1); the relevant boundary is 0.9999...
+    const w = pickRandomWallpaper(() => 0.99999);
     expect(w).toBe('10.jpg');
   });
 });

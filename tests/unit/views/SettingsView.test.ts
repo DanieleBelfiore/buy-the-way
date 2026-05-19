@@ -19,12 +19,18 @@ vi.mock('@/services/auth.service', () => ({
       this.name = 'RequiresRecentLoginError';
     }
   },
+  PartialDeletionError: class PartialDeletionError extends Error {
+    constructor(public readonly failures: ReadonlyArray<string> = []) {
+      super('partial-deletion');
+      this.name = 'PartialDeletionError';
+    }
+  },
 }));
 
 import SettingsView from '@/views/SettingsView.vue';
 import { useAuthStore } from '@/stores/auth';
 import { setLocale } from '@/i18n';
-import { RequiresRecentLoginError } from '@/services/auth.service';
+import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
 
 const settingsIt = {
   title: 'Impostazioni',
@@ -39,6 +45,7 @@ const settingsIt = {
   deleteAccountReauth: 'Accedi di nuovo.',
   deleteAccountReauthBtn: 'Accedi di nuovo',
   deleteAccountError: 'Eliminazione fallita.',
+  deleteAccountPartial: 'Alcuni dati non sono stati rimossi.',
 };
 
 const i18n = createI18n({
@@ -221,6 +228,15 @@ describe('SettingsView', () => {
     await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
     await flushPromises();
     expect(wrapper.text()).toContain('Eliminazione fallita');
+  });
+
+  it('shows partial-deletion message when PartialDeletionError raised', async () => {
+    mockDeleteAccount.mockRejectedValueOnce(new PartialDeletionError(['catalog']));
+    const wrapper = mountView();
+    await wrapper.find('[data-testid="delete-account-btn"]').trigger('click');
+    await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Alcuni dati non sono stati rimossi');
   });
 
   it('closes modal on cancel', async () => {

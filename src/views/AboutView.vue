@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useHead } from '@unhead/vue';
 import { useRouter } from 'vue-router';
 import { useDocumentHead } from '@/composables/useDocumentHead';
+import { safeJsonLd } from '@/domain/jsonld';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 
 const { t, tm, locale } = useI18n();
@@ -30,7 +31,7 @@ const features = computed<string[]>(() => {
 });
 
 const faqJsonLd = computed(() =>
-  JSON.stringify({
+  safeJsonLd({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: faqs.value.map((f) => ({
@@ -42,7 +43,7 @@ const faqJsonLd = computed(() =>
 );
 
 const webAppJsonLd = computed(() =>
-  JSON.stringify({
+  safeJsonLd({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: 'Buy The Way',
