@@ -227,6 +227,34 @@ describe('firestore.rules — lists/{id} update', () => {
       name: 'Hacked', updatedAt: 2,
     }));
   });
+
+  it('allows owner to toggle showFavorites', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      showFavorites: false, updatedAt: 2,
+    }));
+  });
+
+  it('denies non-owner collaborator from toggling showFavorites', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      showFavorites: false, updatedAt: 2,
+    }));
+  });
+
+  it('allows owner to set wallpaper', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      wallpaper: '05.jpg', updatedAt: 2,
+    }));
+  });
+
+  it('denies non-owner collaborator from setting wallpaper', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      wallpaper: '05.jpg', updatedAt: 2,
+    }));
+  });
 });
 
 describe('firestore.rules — lists/{id} delete', () => {
@@ -296,6 +324,102 @@ describe('firestore.rules — catalog/{uid}/entries', () => {
   it('denies another user from writing the catalog', async () => {
     await assertFails(setDoc(doc(bobCtx() as any, 'catalog', ALICE, 'entries', 'milk'), {
       name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+    }));
+  });
+});
+
+describe('firestore.rules — account-cascade self-deletes', () => {
+  it('allows self to delete own users/{uid} doc', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE), {
+        uid: ALICE, email: 'a@example.com', displayName: 'A', lastLoginAt: 1,
+      });
+    });
+    await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'users', ALICE)));
+  });
+
+  it('denies cross-user delete of users/{uid} doc', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE), {
+        uid: ALICE, email: 'a@example.com', displayName: 'A', lastLoginAt: 1,
+      });
+    });
+    await assertFails(deleteDoc(doc(bobCtx() as any, 'users', ALICE)));
+  });
+
+  it('allows self to delete own catalog entries', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'catalog', ALICE, 'entries', 'milk'), {
+        name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+      });
+    });
+    await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'catalog', ALICE, 'entries', 'milk')));
+  });
+
+  it('denies cross-user delete of catalog entries', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'catalog', ALICE, 'entries', 'milk'), {
+        name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+      });
+    });
+    await assertFails(deleteDoc(doc(bobCtx() as any, 'catalog', ALICE, 'entries', 'milk')));
+  });
+
+  it('allows self to delete own lists (owner)', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'lists', 'L1')));
+  });
+
+  it('denies stranger delete of another user\'s list', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertFails(deleteDoc(doc(bobCtx() as any, 'lists', 'L1')));
+  });
+});
+
+describe('firestore.rules — owner-transfer', () => {
+  it('allows owner to transfer ownership to an existing collaborator, removing self', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB,
+      collaboratorUids: [BOB],
+      updatedAt: 2,
+    }));
+  });
+
+  it('denies transfer to a non-collaborator', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: CARL,
+      collaboratorUids: [CARL],
+      updatedAt: 2,
+    }));
+  });
+
+  it('denies transfer that keeps old owner in collaboratorUids', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB,
+      collaboratorUids: [ALICE, BOB],
+      updatedAt: 2,
+    }));
+  });
+
+  it('denies transfer that renames the list at the same time', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB,
+      collaboratorUids: [BOB],
+      name: 'Hacked',
+      updatedAt: 2,
+    }));
+  });
+
+  it('denies non-owner from initiating transfer', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB,
+      collaboratorUids: [BOB],
+      updatedAt: 2,
     }));
   });
 });

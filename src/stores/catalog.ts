@@ -63,7 +63,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     const seen = new Set<string>();
     const result: Suggestion[] = [];
 
-    for (const e of rankedEntries.value) {
+    const userPool = entries.value
+      .filter((e) => !e.excluded)
+      .slice()
+      .sort((a, b) => {
+        const pinDiff = Number(b.pinned ?? false) - Number(a.pinned ?? false);
+        if (pinDiff !== 0) return pinDiff;
+        return b.lastUsedAt - a.lastUsedAt;
+      });
+
+    for (const e of userPool) {
       const norm = normalizeName(e.name);
       if (normQ && !norm.includes(normQ)) continue;
       if (seen.has(norm)) continue;

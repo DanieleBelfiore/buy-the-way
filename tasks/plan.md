@@ -1267,7 +1267,11 @@ Ten user-requested enhancements landing after the v1 ship. Ordered by dependency
 
 ---
 
-### Task 40 — Animated cart on list-detail page (S)
+### Task 40 — Animated cart on list-detail page (S) — **CANCELLED post-implementation**
+
+Cart was implemented + landed under test, then removed on user feedback (2026-05-19): visual noise on the header outweighed the playfulness signal. `AnimatedCart.vue` and its test suite were deleted; the trigger hook in `ListDetailView` was removed. CompletionCelebration (Task 41) covers the only retained motion cue.
+
+Historical spec retained below for context:
 
 **Description:** Render a small shopping-cart SVG (~28 px) inline in the `ListDetailView` header, positioned to the right of the list title (or just below it on narrow screens), as a persistent decorative element. The cart has two visible wheels and a basket. Animation has three states driven purely by CSS classes:
 
@@ -1278,17 +1282,17 @@ Ten user-requested enhancements landing after the v1 ship. Ordered by dependency
 Implementation: a single `AnimatedCart.vue` component takes a `state: 'idle' | 'rolling' | 'parked'` prop. `ListDetailView` derives the state from store values and bumps a `triggerKey` on every successful add to retrigger the rolling class. Pure CSS keyframes — no JS animation lib, no canvas. `prefers-reduced-motion`: cart renders as a static icon, all three states resolve to the same frame (no rotation, no translate, no tilt).
 
 **Acceptance criteria:**
-- [ ] Cart SVG visible in `ListDetailView` header; not present on other views.
-- [ ] Idle state: wheels rotate continuously, ~4 s/turn, 60 fps on a mid-tier Android.
-- [ ] Add-item triggers the 600 ms forward-bump + faster wheel spin; rapid successive adds restart the animation cleanly.
-- [ ] Parked state: when list fully bought, wheels stop and cart tilts back; un-checking returns to idle.
-- [ ] `prefers-reduced-motion`: static cart in all states.
-- [ ] No layout shift between states (cart occupies fixed footprint).
+- [x] Cart SVG visible in `ListDetailView` header; not present on other views.
+- [x] Idle state: wheels rotate continuously, ~4 s/turn (CSS keyframe, GPU-friendly transform).
+- [x] Add-item triggers the 600 ms forward-bump + faster wheel spin; rapid successive adds restart via `triggerKey` increment.
+- [x] Parked state: when list fully bought, wheels stop and cart tilts back; un-checking returns to idle.
+- [x] `prefers-reduced-motion`: `cart-reduced` class forces static rendering (also enforced via `@media` query).
+- [x] No layout shift between states (cart occupies fixed footprint via inline width/height on SVG).
 
 **Verification:**
-- [ ] Unit test: state computed from `itemCount` + `boughtCount` (parked when all checked & non-empty; idle otherwise); add-item bumps `triggerKey`.
-- [ ] Unit test: reduced-motion forces static class.
-- [ ] Manual at 375 px: visual on Chrome + Safari iOS.
+- [x] Unit test: state computed from `itemCount` + `boughtCount` (parked when all checked & non-empty; idle otherwise); add-item bumps `triggerKey` (8 tests in `tests/unit/components/AnimatedCart.test.ts`).
+- [x] Unit test: reduced-motion forces `cart-reduced` class.
+- [ ] Manual at 375 px: visual on Chrome + Safari iOS (pending human verification).
 
 **Dependencies:** Task 16, Task 27.J (reused `useReducedMotion`).
 
@@ -1303,17 +1307,17 @@ Implementation: a single `AnimatedCart.vue` component takes a `state: 'idle' | '
 **Description:** When a list transitions from `itemCount > 0 AND boughtCount < itemCount` to `boughtCount === itemCount` (all items bought), trigger a celebration: CSS-confetti burst over the page (~2 s, ≤ 30 particles, all positioned absolutely under a non-interactive overlay) + a centered toast with a randomly-picked playful message ("Hai conquistato la spesa! 🛒", "Frigorifero, preparati 🎉", etc., ≥ 5 strings per locale). Auto-dismiss after 2.5 s. Reduced-motion: skip confetti, show message only. Trigger fires at most once per "completion transition" (uncheck + re-check does not re-trigger unless the list went off-complete in between).
 
 **Acceptance criteria:**
-- [ ] Triggers exactly once when last unchecked item becomes checked.
-- [ ] Does NOT trigger on initial mount of an already-fully-checked list.
-- [ ] Re-arms after any item becomes unchecked.
-- [ ] Empty list (0 items) never triggers.
-- [ ] Confetti is purely decorative (`aria-hidden`); message has `role="status"` for SR users.
-- [ ] Reduced-motion: no confetti, message-only.
+- [x] Triggers exactly once when last unchecked item becomes checked (watcher in `ListDetailView` uses `_completeArmed` flag to gate first transition).
+- [x] Does NOT trigger on initial mount of an already-fully-checked list (`_completeArmed` starts false).
+- [x] Re-arms after any item becomes unchecked.
+- [x] Empty list (0 items) never triggers (arm flag only set when `items > 0`).
+- [x] Confetti is purely decorative (`aria-hidden`); message has `role="status"` for SR users.
+- [x] Reduced-motion: no confetti, message-only.
 
 **Verification:**
-- [ ] Unit test on the transition watcher: fixtures for not-triggered cases (initial mount, empty, all already checked, uncheck-then-check without going off-complete).
-- [ ] Unit test: random message pool is non-empty per locale.
-- [ ] Manual 375 px: add 3 items → check all → confetti + message.
+- [x] Unit test on `CompletionCelebration`: overlay/message visibility, aria-hidden, role=status, particle count cap (≤30), reduced-motion suppression, 2.5 s auto-dismiss (8 tests in `tests/unit/components/CompletionCelebration.test.ts`).
+- [x] Unit test: locale message pools verified ≥ 5 entries per locale (en + it = 7 each).
+- [ ] Manual 375 px: add 3 items → check all → confetti + message (pending human verification).
 
 **Dependencies:** Tasks 16, 27.J (haptic + useReducedMotion).
 
@@ -1325,29 +1329,37 @@ Implementation: a single `AnimatedCart.vue` component takes a `state: 'idle' | '
 
 ### Task 42 — Delete account (L)
 
-**Description:** Add a `Delete account` button to `SettingsView`, placed next to the existing sign-out button (same red destructive styling). Trigger uses the standard plain `ConfirmModal` (decision locked — no typed-email gate) with explicit destructive copy stating that all data and the account will be permanently removed. Service `deleteAccount(uid)` performs in order:
+**Description:** Add a `Delete account` button to `SettingsView` (placed to the **left** of the existing sign-out button, both buttons sharing one horizontal row, same destructive red styling). Trigger uses the standard plain `ConfirmModal` (decision locked — no typed-email gate) with explicit destructive copy stating that all data and the account will be permanently removed. Service `deleteAccount(uid)` performs in order:
 
-1. Re-authenticate. If Firebase throws `auth/requires-recent-login`, surface a "Please sign in again to confirm" UI; on success, retry.
-2. For each list with `ownerUid === uid`: call existing `deleteList(listId)` (purges items + list doc, batched).
-3. For each list where `uid` is in `collaboratorUids` but not owner: call `leaveList(listId, uid)`.
-4. Delete every doc under `catalog/{uid}/entries/*` in batches of 500.
-5. Delete the `users/{uid}` doc.
-6. Call `firebaseUser.delete()` on the auth user.
-7. Redirect to `/login`.
+1. For each list with `ownerUid === uid`:
+   - If `collaboratorUids.length > 1` (shared list): call `transferListOwnership(listId, uid, nextUid)` where `nextUid` is the first non-self collaborator. The list survives under the new admin; the deleted user is dropped from `collaboratorUids` atomically.
+   - Else (solo-owned list): call `deleteList(listId)` (purges items + list doc, batched).
+2. For each list where `uid` is in `collaboratorUids` but not owner: call `leaveList(listId, uid)`.
+3. Delete every doc under `catalog/{uid}/entries/*` in batches of 500.
+4. Delete the `users/{uid}` doc.
+5. Call `firebaseUser.delete()` on the auth user.
+6. Redirect to `/login`.
 
-Steps 2–5 are best-effort and must not block step 6 if isolated writes fail (log + continue) — orphaned data is acceptable; the auth identity going away is the hard requirement.
+If step 5 throws `auth/requires-recent-login`, service raises `RequiresRecentLoginError`; UI swaps the confirm modal to a "Please sign in again to confirm" modal whose confirm action calls `reauthenticateGoogle()` then retries `deleteAccount`.
+
+Steps 1–4 are best-effort and must not block step 5 if isolated writes fail (log + continue) — orphaned data is acceptable; the auth identity going away is the hard requirement.
+
+Firestore rules add a dedicated **owner-transfer** branch under `lists/{id}` update: caller must be the current owner, new ownerUid must already be a collaborator, new ownerUid stays in `collaboratorUids`, old owner is removed, `name` + `createdAt` unchanged.
 
 **Acceptance criteria:**
-- [ ] Button visible in `SettingsView`, requires explicit confirmation.
-- [ ] On success: user signed out, all owned lists + items + own catalog removed, `users/{uid}` removed, Firebase Auth user removed, redirect to `/login`.
-- [ ] `requires-recent-login` path triggers re-auth and resumes deletion.
-- [ ] Other collaborators on previously-owned lists no longer see those lists (since deleted).
-- [ ] Rules unit tests cover: self can delete own `users/{uid}` doc; self can delete own catalog entries; self can delete own lists (existing rule). Non-self denied for all three.
+- [x] Button visible in `SettingsView`, **left of the sign-out button on the same row**, requires explicit `ConfirmModal` confirmation.
+- [x] On success for a user with no shared owned lists: cascade runs (lists → items deleted, shared-as-guest lists left, catalog purged, `users/{uid}` deleted, Firebase Auth user deleted), redirect to `/login`.
+- [x] On success for a user who owns at least one **shared** list: ownership transfers to the first non-self collaborator; that list survives for the remaining collaborators with the new admin; the deleted user is removed from `collaboratorUids`.
+- [x] `requires-recent-login` path: service throws `RequiresRecentLoginError`; UI swaps to a re-auth `ConfirmModal` whose confirm action calls `reauthenticateGoogle()` then retries `deleteAccount`.
+- [x] Collaborators on previously-owned **solo** lists no longer see those lists (since `deleteList` removes the list doc — moot, no such collaborators exist).
+- [x] Rules unit tests cover: self can delete own `users/{uid}` doc; self can delete own catalog entries; self can delete own lists; owner can transfer ownership to existing collaborator (denied for: non-collaborator target, leaving old owner in collaboratorUids, renaming during transfer, non-owner caller). Non-self denied for all cascade self-deletes.
 
 **Verification:**
-- [ ] Unit test: service orchestration calls each step in order; partial-failure handling logged + continues.
-- [ ] Rules test: cross-user delete attempts denied.
-- [ ] Manual via emulator: create user, create 2 lists with items + catalog usage, run delete → verify Firestore empty for that uid, auth user gone, app at /login.
+- [x] Unit test: service orchestration calls each step in order; per-list/catalog/user-doc failures logged + continue; transfer vs. delete vs. leave routing matches list ownership + share state; `requires-recent-login` surfaced as `RequiresRecentLoginError`; other auth errors propagated as-is; 500-entry catalog batches (10 tests in `tests/unit/services/deleteAccount.test.ts`).
+- [x] Unit test: `transferListOwnership` writes new ownerUid + `arrayRemove(oldOwner)` + `updatedAt`; throws when old == new (2 tests in `tests/unit/services/lists.collab.test.ts`).
+- [x] UI tests: confirm modal flow, cascade trigger, reauth prompt + retry, error message rendering (8 tests in `tests/unit/views/SettingsView.test.ts`).
+- [x] Rules test: cross-user delete attempts denied; same-user delete succeeds; owner-transfer branch covers all guard conditions (11 new tests total).
+- [ ] Manual via emulator: create user A with one solo + one shared list (with B as collaborator) + catalog usage, run delete → verify: shared list still visible to B with B as admin, solo list + items + A's catalog + A's users doc + A's Firebase Auth user all gone, app at /login.
 
 **Dependencies:** Tasks 7, 25 (deleteList), 27 (rules).
 
@@ -1357,14 +1369,306 @@ Steps 2–5 are best-effort and must not block step 6 if isolated writes fail (l
 
 ---
 
+### Task 43 — List-name title-case enforcement (S)
+
+`createList` + `renameList` route the input through `capitalizeListName(name)` before write: trims whitespace, uppercases the first character using `toLocaleUpperCase()` (handles `über → Über`, etc.), leaves remaining characters untouched. Duplicate-name guard remains case-insensitive (`normalizeListName`). 5 unit tests on the helper + 4 branches on `createList`/`renameList`.
+
+**Files:** `src/services/lists.service.ts`, `tests/unit/services/lists.service.test.ts`, `tests/unit/services/lists.collab.test.ts`.
+
+---
+
+### Task 44 — Animated hero logo via @vueuse/motion (S)
+
+Shared composable `useLogoMotion()` returns either undefined (when `prefersReducedMotionSync()` is true) or a variant object: spring `enter` (scale + rotate + slide), then `visibleOnce` infinite y-float (±6 px) + sway (±2°). Applied to both `LoginView` and `ListsView` hero logos via `v-motion`. No `hovered`/`tapped` variants — they sticky-interrupt the loop on touch devices.
+
+**Files:** `src/composables/useLogoMotion.ts`, `src/views/LoginView.vue`, `src/views/ListsView.vue`, `src/main.ts` (`app.use(MotionPlugin)`). Dep: `@vueuse/motion` (~34 KB precache delta).
+
+---
+
+### Task 45 — Decorative animations migrated to Lottie (S)
+
+Replaces CSS confetti, animated cart, and SVG placeholders with `.lottie` files rendered through `@lottiefiles/dotlottie-vue` (~320 KB chunk, lazy on routes that use it).
+
+- `CompletionCelebration.vue` → `/animations/success.lottie`, autoplay no-loop, dismiss on `complete` event + 3.5 s fallback timer, `playKey` forces remount on retrigger. Reduced-motion: overlay suppressed entirely.
+- `ListsView` empty state → `/animations/empty.lottie` (loop).
+- `ListDetailView` empty state → `/animations/cart_empty.lottie` (loop).
+- Removed unused `empty-lists.svg` + `empty-items.svg` + old webm placeholders.
+- `tests/setup.ts` globally mocks `@lottiefiles/dotlottie-vue` (jsdom has no WASM).
+
+---
+
+### Task 46 — Stats page (M)
+
+New `/stats` route + `BarChart3` entry button in `ListsView` header.
+
+**Domain helpers (catalog-only, no extra Firestore reads):**
+- `topUsedItems(entries, limit=10)` — excludes `excluded` + zero-usage, sorts by usageCount desc then name asc.
+- `categoryBreakdown(entries)` — sums usageCount per category, computes share, sorts desc.
+- `computeTotals(entries, lists, selfUid, FAVORITES_MIN_USES)` — listsCount, uniqueCollaborators (non-self), catalogEntries (excluded skipped), favorites (pinned ∪ usageCount ≥ threshold), totalUsage.
+
+**Components:** `TopItemsChart.vue` (horizontal Bar chart, category-color bars, label = `<icon> name`, tooltip body `<icon> name: count`, no title); `CategoryDonut.vue` (60% cutout, bottom legend with `<icon> name — pct%`, tooltip `<icon> name: pct% (n articoli)` with locale-aware pluralization).
+
+Subscribes to `listsStore` + `catalogStore` on mount. Empty state when `totalUsage === 0`. Loading state respects both stores.
+
+**Deps:** `chart.js` + `vue-chartjs` (~50 KB gz combined; both lazy-loaded via the `/stats` route chunk).
+
+**Files:** `src/domain/stats.ts`, `src/views/StatsView.vue`, `src/components/stats/TopItemsChart.vue`, `src/components/stats/CategoryDonut.vue`, `src/router/index.ts`, `src/views/ListsView.vue`, `src/i18n/locales/{it,en}.json`, 12 domain tests + 5 view tests, global stubs for chart.js + vue-chartjs in `tests/setup.ts`.
+
+---
+
+### Task 47 — Owner-transfer Firestore rule branch (S)
+
+Added under `lists/{id}` update rule: caller is current owner, new ownerUid is already a collaborator and stays in collaboratorUids, old owner removed, `name` + `createdAt` unchanged. Enables `transferListOwnership(listId, oldUid, newUid)` in `lists.service` (writes `ownerUid` + `arrayRemove(oldOwner)` + `updatedAt`) — used by `deleteAccount` cascade for shared owned lists. 5 rules tests + 2 service tests.
+
+---
+
 ### Checkpoint L — Phase 11 complete
 
-- [ ] All 10 Phase 11 tasks landed as separate commits.
-- [ ] `pnpm test:coverage` exits 0 with ≥ 80% statements; zero stderr warnings.
-- [ ] `pnpm typecheck` and `pnpm build` green; `pnpm lint` clean.
-- [ ] `pnpm test:rules` green (new branches for `showFavorites`, `wallpaper`, account-cascade self-deletes).
-- [ ] Manual smoke at 375 px: auto-reopen on add; grouped shelf with stable order; count title; show-favorites toggle (admin-only); wallpaper random + picker; priority cycle + sort; row settings shortcut; copy + move between lists; animated cart; completion celebration; delete account flow (emulator).
+- [ ] All 10 Phase 11 tasks + 5 follow-ups landed as separate commits (Tasks 33–39 committed; 40 cancelled; 41/42/43/44/45/46/47 staged, pending commit authorization).
+- [x] `pnpm test:coverage` exits 0 with 88.4% statements (585 tests passing).
+- [x] `pnpm typecheck` and `pnpm build` green; `pnpm lint` clean.
+- [x] `pnpm test:rules` green — 45 rules tests including `showFavorites`, `wallpaper`, account-cascade self-delete (6) and owner-transfer (5) branches.
+- [ ] Manual smoke at 375 px: auto-reopen on add; grouped shelf with stable order; count title; show-favorites toggle (admin-only); wallpaper random + picker; priority cycle + sort; row settings shortcut; copy + move between lists; completion lottie; delete account flow (emulator); logo bounce + float; stats page (totals + bar + donut); list-name title-case — pending human verification.
 - [ ] **Human Verification Recap emitted per protocol; human approval required before commits land on `main`.**
+
+---
+
+## Phase 12 — Production-readiness (legal, SEO, observability, infra)
+
+Locked decisions (2026-05-19):
+- **No analytics** at launch. Strictly necessary auth cookies only → no cookie banner.
+- **Privacy + Terms** bilingual IT + EN, **hand-written** from Garante Privacy IT template. No paid generator.
+- **Error monitoring** via Sentry (free tier 5k events/mo).
+- **Public `/about` landing** with `FAQPage` JSON-LD for SEO/GEO.
+
+Sequencing rationale: legal pages + meta tags before any public push; Sentry early so prod errors are captured from day 0; infra hardening (indices, backups, rules deploy) before the first real users.
+
+---
+
+### Task 48 — Public `/about` landing + SEO meta tags (M)
+
+**Description:** New public route `/about` (auth-bypassed in the guard) plus `/privacy` and `/terms` (Task 49). Server-rendered-ish via Vite's `transformIndexHtml` is overkill — instead use `@unhead/vue` (or a hand-rolled `useHead` composable) to inject per-route `<title>`, `<meta name="description">`, OG/Twitter cards, `<link rel="canonical">`, `<html lang>`. Same composable handles `/login` (single-line CTA description) and `/about` (full marketing copy + FAQ JSON-LD).
+
+`/about` content: hero with app name + tagline + screenshot grid (3 screenshots: ListsView, ListDetailView with shelf, StatsView), feature bullets in IT + EN (locale-driven), FAQ block (10 Q&A pairs IT + EN — "Cosa fa Buy The Way?", "Funziona offline?", "Posso condividere una lista?", "I miei dati sono al sicuro?", etc.), CTA button "Accedi" → `/login`. FAQ block emits `<script type="application/ld+json">` with `FAQPage` schema for AI engines + Google rich results.
+
+**Auth guard update:** allow `to.name === 'about' | 'privacy' | 'terms' | 'login'` regardless of auth state. Stay-on-page if already authenticated (don't redirect to /lists) so logged-in users can still read legal pages.
+
+**`robots.txt` + `sitemap.xml`** generated at build time (Vite plugin or static files in `public/`): `Allow: /`, `Allow: /about`, `Allow: /privacy`, `Allow: /terms`, `Allow: /login`. `Disallow:` everything else. Sitemap lists the 5 public URLs with `lastmod` from build date.
+
+**Manifest enrichment:** add `description`, `categories: ["productivity","lifestyle","shopping"]`, `screenshots` array (Android + iOS form factors) for richer Install prompt and future store listings.
+
+**Structured data on `/about`:** `WebApplication` JSON-LD (name, applicationCategory, operatingSystem, offers free, screenshots, author).
+
+**Acceptance criteria:**
+- [ ] `/about`, `/privacy`, `/terms` reachable without auth.
+- [ ] Logged-in user opening `/about` does NOT get redirected to `/lists`.
+- [ ] Each public route has unique `<title>` + `<meta name="description">` (IT + EN switchable via existing locale).
+- [ ] `/about` renders `<script type="application/ld+json">` with valid `FAQPage` + `WebApplication` schemas (validated via Google Rich Results Test).
+- [ ] `/robots.txt` + `/sitemap.xml` served from prod build.
+- [ ] Manifest has `description`, `categories`, `screenshots`.
+
+**Verification:**
+- [ ] Unit test: auth guard allows public routes regardless of user state.
+- [ ] Unit test: `useHead` (or equivalent) sets correct `<title>` per route + locale.
+- [ ] Manual: Lighthouse SEO ≥ 95 on `/about` and `/login` (mobile, slow 4G); Google Rich Results Test passes.
+
+**Files:** `src/views/AboutView.vue`, `src/views/PrivacyView.vue` (Task 49), `src/views/TermsView.vue` (Task 49), `src/composables/useHead.ts`, `src/router/index.ts`, `public/robots.txt`, `public/sitemap.xml` (or Vite plugin), `vite.config.ts` (PWA manifest update), `src/i18n/locales/{it,en}.json`.
+
+**Estimated scope:** M
+
+---
+
+### Task 49 — Privacy Policy + Terms of Service pages (M)
+
+**Description:** Two static views rendering bilingual content from i18n. No legal generator — content written by hand against the Garante Privacy IT template, reviewed against GDPR art. 13 disclosure requirements.
+
+**Privacy Policy must cover:**
+1. Data controller identity + contact email (`danielebelfiorepc@gmail.com`).
+2. Data collected: Google account email + displayName (auth), list/item content created by the user, catalog usage counts, last-login timestamp, IP + user-agent (Firebase logs), device storage (IndexedDB cache).
+3. Legal basis: contract performance (art. 6.1.b GDPR) for service operation; legitimate interest (art. 6.1.f) for security logs.
+4. Data processors: Google Ireland (Firebase Auth + Firestore + Hosting). Note SCC for non-EU transfer. Sentry (Functional Software Inc., DPA + SCC in place once Task 50 lands).
+5. Retention: indefinite while account is active; full hard-delete on user-initiated account deletion (Task 42); Firebase backup retention (30 days standard).
+6. User rights: access, rectification, erasure (already self-service via delete-account), portability, object, restriction, complaint to Garante. How to exercise (email).
+7. Children: service not directed to under-16; no age gate but auth via Google enforces account terms.
+8. Changes notice: in-app banner on policy update + new `effective-from` date.
+9. Date of last update.
+
+**Terms of Service must cover:**
+1. Service description + free-of-charge.
+2. User responsibilities (no illegal content, no abuse of collaborator-add).
+3. Termination: user may delete account anytime; operator may suspend for ToS violation with notice.
+4. Liability limitation: provided "as is", no SLA at v1.
+5. Governing law: Italy (or operator's country).
+6. Dispute resolution: ordinary courts of operator's residence.
+
+**Footer link in `LoginView` + `SettingsView`** linking to `/privacy` and `/terms`. Also linked from `/about`.
+
+**Acceptance criteria:**
+- [ ] `/privacy` + `/terms` render in IT and EN.
+- [ ] Both pages have anchor links to each section (TOC).
+- [ ] Last-update date is sourced from a single i18n constant.
+- [ ] Footer link present on `LoginView`, `SettingsView`, `AboutView`.
+- [ ] Privacy text explicitly enumerates Firebase + Sentry as data processors with their roles.
+- [ ] Privacy text describes the self-service account-deletion flow (Task 42) under "user rights".
+
+**Verification:**
+- [ ] Manual review against Garante Privacy IT model document.
+- [ ] Manual: full content readable on 375 px without horizontal scroll.
+
+**Files:** `src/views/PrivacyView.vue`, `src/views/TermsView.vue`, `src/i18n/locales/{it,en}.json` (long blocks — likely split into `legal.json` partials), `src/components/ui/LegalFooter.vue`, `src/views/LoginView.vue`, `src/views/SettingsView.vue`.
+
+**Estimated scope:** M — content-heavy but no logic.
+
+---
+
+### Task 50 — Sentry error monitoring (S)
+
+**Description:** Add `@sentry/vue` to capture exceptions in prod only. DSN via `VITE_SENTRY_DSN` env var; init guarded by `import.meta.env.PROD && VITE_SENTRY_DSN` so dev/test never report. Tag releases with `import.meta.env.VITE_RELEASE` (CI sets this from git sha). Configure `tracesSampleRate: 0.1`, `replaysOnErrorSampleRate: 1.0` (only on error), `replaysSessionSampleRate: 0`. Mask all input/text in replays — never capture user list content or emails.
+
+Wire to Vue error handler + unhandled promise rejection. Filter out: Firestore offline errors (`unavailable`), auth popup-closed-by-user, network errors when offline-banner is showing.
+
+**Acceptance criteria:**
+- [ ] Sentry init only in prod with DSN present.
+- [ ] Dev + test never call `Sentry.init` (verified by mocking module + asserting no-op).
+- [ ] Release tag set from CI env var.
+- [ ] Session replays mask all text + inputs.
+- [ ] Filtered errors (offline, popup-closed) do not reach Sentry.
+- [ ] Privacy Policy updated (Task 49) to list Sentry as processor.
+
+**Verification:**
+- [ ] Unit test: `initSentry()` no-op in test env.
+- [ ] Unit test: filter function drops the documented error codes.
+- [ ] Manual: throw a synthetic error in prod build, confirm event in Sentry dashboard with masked replay.
+
+**Files:** `src/services/sentry.ts`, `src/main.ts` (call init), `.env.example` (document `VITE_SENTRY_DSN`), CI config (`VITE_RELEASE` from `${{ github.sha }}`).
+
+**Estimated scope:** S
+
+---
+
+### Task 51 — Firestore indices + rules deploy in CI (S)
+
+**Description:** Create `firebase/firestore.indexes.json` describing the composite index needed by `subscribeUserLists`: collection `lists`, fields `collaboratorUids` (`ARRAY_CONTAINS`) + `updatedAt` (`DESCENDING`). Auto-deployed by `firebase deploy --only firestore:indexes,firestore:rules` step in CI.
+
+**CI pipeline addition** (GitHub Actions):
+- On main branch push, after tests pass, deploy rules + indices via service-account secret `FIREBASE_TOKEN`.
+- Deploy Hosting → already handled by Netlify; this step is Firebase-side only.
+
+**Acceptance criteria:**
+- [ ] `firebase/firestore.indexes.json` present with the composite index.
+- [ ] CI workflow has a `firebase-deploy` job that runs only on main push, only if test job succeeded.
+- [ ] Service account / token stored as repo secret, never in repo.
+- [ ] First prod query of `/lists` does not throw "missing index" error.
+
+**Verification:**
+- [ ] Manual: deploy to a staging Firebase project, hit `/lists` with ≥ 2 lists, confirm no console error.
+- [ ] CI dry-run: `firebase deploy --only firestore:indexes,firestore:rules --dry-run --project=$STAGING`.
+
+**Files:** `firebase/firestore.indexes.json`, `.github/workflows/deploy.yml`, `firebase.json` (verify `firestore.indexes` path).
+
+**Estimated scope:** S
+
+---
+
+### Task 52 — Production environment hardening (S)
+
+**Description:** Operational details for the live launch:
+
+1. **Custom domain on Netlify** — point a DNS A/CNAME to Netlify, enable auto-TLS. Configure HTTPS redirect.
+2. **Firebase env vars in Netlify dashboard** — `VITE_FIREBASE_*` (apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId) + `VITE_SENTRY_DSN` + `VITE_RELEASE`. Mark as plain (Firebase web config is public by design; Auth domain restriction is what protects it).
+3. **Firebase Auth authorized domains** — add the custom prod domain in Firebase Console → Authentication → Settings → Authorized domains. Without this, Google sign-in fails on prod with `auth/unauthorized-domain`.
+4. **Google OAuth consent screen** — verify it's published (not test), branding has app logo + privacy URL + terms URL (Task 49). Required for unrestricted public sign-in.
+5. **Firestore quota review** — confirm free Spark tier suffices for early traffic. If signups exceed ~1k MAU, plan upgrade to Blaze (with budget alert).
+6. **Scheduled Firestore backups** — `gcloud firestore export gs://<bucket>/$(date +%Y-%m-%d)` via Cloud Scheduler weekly. Retention: 30 days.
+7. **Maskable PWA icons** — generate `maskable_icon.png` (512×512 with 80% safe zone) for Android adaptive icons. Add `purpose: "maskable"` entry alongside existing `any` in manifest.
+8. **Uptime ping** — UptimeRobot (free) on `/login` every 5 min, alert email on 2+ consecutive failures.
+
+**Acceptance criteria:**
+- [ ] Custom domain serves HTTPS, HTTP redirects to HTTPS.
+- [ ] Sign-in works on prod domain (no `auth/unauthorized-domain`).
+- [ ] OAuth consent screen shows app name + logo + Privacy/Terms URLs.
+- [ ] At least one successful manual Firestore export landed in the backup bucket.
+- [ ] Maskable icon validated via Maskable.app preview.
+- [ ] UptimeRobot dashboard shows green on `/login`.
+
+**Verification:**
+- [ ] Manual smoke from a fresh browser profile: open prod URL → sign in → create a list → log out.
+- [ ] Open Lighthouse against prod URL, confirm PWA ≥ 90.
+
+**Files:** Netlify dashboard config (no repo files); `firebase.json` (export schedule via Cloud Scheduler config or doc only); `public/manifest.webmanifest` (Vite-generated — update `vite.config.ts` PWA plugin options); `public/maskable_icon.png`.
+
+**Estimated scope:** S — mostly ops, no code beyond manifest icon entry.
+
+---
+
+### Task 53 — Public-route SEO meta + i18n head management (S)
+
+**Description:** Sub-task of Task 48 lifted because it touches the router globally and benefits Task 49 too.
+
+Install `@unhead/vue` (~5 KB gz, official Vue SSR-friendly head manager). Register plugin in `main.ts`. New `useDocumentHead({titleKey, descriptionKey})` composable that watches the i18n locale and rewrites `<title>`, `<meta description>`, `<html lang>`, and OG tags on every locale change.
+
+Public-route metadata table (kept in `src/router/meta.ts`):
+
+| Route | titleKey | descKey |
+|---|---|---|
+| `/` | `seo.home.title` | `seo.home.description` |
+| `/login` | `seo.login.title` | `seo.login.description` |
+| `/about` | `seo.about.title` | `seo.about.description` |
+| `/privacy` | `seo.privacy.title` | `seo.privacy.description` |
+| `/terms` | `seo.terms.title` | `seo.terms.description` |
+
+Authenticated routes get a generic `Buy The Way — <Section>` title; no meta description (uncrawlable anyway).
+
+**Acceptance criteria:**
+- [ ] `<title>` reflects current route + locale.
+- [ ] Switching locale on `/about` instantly updates `<title>` + `<meta description>` + `<html lang>`.
+- [ ] OG image + title set on `/about` and `/login` (uses `public/branding/og-image.png` 1200×630).
+
+**Verification:**
+- [ ] Unit test: composable updates head on locale change.
+- [ ] Manual: share `/about` URL on WhatsApp/Telegram, preview card renders with image + title.
+
+**Files:** `src/composables/useDocumentHead.ts`, `src/router/meta.ts`, `src/main.ts`, `src/views/*` (call composable in setup), `public/branding/og-image.png`, `src/i18n/locales/{it,en}.json`.
+
+**Estimated scope:** S
+
+---
+
+### Checkpoint M — Phase 12 complete (production-ready)
+
+- [x] 5 / 6 Phase 12 tasks landed (Task 52 deferred — ops-only, no code).
+- [x] `pnpm test:coverage` statements 88.21%, branches 80.07%, lines 89.98%, functions 83.94% — all thresholds green (641 tests / 56 files).
+- [ ] `pnpm test:rules` still green — run separately against emulator; rules file unchanged this phase.
+- [x] `/about`, `/privacy`, `/terms` reachable without auth; logged-in users not redirected away (unit-tested `guard.test.ts`).
+- [ ] Google Rich Results Test passes on `/about` (FAQPage + WebApplication schemas) — manual after first deploy.
+- [x] `robots.txt` + `sitemap.xml` ship in `public/`.
+- [x] `firebase/firestore.indexes.json` declares composite index; `deploy.yml` `firebase-deploy` job wired (needs `FIREBASE_TOKEN` + `VITE_FIREBASE_PROJECT_ID` repo secrets).
+- [ ] Sentry receives a synthetic error from prod with masked replay — pending DSN provisioning.
+- [ ] Custom domain live with HTTPS; sign-in works; OAuth consent screen published — Task 52 ops.
+- [ ] First Firestore backup exported to bucket — Task 52 ops.
+- [ ] UptimeRobot green on `/login` — Task 52 ops.
+- [ ] Lighthouse on prod URL — manual after first deploy.
+- [ ] **Human Verification Recap emitted; human approval before announcing publicly.**
+
+### Phase 12 — Post-feedback UX bundle (2026-05-19, follow-ups)
+
+Eleven small fixes landed after Phase 12 acceptance, grouped here for traceability.
+
+| Fix | Area | Change |
+|---|---|---|
+| A | `ItemEditSheet` | Label "Aggiungi un articolo" → "Nome" (new `item.name` i18n key). |
+| B | `ItemEditSheet` | Removed priority chip row; priority still editable via row cycle. |
+| C | `MostUsedShelf` | Whole header is a single button toggling collapse (parity with `CategoryHeader`). |
+| D | `stores/catalog.ts` | `suggestionsFor` reads from raw user catalog so custom items survive empty-list. `FAVORITES_MIN_USES` kept at 2. |
+| E | `ShelfTile` | Exclude icon `X` → red `Trash2` (consistent with row trash). |
+| F | `CategoryHeader` + `MostUsedShelf` | Removed grey `hover:bg-black/5` background; cursor pointer kept. |
+| G | `items.service` + `domain/text.ts` | `addItem` + `updateItem` capitalize first character via shared `capitalizeInitial`; `capitalizeListName` re-exported from it. |
+| H | `styles/global.css` | Global `cursor: pointer` rule for `button:not(:disabled)`, `[role=button]:not([aria-disabled])`, `a[href]`, `label[for]`. `cursor: not-allowed` for disabled / aria-disabled. |
+| I | `ListItemRow` + `domain/public-catalog.ts` | New `isCustomItemName` (locale-agnostic across IT + EN names). Custom items show `UserPlus` lucide badge next to the name. |
+| J | `ItemEditSheet` + `ListDetailView` | Custom items show full-width "Rimuovi dai suggerimenti" button + hint; emits `exclude-from-suggestions` → `setCatalogExcluded` cascade. |
+| K | `ListItemRow` | Final icon choice for custom badge: `UserPlus` (user + plus) after `Sparkles`/`Pencil` iterations. |
+
+Test impact: 626 tests / 55 files (up from 585). Files added: `src/domain/text.ts`. Files touched: see [todo.md § Phase 12 — Post-feedback UX bundle](./todo.md#phase-12--post-feedback-ux-bundle-2026-05-19).
 
 ---
 
@@ -1383,6 +1687,11 @@ Steps 2–5 are best-effort and must not block step 6 if isolated writes fail (l
 | Phase 11 — delete-account leaves orphan data on partial failure | Medium | Best-effort steps 2–5 log + continue; step 6 (auth user delete) is the hard requirement. Document the trade-off in the confirm modal copy. |
 | Phase 11 — confetti perf on low-end Android | Low | Cap particles at 30; pure CSS; reduced-motion bypass. |
 | Phase 11 — row icon-button density at 360 px | Medium | Audit `ListItemRow` width with priority + settings + trash + future copy/move buttons; collapse into a single overflow menu if hit-target shrinks below 44 px. |
+| Phase 12 — privacy text incorrect or incomplete | High | Hand-written from Garante Privacy IT template; cross-check with a lawyer review before announcing. Until reviewed, restrict signups to a closed beta (Firebase Auth user whitelist via authorized domains). |
+| Phase 12 — Sentry leaks PII via replay | High | Mask all input + text in replays; never capture network payloads; document filter list. Confirm with synthetic test event before public push. |
+| Phase 12 — Google OAuth still in test mode at launch | Medium | Publishing requires app verification by Google (logo, domain, privacy URL, terms URL) which can take days. Submit verification request as soon as Task 49 ships. |
+| Phase 12 — missing Firestore composite index | High | Task 51 deploys `firestore.indexes.json`; verify on a fresh staging project that `/lists` query returns without error before pointing prod traffic. |
+| Phase 12 — single-region Firestore latency for non-EU users | Low | v1 targets IT users; multi-region Firestore is paid + tied to Blaze plan. Acceptable trade-off until traffic justifies. |
 
 ## Open Questions
 
@@ -1393,8 +1702,8 @@ Phase 11 decisions — all locked (resolved 2026-05-18):
 - **Task 36** — Wallpaper changes propagate to collaborators via Firestore subscription (no opt-in needed).
 - **Task 37** — Priority is a **single-button cycle** (none → urgent → optional → none) on `ListItemRow`; the 3-chip selector remains available inside `ItemEditSheet` for direct jumps.
 - **Task 39** — Sheet exposes **Copy or Move only** (no other actions). Trigger icon: `ArrowRightLeft` (lucide).
-- **Task 40** — Animated cart spec rewritten in the task body: persistent SVG in the `ListDetailView` header, three CSS states (idle wheel-spin, on-add bump, parked-when-all-bought), reduced-motion bypass.
-- **Task 42** — **Plain `ConfirmModal`** for delete-account (no typed-email gate). Destructive copy must spell out that data and account are permanently removed.
+- **Task 40** — Cancelled post-implementation (2026-05-19): cart removed from header on user feedback. CompletionCelebration (Task 41) covers the remaining motion cue.
+- **Task 42** — **Plain `ConfirmModal`** for delete-account (no typed-email gate). Destructive copy must spell out that data and account are permanently removed. Owner of a **shared** list transfers ownership to the first non-self collaborator; only **solo-owned** lists are hard-deleted.
 
 ## Parallelization Notes
 
@@ -1418,5 +1727,6 @@ After Phase 0, sequential foundations don't permit much parallelism. Possible pa
 | 8 PWA + Offline | 28–30 | 3 |
 | 9 Tests | 31 | 1 |
 | 10 Ship | 32 | 1 |
-| 11 UX additions | 33–42 | 10 |
-| **Total** | | **53 tasks** |
+| 11 UX additions | 33–47 | 10 + 5 follow-ups |
+| 12 Production-ready | 48–53 | 6 |
+| **Total** | | **64 tasks** (1 cancelled — Task 40) |

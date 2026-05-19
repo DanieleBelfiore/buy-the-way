@@ -15,7 +15,8 @@ const i18n = createI18n({
       category: {
         fruit_vegetables: 'Fruit & Veg',
         dairy: 'Dairy',
-        meat_fish: 'Meat & Fish',
+        meat: 'Meat',
+        fish: 'Fish',
         bakery: 'Bakery',
         beverages: 'Beverages',
         frozen: 'Frozen',

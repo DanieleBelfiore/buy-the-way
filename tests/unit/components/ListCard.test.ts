@@ -50,4 +50,24 @@ describe('ListCard', () => {
     expect(badge.exists()).toBe(true);
     expect(badge.text()).toBe('New');
   });
+
+  it('does not set inline background when no wallpaper present', () => {
+    const wrapper = mountCard({ list: mockList });
+    const card = wrapper.find('[data-testid="list-card"]');
+    expect(card.attributes('style') ?? '').not.toContain('background-image');
+  });
+
+  it('applies wallpaper background image when wallpaper field is set', () => {
+    const wrapper = mountCard({ list: { ...mockList, wallpaper: '05.jpg' } });
+    const card = wrapper.find('[data-testid="list-card"]');
+    const style = card.attributes('style') ?? '';
+    expect(style).toContain('/wallpapers/05.jpg');
+    expect(style).toContain('cover');
+  });
+
+  it('switches text color to offwhite when wallpaper is present', () => {
+    const wrapper = mountCard({ list: { ...mockList, wallpaper: '05.jpg' } });
+    const title = wrapper.find('[data-testid="list-card"] span');
+    expect(title.classes()).toContain('text-offwhite');
+  });
 });

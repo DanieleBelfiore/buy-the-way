@@ -7,7 +7,17 @@ import { useListsStore } from '@/stores/lists';
 import { useItemsStore } from '@/stores/items';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
-import { addItem, toggleChecked, removeItem, emptyList, updateItem } from '@/services/items.service';
+import {
+  addItem,
+  toggleChecked,
+  removeItem,
+  emptyList,
+  updateItem,
+  setItemPriority,
+  copyItem,
+  moveItem,
+  DuplicateInDestinationError,
+} from '@/services/items.service';
 import {
   setCatalogExcluded,
   setCatalogPinned,
@@ -24,8 +34,12 @@ import CategorySection from '@/components/list/CategorySection.vue';
 import MostUsedShelf from '@/components/list/MostUsedShelf.vue';
 import EmptyListButton from '@/components/list/EmptyListButton.vue';
 import ItemEditSheet from '@/components/list/ItemEditSheet.vue';
+import ListPickerSheet from '@/components/list/ListPickerSheet.vue';
+import PriorityPickerSheet from '@/components/list/PriorityPickerSheet.vue';
+import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
-import type { Category, CatalogEntry, Item } from '@/domain/types';
+import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
+import type { Category, CatalogEntry, Item, ItemPriority } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const { t, locale } = useI18n();
@@ -56,7 +70,27 @@ const boughtCount = computed(() => itemsStore.items.filter((i) => i.checked).len
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
 const autocompleteActive = ref(false);
 
-const { isCollapsed, toggle: toggleCollapsed } = useCollapsedCategories(
+const celebrationKey = ref(0);
+let _wasComplete = false;
+let _completeArmed = false;
+watch(
+  [itemCount, boughtCount],
+  ([items, bought]) => {
+    const complete = items > 0 && bought === items;
+    if (complete) {
+      if (_completeArmed && !_wasComplete) {
+        celebrationKey.value += 1;
+      }
+      _wasComplete = true;
+    } else {
+      _wasComplete = false;
+      if (items > 0) _completeArmed = true;
+    }
+  },
+  { immediate: false },
+);
+
+const { isCollapsed, toggle: toggleCollapsed, expandIfCollapsed } = useCollapsedCategories(
   computed(() => String(listId.value)),
 );
 
@@ -69,6 +103,119 @@ const excludeModalOpen = computed(() => excludeCandidate.value !== null);
 
 const removeCandidate = ref<Item | null>(null);
 const removeModalOpen = computed(() => removeCandidate.value !== null);
+
+const pickerItem = ref<Item | null>(null);
+const pickerOpen = computed(() => pickerItem.value !== null);
+const pickerBusy = ref(false);
+const pickerError = ref<string | null>(null);
+const otherLists = computed(() =>
+  listsStore.lists.filter((l) => l.id !== listId.value),
+);
+const canMoveCopy = computed(() => otherLists.value.length > 0);
+
+const priorityItem = ref<Item | null>(null);
+const priorityOpen = computed(() => priorityItem.value !== null);
+
+const pinnedNames = computed<Set<string>>(() => {
+  const min = FAVORITES_MIN_USES;
+  const names = new Set<string>();
+  for (const entry of catalogStore.entries) {
+    if (entry.excluded) continue;
+    if (entry.pinned || entry.usageCount >= min) {
+      names.add(entry.name);
+    }
+  }
+  return names;
+});
+
+const handleRequestPriority = (item: Item): void => {
+  priorityItem.value = item;
+};
+
+const handlePrioritySelect = async (priority: ItemPriority | null): Promise<void> => {
+  const target = priorityItem.value;
+  priorityItem.value = null;
+  if (!target) return;
+  try {
+    await setItemPriority(listId.value, target.id, priority);
+    pulse();
+  } catch (err) {
+    console.error('[ListDetailView] setItemPriority failed:', err);
+  }
+};
+
+const handlePriorityCancel = (): void => {
+  priorityItem.value = null;
+};
+
+const handleTogglePinned = async (item: Item): Promise<void> => {
+  if (!authStore.user) return;
+  const isPinned = pinnedNames.value.has(item.name);
+  try {
+    const entry = await findCatalogEntryByName(authStore.user.uid, item.name);
+    if (!entry) return;
+    if (isPinned) {
+      await setCatalogExcluded(authStore.user.uid, entry.id, true);
+    } else {
+      await setCatalogPinned(authStore.user.uid, entry.id, true);
+    }
+    pulse();
+  } catch (err) {
+    console.error('[ListDetailView] togglePinned failed:', err);
+  }
+};
+
+const handleOpenMoveCopy = (item: Item): void => {
+  pickerError.value = null;
+  pickerItem.value = item;
+};
+
+const handlePickerCancel = (): void => {
+  pickerItem.value = null;
+  pickerError.value = null;
+};
+
+const handlePickerCopy = async (dstListId: ULID): Promise<void> => {
+  if (!pickerItem.value || !authStore.user) return;
+  const item = pickerItem.value;
+  pickerBusy.value = true;
+  pickerError.value = null;
+  try {
+    await copyItem(item, dstListId, authStore.user.uid);
+    pickerItem.value = null;
+    pulse();
+  } catch (err) {
+    pickerError.value =
+      err instanceof DuplicateInDestinationError
+        ? t('item.duplicateInDestination')
+        : err instanceof Error
+          ? err.message
+          : String(err);
+  } finally {
+    pickerBusy.value = false;
+  }
+};
+
+const handlePickerMove = async (dstListId: ULID): Promise<void> => {
+  if (!pickerItem.value || !authStore.user) return;
+  const item = pickerItem.value;
+  pickerBusy.value = true;
+  pickerError.value = null;
+  try {
+    await moveItem(listId.value, item, dstListId, authStore.user.uid);
+    pickerItem.value = null;
+    pulse();
+  } catch (err) {
+    pickerError.value =
+      err instanceof DuplicateInDestinationError
+        ? t('item.duplicateInDestination')
+        : err instanceof Error
+          ? err.message
+          : String(err);
+  } finally {
+    pickerBusy.value = false;
+  }
+};
 
 const { pulse } = useHaptic();
 
@@ -113,6 +260,21 @@ const handleLongPress = async (item: Item): Promise<void> => {
 
 const handleEditCancel = (): void => {
   editingItem.value = null;
+};
+
+const handleExcludeFromSuggestions = async (item: Item): Promise<void> => {
+  if (!authStore.user) return;
+  const uid = authStore.user.uid;
+  const name = item.name;
+  editingItem.value = null;
+  try {
+    const entry = await findCatalogEntryByName(uid, name);
+    if (entry) {
+      await setCatalogExcluded(uid, entry.id, true);
+    }
+  } catch (err) {
+    console.error('[ListDetailView] exclude from suggestions failed:', err);
+  }
 };
 
 const handleEditSave = async (patch: {
@@ -179,6 +341,8 @@ const handleShelfAdd = async (entry: CatalogEntry) => {
       note: '',
       createdByUid: authStore.user.uid,
     });
+    expandIfCollapsed(entry.category);
+    previouslyAllChecked.delete(entry.category);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] shelf addItem failed:', err);
@@ -201,6 +365,8 @@ const handleAddItem = async (params: {
       note: params.note,
       createdByUid: authStore.user.uid,
     });
+    expandIfCollapsed(params.category);
+    previouslyAllChecked.delete(params.category);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] addItem failed:', err);
@@ -215,6 +381,7 @@ const handleToggleChecked = async (itemId: ULID, checked: boolean) => {
     console.error('[ListDetailView] toggleChecked failed:', err);
   }
 };
+
 
 const handleRemoveItem = (itemId: ULID) => {
   const item = itemsStore.items.find((i) => i.id === itemId);
@@ -318,6 +485,7 @@ onUnmounted(() => {
     </div>
 
     <MostUsedShelf
+      v-if="list?.showFavorites !== false"
       :entries="shelfEntries"
       :top-ids="shelfTopIds"
       :item-names-in-list="itemNamesInList"
@@ -332,12 +500,13 @@ onUnmounted(() => {
     </div>
 
     <div v-else-if="!hasItems" class="px-5 py-12 text-center space-y-3">
-      <img
-        src="@/assets/illustrations/empty-items.svg"
-        alt=""
+      <DotLottieVue
+        data-testid="list-empty-lottie"
         aria-hidden="true"
-        loading="lazy"
-        class="mx-auto h-28 w-28 opacity-90"
+        class="mx-auto h-40 w-40"
+        src="/animations/cart_empty.lottie"
+        :autoplay="true"
+        :loop="true"
       />
       <p class="text-sm text-muted-gray">{{ t('list.empty') }}</p>
       <p class="text-xs text-muted-gray mt-1">{{ t('list.emptyHint') }}</p>
@@ -350,10 +519,15 @@ onUnmounted(() => {
         :category="category"
         :items="items"
         :collapsed="isCollapsed(category)"
+        :can-move-copy="canMoveCopy"
+        :pinned-names="pinnedNames"
         @toggle-checked="(id, val) => handleToggleChecked(id, val)"
         @remove-item="(id) => handleRemoveItem(id)"
         @toggle-collapse="(c) => toggleCollapsed(c)"
         @long-press="handleLongPress"
+        @request-priority="handleRequestPriority"
+        @move-copy="handleOpenMoveCopy"
+        @toggle-pinned="handleTogglePinned"
       />
     </div>
 
@@ -375,6 +549,7 @@ onUnmounted(() => {
       :pinned="editingPinned"
       @save="handleEditSave"
       @cancel="handleEditCancel"
+      @exclude-from-suggestions="handleExcludeFromSuggestions"
     />
 
     <ConfirmModal
@@ -400,5 +575,25 @@ onUnmounted(() => {
       @confirm="confirmRemove"
       @cancel="cancelRemove"
     />
+
+    <ListPickerSheet
+      :open="pickerOpen"
+      :item="pickerItem"
+      :lists="otherLists"
+      :busy="pickerBusy"
+      :error-message="pickerError"
+      @copy="handlePickerCopy"
+      @move="handlePickerMove"
+      @cancel="handlePickerCancel"
+    />
+
+    <PriorityPickerSheet
+      :open="priorityOpen"
+      :item="priorityItem"
+      @select="handlePrioritySelect"
+      @cancel="handlePriorityCancel"
+    />
+
+    <CompletionCelebration :trigger-key="celebrationKey" />
   </main>
 </template>

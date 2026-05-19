@@ -1,19 +1,30 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Trash2 } from '@lucide/vue';
-import { iconForName } from '@/domain/public-catalog';
-import type { Item } from '@/domain/types';
+import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
+import { iconForName, isCustomItemName } from '@/domain/public-catalog';
+import type { Item, ItemPriority } from '@/domain/types';
 
 const LONG_PRESS_MS = 500;
 
 const { t, locale } = useI18n();
-const props = defineProps<{ item: Item }>();
+const props = withDefaults(
+  defineProps<{
+    item: Item;
+    canMoveCopy?: boolean;
+    pinned?: boolean;
+  }>(),
+  { canMoveCopy: true, pinned: false },
+);
 const icon = computed(() => iconForName(props.item.name, locale.value));
+const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
 const emit = defineEmits<{
   'toggle-checked': [boolean];
   remove: [];
   'long-press': [Item];
+  'request-priority': [Item];
+  'move-copy': [Item];
+  'toggle-pinned': [Item];
 }>();
 
 let pressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -53,6 +64,52 @@ const onClick = (): void => {
   }
   emit('toggle-checked', !props.item.checked);
 };
+
+const onRequestPriority = (e: MouseEvent): void => {
+  e.stopPropagation();
+  emit('request-priority', props.item);
+};
+
+const onOpenSettings = (e: MouseEvent): void => {
+  e.stopPropagation();
+  emit('long-press', props.item);
+};
+
+const onOpenMoveCopy = (e: MouseEvent): void => {
+  e.stopPropagation();
+  emit('move-copy', props.item);
+};
+
+const onTogglePinned = (e: MouseEvent): void => {
+  e.stopPropagation();
+  emit('toggle-pinned', props.item);
+};
+
+const priorityIcon = computed(() => {
+  if (props.item.priority === 'urgent') return AlertTriangle;
+  if (props.item.priority === 'optional') return CircleDashed;
+  return Flag;
+});
+
+const priorityAria = computed(() => {
+  if (props.item.priority === 'urgent') return t('item.priorityUrgent');
+  if (props.item.priority === 'optional') return t('item.priorityOptional');
+  return t('item.priorityNone');
+});
+
+const priorityBtnClasses = computed(() => {
+  if (props.item.priority === 'urgent')
+    return 'text-red-600 hover:bg-red-50 active:bg-red-100';
+  return 'text-muted-gray hover:bg-black/5 active:bg-black/10';
+});
+
+const nameClasses = computed(() => {
+  const base = 'flex-1 text-sm flex items-baseline gap-1.5 flex-wrap';
+  if (props.item.checked) return `${base} line-through text-ink-40`;
+  if (props.item.priority === 'urgent') return `${base} text-red-700 font-semibold`;
+  if (props.item.priority === 'optional') return `${base} text-muted-gray`;
+  return `${base} text-charcoal`;
+});
 </script>
 
 <template>
@@ -60,7 +117,7 @@ const onClick = (): void => {
     <button
       data-testid="row-toggle"
       type="button"
-      class="flex-1 flex items-center gap-3 pl-10 pr-5 min-h-[44px] text-left select-none"
+      class="flex-1 flex items-center gap-3 pl-10 pr-2 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
       @pointerdown="onPointerDown"
@@ -75,13 +132,16 @@ const onClick = (): void => {
       >
         {{ icon }}
       </span>
-      <span
-        :class="[
-          'flex-1 text-sm flex items-baseline gap-1.5 flex-wrap',
-          props.item.checked ? 'line-through text-ink-40' : 'text-charcoal',
-        ]"
-      >
+      <span :class="nameClasses">
         <span class="font-medium">{{ props.item.name }}</span>
+        <UserPlus
+          v-if="isCustom"
+          data-testid="row-custom-badge"
+          :size="13"
+          :stroke-width="2"
+          class="text-muted-gray shrink-0"
+          :aria-label="t('item.customBadge')"
+        />
         <span
           v-if="props.item.quantity"
           data-testid="row-quantity"
@@ -104,6 +164,53 @@ const onClick = (): void => {
           {{ props.item.note }}
         </span>
       </span>
+    </button>
+    <button
+      data-testid="row-priority"
+      type="button"
+      :class="[
+        'inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent transition-colors',
+        priorityBtnClasses,
+      ]"
+      :aria-label="priorityAria"
+      :data-priority="props.item.priority ?? 'none'"
+      @click="onRequestPriority"
+    >
+      <component :is="priorityIcon" :size="18" :stroke-width="2" aria-hidden="true" />
+    </button>
+    <button
+      data-testid="row-pinned"
+      type="button"
+      :class="[
+        'inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent transition-colors',
+        props.pinned
+          ? 'text-favorite-gold hover:bg-favorite-gold-soft active:bg-favorite-gold-soft'
+          : 'text-muted-gray hover:bg-black/5 active:bg-black/10',
+      ]"
+      :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
+      :aria-pressed="props.pinned"
+      @click="onTogglePinned"
+    >
+      <Star :size="18" :stroke-width="2" :fill="props.pinned ? 'currentColor' : 'none'" aria-hidden="true" />
+    </button>
+    <button
+      v-if="canMoveCopy"
+      data-testid="row-move-copy"
+      type="button"
+      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-muted-gray hover:bg-black/5 active:bg-black/10 transition-colors"
+      :aria-label="t('item.moveOrCopy')"
+      @click="onOpenMoveCopy"
+    >
+      <ArrowRightLeft :size="18" :stroke-width="2" aria-hidden="true" />
+    </button>
+    <button
+      data-testid="row-settings"
+      type="button"
+      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-muted-gray hover:bg-black/5 active:bg-black/10 transition-colors"
+      :aria-label="t('item.openSettings')"
+      @click="onOpenSettings"
+    >
+      <Settings :size="18" :stroke-width="2" aria-hidden="true" />
     </button>
     <button
       data-testid="row-remove"

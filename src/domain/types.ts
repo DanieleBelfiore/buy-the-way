@@ -5,7 +5,8 @@ export type Locale = 'it' | 'en';
 export type Category =
   | 'fruit_vegetables'
   | 'dairy'
-  | 'meat_fish'
+  | 'meat'
+  | 'fish'
   | 'bakery'
   | 'beverages'
   | 'frozen'
@@ -19,9 +20,13 @@ export interface List {
   ownerUid: string;
   collaboratorUids: readonly string[];
   itemCount?: number;
+  showFavorites?: boolean;
+  wallpaper?: string;
   createdAt: number;
   updatedAt: number;
 }
+
+export type ItemPriority = 'urgent' | 'optional';
 
 export interface Item {
   id: ULID;
@@ -31,6 +36,7 @@ export interface Item {
   category: Category;
   note: string;
   checked: boolean;
+  priority?: ItemPriority;
   createdByUid: string;
   createdAt: number;
   updatedAt: number;

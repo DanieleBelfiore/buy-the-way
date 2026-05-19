@@ -14,6 +14,14 @@ const i18n = createI18n({
         markAsBought: 'Mark as bought',
         markAsToBuy: 'Mark as to buy',
         remove: 'Remove item',
+        priorityUrgent: 'Urgent',
+        priorityOptional: 'Optional',
+        priorityNone: 'Normal',
+        openSettings: 'Edit item',
+        moveOrCopy: 'Move or copy',
+        pinFavorite: 'Pin to favorites',
+        unpinFavorite: 'Unpin from favorites',
+        customBadge: 'Custom item',
       },
     },
   },
@@ -40,6 +48,16 @@ describe('ListItemRow', () => {
   it('renders item name', () => {
     const wrapper = mountRow(makeItem());
     expect(wrapper.text()).toContain('Latte');
+  });
+
+  it('does NOT render custom badge for public-catalog item (Latte)', () => {
+    const wrapper = mountRow(makeItem({ name: 'Latte' }));
+    expect(wrapper.find('[data-testid="row-custom-badge"]').exists()).toBe(false);
+  });
+
+  it('renders custom badge for custom item name', () => {
+    const wrapper = mountRow(makeItem({ name: 'Babà' }));
+    expect(wrapper.find('[data-testid="row-custom-badge"]').exists()).toBe(true);
   });
 
   it('renders item quantity', () => {
@@ -155,6 +173,130 @@ describe('ListItemRow', () => {
       await toggle.trigger('pointercancel');
       vi.advanceTimersByTime(500);
       expect(wrapper.emitted('long-press')).toBeFalsy();
+    });
+  });
+
+  describe('priority button', () => {
+    it('renders priority button next to trash', () => {
+      const wrapper = mountRow(makeItem());
+      expect(wrapper.find('[data-testid="row-priority"]').exists()).toBe(true);
+    });
+
+    it('priority button aria-label is "Normal" when no priority', () => {
+      const wrapper = mountRow(makeItem());
+      expect(wrapper.get('[data-testid="row-priority"]').attributes('aria-label')).toBe('Normal');
+    });
+
+    it('priority button aria-label is "Urgent" when priority=urgent', () => {
+      const wrapper = mountRow(makeItem({ priority: 'urgent' }));
+      expect(wrapper.get('[data-testid="row-priority"]').attributes('aria-label')).toBe('Urgent');
+    });
+
+    it('priority button aria-label is "Optional" when priority=optional', () => {
+      const wrapper = mountRow(makeItem({ priority: 'optional' }));
+      expect(wrapper.get('[data-testid="row-priority"]').attributes('aria-label')).toBe('Optional');
+    });
+
+    it('emits request-priority with the item when clicked', async () => {
+      const item = makeItem();
+      const wrapper = mountRow(item);
+      await wrapper.get('[data-testid="row-priority"]').trigger('click');
+      expect(wrapper.emitted('request-priority')?.[0]).toEqual([item]);
+    });
+
+    it('does not emit toggle-checked when priority button clicked', async () => {
+      const wrapper = mountRow(makeItem());
+      await wrapper.get('[data-testid="row-priority"]').trigger('click');
+      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
+    });
+
+    it('applies red styling when priority=urgent', () => {
+      const wrapper = mountRow(makeItem({ priority: 'urgent' }));
+      expect(wrapper.html()).toContain('text-red-700');
+    });
+  });
+
+  describe('pinned star button', () => {
+    it('renders an unfilled star by default', () => {
+      const wrapper = mountRow(makeItem());
+      const btn = wrapper.get('[data-testid="row-pinned"]');
+      expect(btn.attributes('aria-pressed')).toBe('false');
+      expect(btn.attributes('aria-label')).toBe('Pin to favorites');
+    });
+
+    it('renders filled gold star when pinned', () => {
+      const wrapper = mount(ListItemRow, {
+        props: { item: makeItem(), pinned: true },
+        global: { plugins: [i18n] },
+      });
+      const btn = wrapper.get('[data-testid="row-pinned"]');
+      expect(btn.attributes('aria-pressed')).toBe('true');
+      expect(btn.attributes('aria-label')).toBe('Unpin from favorites');
+      expect(btn.classes().join(' ')).toContain('text-favorite-gold');
+    });
+
+    it('emits toggle-pinned with the item when clicked', async () => {
+      const item = makeItem();
+      const wrapper = mountRow(item);
+      await wrapper.get('[data-testid="row-pinned"]').trigger('click');
+      expect(wrapper.emitted('toggle-pinned')?.[0]).toEqual([item]);
+    });
+  });
+
+  describe('canMoveCopy gate', () => {
+    it('hides move-copy button when canMoveCopy=false', () => {
+      const wrapper = mount(ListItemRow, {
+        props: { item: makeItem(), canMoveCopy: false },
+        global: { plugins: [i18n] },
+      });
+      expect(wrapper.find('[data-testid="row-move-copy"]').exists()).toBe(false);
+    });
+
+    it('shows move-copy button when canMoveCopy=true (default)', () => {
+      const wrapper = mountRow(makeItem());
+      expect(wrapper.find('[data-testid="row-move-copy"]').exists()).toBe(true);
+    });
+  });
+
+  describe('move-copy shortcut button', () => {
+    it('renders the move-copy button with aria-label "Move or copy"', () => {
+      const wrapper = mountRow(makeItem());
+      const btn = wrapper.get('[data-testid="row-move-copy"]');
+      expect(btn.attributes('aria-label')).toBe('Move or copy');
+    });
+
+    it('emits move-copy with the item when clicked', async () => {
+      const item = makeItem();
+      const wrapper = mountRow(item);
+      await wrapper.get('[data-testid="row-move-copy"]').trigger('click');
+      expect(wrapper.emitted('move-copy')?.[0]).toEqual([item]);
+    });
+
+    it('does not emit toggle-checked when move-copy button clicked', async () => {
+      const wrapper = mountRow(makeItem());
+      await wrapper.get('[data-testid="row-move-copy"]').trigger('click');
+      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
+    });
+  });
+
+  describe('settings shortcut button', () => {
+    it('renders the settings button with aria-label "Edit item"', () => {
+      const wrapper = mountRow(makeItem());
+      const btn = wrapper.get('[data-testid="row-settings"]');
+      expect(btn.attributes('aria-label')).toBe('Edit item');
+    });
+
+    it('emits long-press with the item when clicked', async () => {
+      const item = makeItem();
+      const wrapper = mountRow(item);
+      await wrapper.get('[data-testid="row-settings"]').trigger('click');
+      expect(wrapper.emitted('long-press')?.[0]).toEqual([item]);
+    });
+
+    it('does not emit toggle-checked when settings button clicked', async () => {
+      const wrapper = mountRow(makeItem());
+      await wrapper.get('[data-testid="row-settings"]').trigger('click');
+      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
     });
   });
 });

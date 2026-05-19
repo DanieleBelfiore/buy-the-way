@@ -212,5 +212,30 @@ describe('useCatalogStore', () => {
       const results = store.suggestionsFor('caffe', 'it');
       expect(results.some((s) => s.name.startsWith('Caffè'))).toBe(true);
     });
+
+    it('returns user catalog entries with usageCount=1 (below favorites threshold)', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([
+        makeEntry({
+          id: '01CUSTOM' as ULID,
+          name: 'Babà',
+          category: 'bakery',
+          usageCount: 1,
+        }),
+      ]);
+      const results = store.suggestionsFor('bab', 'it');
+      expect(results.some((s) => s.name === 'Babà' && s.source === 'user')).toBe(true);
+    });
+
+    it('excludes user entries flagged excluded=true', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([
+        makeEntry({ id: '01EX' as ULID, name: 'Zarbo', usageCount: 5, excluded: true }),
+      ]);
+      const results = store.suggestionsFor('zarb', 'it');
+      expect(results.some((s) => s.name === 'Zarbo')).toBe(false);
+    });
   });
 });

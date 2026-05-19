@@ -10,14 +10,19 @@ const props = withDefaults(
     category: Category;
     items: Item[];
     collapsed?: boolean;
+    canMoveCopy?: boolean;
+    pinnedNames?: ReadonlySet<string>;
   }>(),
-  { collapsed: false },
+  { collapsed: false, canMoveCopy: true, pinnedNames: () => new Set<string>() },
 );
 const emit = defineEmits<{
   'toggle-checked': [id: ULID, checked: boolean];
   'remove-item': [id: ULID];
   'toggle-collapse': [category: Category];
   'long-press': [item: Item];
+  'request-priority': [item: Item];
+  'move-copy': [item: Item];
+  'toggle-pinned': [item: Item];
 }>();
 
 const bought = computed(() => props.items.filter((i) => i.checked).length);
@@ -79,9 +84,14 @@ const onLeave = (el: Element, done: () => void): void => {
           v-for="item in props.items"
           :key="item.id"
           :item="item"
+          :can-move-copy="props.canMoveCopy"
+          :pinned="props.pinnedNames.has(item.name)"
           @toggle-checked="(val) => emit('toggle-checked', item.id, val)"
           @remove="emit('remove-item', item.id)"
           @long-press="(it) => emit('long-press', it)"
+          @request-priority="(it) => emit('request-priority', it)"
+          @move-copy="(it) => emit('move-copy', it)"
+          @toggle-pinned="(it) => emit('toggle-pinned', it)"
         />
       </TransitionGroup>
     </Transition>

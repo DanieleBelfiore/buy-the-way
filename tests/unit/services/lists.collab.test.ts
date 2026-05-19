@@ -28,6 +28,7 @@ import {
   leaveList,
   renameList,
   deleteList,
+  transferListOwnership,
   UserNotFoundError,
   CannotRemoveOwnerError,
 } from '@/services/lists.service';
@@ -150,12 +151,18 @@ describe('lists.service collaborator ops', () => {
   });
 
   describe('renameList', () => {
-    it('writes trimmed name and bumps updatedAt', async () => {
-      await renameList('list-1', '  Cucina  ');
+    it('writes trimmed + capitalized name and bumps updatedAt', async () => {
+      await renameList('list-1', '  cucina  ');
       expect(updateDoc).toHaveBeenCalledOnce();
       const [, payload] = vi.mocked(updateDoc).mock.calls[0];
       expect(payload).toMatchObject({ name: 'Cucina' });
       expect(typeof (payload as any).updatedAt).toBe('number');
+    });
+
+    it('preserves already-capitalized name', async () => {
+      await renameList('list-1', 'Casa');
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({ name: 'Casa' });
     });
 
     it('throws on empty name', async () => {
@@ -197,6 +204,25 @@ describe('lists.service collaborator ops', () => {
 
       expect(batchCommit).not.toHaveBeenCalled();
       expect(deleteDoc).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('transferListOwnership', () => {
+    it('writes new ownerUid and arrayRemoves old owner', async () => {
+      await transferListOwnership('list-1', 'old-uid', 'new-uid');
+      expect(arrayRemove).toHaveBeenCalledWith('old-uid');
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({
+        ownerUid: 'new-uid',
+        collaboratorUids: { __op: 'arrayRemove', args: ['old-uid'] },
+      });
+      expect(typeof (payload as any).updatedAt).toBe('number');
+    });
+
+    it('throws when old and new owner are the same uid', async () => {
+      await expect(transferListOwnership('list-1', 'same', 'same')).rejects.toThrow();
+      expect(updateDoc).not.toHaveBeenCalled();
     });
   });
 });

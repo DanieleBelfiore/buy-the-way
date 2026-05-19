@@ -10,6 +10,8 @@ vi.mock('firebase/firestore', () => ({
   setDoc: vi.fn().mockResolvedValue(undefined),
   updateDoc: vi.fn().mockResolvedValue(undefined),
   deleteDoc: vi.fn().mockResolvedValue(undefined),
+  deleteField: vi.fn(() => ({ __deleteField: true })),
+  getDocs: vi.fn().mockResolvedValue({ docs: [] }),
   onSnapshot: vi.fn(),
   query: vi.fn().mockReturnValue({ type: 'query' }),
   where: vi.fn().mockReturnValue({ type: 'where' }),
@@ -29,9 +31,14 @@ import {
   removeItem,
   emptyList,
   updateItem,
+  setItemPriority,
+  copyItem,
+  moveItem,
+  DuplicateInDestinationError,
 } from '@/services/items.service';
-import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
+import type { Item } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const listId = '01ARZ3NDEKTSV4RRFFQ69G5FAV' as ULID;
@@ -184,6 +191,44 @@ describe('items.service', () => {
       const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
       expect(payload.category).toBe('bakery');
     });
+
+    it('capitalizes lowercase initial of name patch', async () => {
+      await updateItem(listId, itemId, { name: 'pane integrale' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.name).toBe('Pane integrale');
+    });
+
+    it('leaves already-capitalized name unchanged', async () => {
+      await updateItem(listId, itemId, { name: 'Pane' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.name).toBe('Pane');
+    });
+
+    it('does not include name field when patch omits it', async () => {
+      await updateItem(listId, itemId, { note: 'x' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.name).toBeUndefined();
+    });
+  });
+
+  describe('addItem capitalization', () => {
+    it('capitalizes lowercase initial of new item name', async () => {
+      await addItem({ ...defaultAddParams, name: 'mela rossa' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { name: string }).name).toBe('Mela rossa');
+    });
+
+    it('forwards capitalized name to upsertCatalogEntry', async () => {
+      await addItem({ ...defaultAddParams, name: 'mela' });
+      const args = vi.mocked(upsertCatalogEntry).mock.calls[0]!;
+      expect(args[1]).toBe('Mela');
+    });
+
+    it('leaves already-capitalized name unchanged', async () => {
+      await addItem({ ...defaultAddParams, name: 'Pane' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { name: string }).name).toBe('Pane');
+    });
   });
 
   describe('emptyList', () => {
@@ -285,6 +330,87 @@ describe('items.service', () => {
       const onError = vi.fn();
       subscribeItems(listId, vi.fn(), onError);
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  describe('setItemPriority', () => {
+    it('calls updateDoc with the priority value', async () => {
+      await setItemPriority(listId, itemId, 'urgent');
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.priority).toBe('urgent');
+    });
+
+    it('uses deleteField marker when clearing priority (null)', async () => {
+      await setItemPriority(listId, itemId, null);
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.priority).toEqual({ __deleteField: true });
+    });
+  });
+
+  const sampleItem: Item = {
+    id: itemId,
+    listId,
+    name: 'Latte',
+    quantity: '1L',
+    category: 'dairy',
+    note: '',
+    checked: false,
+    createdByUid: 'uid-1',
+    createdAt: 1000,
+    updatedAt: 1000,
+  };
+
+  describe('copyItem', () => {
+    it('writes a new item in the destination list', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
+      await copyItem(sampleItem, dst, 'uid-1');
+      expect(setDoc).toHaveBeenCalledOnce();
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect(data).toMatchObject({ listId: dst, name: 'Latte', category: 'dairy' });
+    });
+
+    it('preserves priority when copying', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      await copyItem({ ...sampleItem, priority: 'urgent' }, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).priority).toBe('urgent');
+    });
+
+    it('throws DuplicateInDestinationError on case-insensitive name match', async () => {
+      vi.mocked(getDocs).mockResolvedValue({
+        docs: [{ data: () => ({ name: 'latte' }) }],
+      } as any);
+      await expect(
+        copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
+      ).rejects.toBeInstanceOf(DuplicateInDestinationError);
+      expect(setDoc).not.toHaveBeenCalled();
+    });
+
+    it('does not delete the source item', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(deleteDoc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('moveItem', () => {
+    it('writes destination then deletes source', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ docs: [] } as any);
+      const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
+      await moveItem(listId, sampleItem, dst, 'uid-1');
+      expect(setDoc).toHaveBeenCalledOnce();
+      expect(deleteDoc).toHaveBeenCalledOnce();
+    });
+
+    it('throws and does not delete source when destination has duplicate', async () => {
+      vi.mocked(getDocs).mockResolvedValue({
+        docs: [{ data: () => ({ name: 'latte' }) }],
+      } as any);
+      await expect(
+        moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
+      ).rejects.toBeInstanceOf(DuplicateInDestinationError);
+      expect(deleteDoc).not.toHaveBeenCalled();
     });
   });
 });

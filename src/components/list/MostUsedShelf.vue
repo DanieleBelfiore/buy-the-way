@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Star } from '@lucide/vue';
 import ShelfTile from '@/components/list/ShelfTile.vue';
-import type { CatalogEntry } from '@/domain/types';
+import { CATEGORIES } from '@/domain/categories';
+import { groupCatalogByCategory } from '@/domain/sort';
+import type { CatalogEntry, Category } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
-const STORAGE_KEY = 'btw.shelf.collapsed';
-
-defineProps<{
+const props = defineProps<{
   entries: CatalogEntry[];
   topIds: Set<ULID>;
   itemNamesInList: Set<string>;
@@ -19,42 +19,70 @@ const emit = defineEmits<{
   'long-press-tile': [CatalogEntry];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
-const readInitial = (): boolean => {
-  if (typeof sessionStorage === 'undefined') return false;
-  return sessionStorage.getItem(STORAGE_KEY) === 'true';
-};
-
-const collapsed = ref(readInitial());
+const collapsed = ref(true);
 
 const toggle = () => {
   collapsed.value = !collapsed.value;
-  sessionStorage.setItem(STORAGE_KEY, String(collapsed.value));
 };
 
 const onAdd = (entry: CatalogEntry) => emit('add-from-shelf', entry);
 const onLongPress = (entry: CatalogEntry) => emit('long-press-tile', entry);
+
+const stableEntries = ref<CatalogEntry[]>([...props.entries]);
+
+const sameIds = (a: readonly CatalogEntry[], b: readonly CatalogEntry[]): boolean => {
+  if (a.length !== b.length) return false;
+  const setA = new Set(a.map((e) => e.id));
+  for (const e of b) if (!setA.has(e.id)) return false;
+  return true;
+};
+
+watch(
+  () => props.entries,
+  (incoming) => {
+    if (sameIds(stableEntries.value, incoming)) {
+      const byId = new Map(incoming.map((e) => [e.id, e] as const));
+      stableEntries.value = stableEntries.value
+        .map((e) => byId.get(e.id))
+        .filter((e): e is CatalogEntry => e !== undefined);
+    } else {
+      stableEntries.value = [...incoming];
+    }
+  },
+  { deep: false },
+);
+
+const groups = computed<Array<[Category, CatalogEntry[]]>>(() =>
+  groupCatalogByCategory(stableEntries.value, (c) => t(CATEGORIES[c].labelKey), locale.value),
+);
 </script>
 
 <template>
-  <section v-if="entries.length > 0" class="px-5 pt-4 pb-2">
-    <header class="flex items-center justify-between mb-2">
+  <section
+    v-if="stableEntries.length > 0"
+    data-testid="favorites-section"
+    class="mx-3 mt-3 mb-2 px-4 pt-3 pb-2 rounded-2xl border border-favorite-gold/40 bg-favorite-gold-soft/30"
+  >
+    <button
+      type="button"
+      data-testid="shelf-toggle"
+      :aria-label="collapsed ? t('shelf.expand') : t('shelf.collapse')"
+      :aria-expanded="!collapsed"
+      class="w-full flex items-center justify-between mb-2 cursor-pointer select-none text-left"
+      @click="toggle"
+    >
       <h2
         data-testid="shelf-title"
-        class="inline-flex items-center gap-1.5 text-sm font-semibold text-charcoal tracking-tight cursor-pointer select-none"
-        @click="toggle"
+        class="inline-flex items-center gap-1.5 text-sm font-semibold text-charcoal tracking-tight"
       >
         <Star :size="14" :stroke-width="2" fill="currentColor" aria-hidden="true" />
-        <span>{{ t('shelf.title') }}</span>
+        <span>{{ t('shelf.title', stableEntries.length, { count: stableEntries.length }) }}</span>
       </h2>
-      <button
-        type="button"
-        data-testid="shelf-toggle"
-        :aria-label="collapsed ? t('shelf.expand') : t('shelf.collapse')"
-        :aria-expanded="!collapsed"
-        class="flex items-center justify-center w-8 h-8 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
-        @click="toggle"
+      <span
+        class="flex items-center justify-center w-8 h-8 rounded-full text-muted-gray"
+        aria-hidden="true"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -70,20 +98,35 @@ const onLongPress = (entry: CatalogEntry) => emit('long-press-tile', entry);
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
-      </button>
-    </header>
+      </span>
+    </button>
 
-    <TransitionGroup v-if="!collapsed" name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
-      <ShelfTile
-        v-for="entry in entries"
-        :key="entry.id"
-        :entry="entry"
-        :is-top="topIds.has(entry.id)"
-        :is-in-list="itemNamesInList.has(entry.name)"
-        @add="onAdd"
-        @long-press="onLongPress"
-      />
-    </TransitionGroup>
+    <div v-if="!collapsed" class="space-y-3">
+      <section
+        v-for="[category, items] in groups"
+        :key="category"
+        :data-testid="`shelf-group-${category}`"
+      >
+        <h3
+          class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-gray font-medium mb-1.5"
+          :data-testid="`shelf-group-title-${category}`"
+        >
+          <span aria-hidden="true" :style="{ color: CATEGORIES[category].cssVar }">{{ CATEGORIES[category].icon }}</span>
+          <span>{{ t(CATEGORIES[category].labelKey) }}</span>
+        </h3>
+        <TransitionGroup name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
+          <ShelfTile
+            v-for="entry in items"
+            :key="entry.id"
+            :entry="entry"
+            :is-top="topIds.has(entry.id)"
+            :is-in-list="itemNamesInList.has(entry.name)"
+            @add="onAdd"
+            @long-press="onLongPress"
+          />
+        </TransitionGroup>
+      </section>
+    </div>
   </section>
 </template>
 

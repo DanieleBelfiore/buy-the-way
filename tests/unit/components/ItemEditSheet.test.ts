@@ -12,8 +12,13 @@ const i18n = createI18n({
     en: {
       item: {
         addPlaceholder: 'Add an item',
+        name: 'Name',
         quantity: 'Quantity',
         note: 'Note',
+        pinFavorite: 'Pin to favorites',
+        customBadge: 'Custom item',
+        removeFromSuggestions: 'Remove from suggestions',
+        removeFromSuggestionsHint: 'No longer suggested.',
       },
       shelf: { title: 'Favorites' },
       listSettings: { save: 'Save' },
@@ -22,7 +27,8 @@ const i18n = createI18n({
         label: 'Category',
         fruit_vegetables: 'Fruit & Veg',
         dairy: 'Dairy',
-        meat_fish: 'Meat & Fish',
+        meat: 'Meat',
+        fish: 'Fish',
         bakery: 'Bakery',
         beverages: 'Beverages',
         frozen: 'Frozen',
@@ -117,6 +123,52 @@ describe('ItemEditSheet', () => {
     await wrapper.get('[data-testid="edit-save"]').trigger('click');
     const payload = wrapper.emitted('save')![0]![0] as { category: string };
     expect(payload.category).toBe('bakery');
+    wrapper.unmount();
+  });
+
+  it('does not render priority row', () => {
+    const wrapper = mountSheet(true, makeItem({ priority: 'urgent' }));
+    expect(wrapper.find('[data-testid="edit-priority-row"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="edit-priority-urgent"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('save payload does not include priority', async () => {
+    const wrapper = mountSheet(true, makeItem({ priority: 'urgent' }));
+    await wrapper.get('[data-testid="edit-save"]').trigger('click');
+    const payload = wrapper.emitted('save')![0]![0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty('priority');
+    wrapper.unmount();
+  });
+
+  it('uses item.name label (not item.addPlaceholder)', () => {
+    const wrapper = mountSheet(true, makeItem());
+    const labels = wrapper.findAll('label').map((l) => l.text());
+    expect(labels).toContain('Name');
+    expect(labels).not.toContain('Add an item');
+    wrapper.unmount();
+  });
+
+  it('does NOT show exclude-from-suggestions block for public-catalog item (Latte)', () => {
+    const wrapper = mountSheet(true, makeItem({ name: 'Latte' }));
+    expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('SHOWS exclude-from-suggestions block for custom item name', () => {
+    const wrapper = mountSheet(true, makeItem({ name: 'Babà' }));
+    expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="edit-exclude-suggestions"]').text()).toContain(
+      'Remove from suggestions',
+    );
+    wrapper.unmount();
+  });
+
+  it('emits exclude-from-suggestions with item when button clicked', async () => {
+    const item = makeItem({ name: 'Babà' });
+    const wrapper = mountSheet(true, item);
+    await wrapper.get('[data-testid="edit-exclude-suggestions"]').trigger('click');
+    expect(wrapper.emitted('exclude-from-suggestions')?.[0]).toEqual([item]);
     wrapper.unmount();
   });
 });

@@ -8,6 +8,7 @@ export interface CollapsedCategoriesApi {
   collapsed: Ref<Set<Category>>;
   toggle: (cat: Category) => void;
   isCollapsed: (cat: Category) => boolean;
+  expandIfCollapsed: (cat: Category) => void;
 }
 
 export const useCollapsedCategories = (
@@ -54,5 +55,13 @@ export const useCollapsedCategories = (
 
   const isCollapsed = (cat: Category): boolean => collapsed.value.has(cat);
 
-  return { collapsed, toggle, isCollapsed };
+  const expandIfCollapsed = (cat: Category): void => {
+    if (!collapsed.value.has(cat)) return;
+    const next = new Set(collapsed.value);
+    next.delete(cat);
+    collapsed.value = next;
+    persist(resolveId(), next);
+  };
+
+  return { collapsed, toggle, isCollapsed, expandIfCollapsed };
 };

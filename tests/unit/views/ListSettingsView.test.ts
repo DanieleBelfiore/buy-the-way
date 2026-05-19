@@ -12,6 +12,8 @@ vi.mock('@/services/lists.service', () => ({
   leaveList: vi.fn(),
   renameList: vi.fn(),
   deleteList: vi.fn(),
+  setListShowFavorites: vi.fn(),
+  setListWallpaper: vi.fn(),
   UserNotFoundError: class extends Error {},
   CannotRemoveOwnerError: class extends Error {},
 }));
@@ -28,6 +30,8 @@ import {
   addCollaborator,
   removeCollaborator,
   leaveList,
+  setListShowFavorites,
+  setListWallpaper,
 } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
 
@@ -48,6 +52,10 @@ const i18n = createI18n({
         confirmDelete: 'Delete permanently',
         cancel: 'Cancel',
         members: 'Members',
+        showFavorites: 'Show favorites',
+        showFavoritesHint: 'Show the favorites section',
+        wallpaper: 'Wallpaper',
+        wallpaperOptionAria: 'Select wallpaper {name}',
       },
       collaborators: {
         add: 'Add collaborator',
@@ -283,5 +291,68 @@ describe('ListSettingsView', () => {
     await mountView();
     await flushPromises();
     expect(mockSubscribe).toHaveBeenCalled();
+  });
+
+  it('owner sees show-favorites toggle; non-owner does not', async () => {
+    setupStores(ownerList, 'uid-me');
+    const wrapper = await mountView();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="show-favorites-toggle"]').exists()).toBe(true);
+
+    setupStores(guestList, 'uid-me');
+    const wrapper2 = await mountView();
+    await flushPromises();
+    expect(wrapper2.find('[data-testid="show-favorites-toggle"]').exists()).toBe(false);
+  });
+
+  it('show-favorites toggle defaults to checked when field undefined', async () => {
+    setupStores(ownerList, 'uid-me');
+    const wrapper = await mountView();
+    await flushPromises();
+    const input = wrapper.find('[data-testid="show-favorites-toggle"]').element as HTMLInputElement;
+    expect(input.checked).toBe(true);
+  });
+
+  it('show-favorites toggle reflects showFavorites: false', async () => {
+    setupStores({ ...ownerList, showFavorites: false }, 'uid-me');
+    const wrapper = await mountView();
+    await flushPromises();
+    const input = wrapper.find('[data-testid="show-favorites-toggle"]').element as HTMLInputElement;
+    expect(input.checked).toBe(false);
+  });
+
+  it('toggling show-favorites calls setListShowFavorites', async () => {
+    setupStores(ownerList, 'uid-me');
+    vi.mocked(setListShowFavorites).mockResolvedValue(undefined);
+    const wrapper = await mountView();
+    await flushPromises();
+    const checkbox = wrapper.find('[data-testid="show-favorites-toggle"]');
+    (checkbox.element as HTMLInputElement).checked = false;
+    await checkbox.trigger('change');
+    await flushPromises();
+    expect(setListShowFavorites).toHaveBeenCalledWith('list-1', false);
+  });
+
+  it('owner sees wallpaper picker; non-owner does not', async () => {
+    setupStores(ownerList, 'uid-me');
+    const wrapper = await mountView();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="wallpaper-section"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="wallpaper-picker"]').exists()).toBe(true);
+
+    setupStores(guestList, 'uid-me');
+    const wrapper2 = await mountView();
+    await flushPromises();
+    expect(wrapper2.find('[data-testid="wallpaper-section"]').exists()).toBe(false);
+  });
+
+  it('selecting a wallpaper calls setListWallpaper', async () => {
+    setupStores({ ...ownerList, wallpaper: '01.jpg' }, 'uid-me');
+    vi.mocked(setListWallpaper).mockResolvedValue(undefined);
+    const wrapper = await mountView();
+    await flushPromises();
+    await wrapper.get('[data-testid="wallpaper-option-05.jpg"]').trigger('click');
+    await flushPromises();
+    expect(setListWallpaper).toHaveBeenCalledWith('list-1', '05.jpg');
   });
 });

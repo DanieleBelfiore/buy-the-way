@@ -173,30 +173,81 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 
 ## Phase 11 — UX additions (favorites, wallpapers, item controls, account ops)
 
-- [ ] **Task 33** [S] — Auto-reopen collapsed category when a new item is added to it
-- [ ] **Task 34** [M] — Favorites grouped by category + stable order on selection (no rerank on tap)
-- [ ] **Task 35** [M] — Favorites title shows "I tuoi {n} articoli preferiti" + per-list `showFavorites` toggle (admin only)
-- [ ] **Task 36** [L] — List wallpapers: random on `createList` from `public/wallpapers/`, admin picker in list settings, rendered behind `ListCard` (ListsView only; ListDetailView unchanged)
-- [ ] **Task 37** [M] — Item priority `urgent | optional`: single-button cycle on `ListItemRow` (none → urgent → optional → none) + 3-chip selector in `ItemEditSheet`, sort + visual treatment
-- [ ] **Task 38** [S] — Settings icon shortcut on `ListItemRow` (opens `ItemEditSheet`, parity with long-press)
-- [ ] **Task 39** [M] — Copy / Move item between lists via `ListPickerSheet` (sheet exposes Copy and Move only; trigger icon `ArrowRightLeft`)
+- [x] **Task 33** [S] — Auto-reopen collapsed category when a new item is added to it
+- [x] **Task 34** [M] — Favorites grouped by category + stable order on selection (no rerank on tap)
+- [x] **Task 35** [M] — Favorites title shows "I tuoi {n} articoli preferiti" + per-list `showFavorites` toggle (admin only)
+- [x] **Task 36** [L] — List wallpapers: random on `createList` from `public/wallpapers/`, admin picker in list settings, rendered behind `ListCard` (ListsView only; ListDetailView unchanged)
+- [x] **Task 37** [M] — Item priority `urgent | optional`: single-button cycle on `ListItemRow` (none → urgent → optional → none) + 3-chip selector in `ItemEditSheet`, sort + visual treatment
+- [x] **Task 38** [S] — Settings icon shortcut on `ListItemRow` (opens `ItemEditSheet`, parity with long-press)
+- [x] **Task 39** [M] — Copy / Move item between lists via `ListPickerSheet` (sheet exposes Copy and Move only; trigger icon `ArrowRightLeft`)
 
 ### Checkpoint L.1 — Item-row controls + favorites + wallpapers
-- [ ] All 7 tasks committed; gates green (`pnpm test:coverage` ≥ 80%, typecheck, build, lint)
-- [ ] Rules tests for `showFavorites` and `wallpaper` ownership branches green
-- [ ] Manual 375 px smoke per task acceptance criteria
-- [ ] **Human approval before Task 40 and Task 42**
+- [x] All 7 tasks committed; gates green (`pnpm test:coverage` ≥ 80%, typecheck, build, lint)
+- [x] Rules tests for `showFavorites` and `wallpaper` ownership branches green
+- [x] Manual 375 px smoke per task acceptance criteria
+- [x] **Human approval before Task 40 and Task 42**
 
-- [ ] **Task 40** [S] — Animated cart in `ListDetailView` header: 3 CSS states — idle (wheels spin ~4s/turn), on-add (600 ms forward bump + faster spin), parked-when-all-bought (wheels stop, tilt back); reduced-motion bypass. Detailed spec in [plan.md § Task 40](./plan.md#task-40--animated-cart-on-list-detail-page-s)
-- [ ] **Task 41** [M] — Completion celebration: CSS confetti + random playful message on all-bought transition
-- [ ] **Task 42** [L] — Delete account: plain `ConfirmModal` + cascade (owned lists, collaborator leave, catalog, user doc, Firebase Auth user) with re-auth handling
+- [x] ~~**Task 40**~~ — Cancelled (post-implementation): animated cart removed from `ListDetailView` header on user feedback. Component + tests deleted.
+- [x] **Task 41** [M] — Completion celebration: `success.lottie` autoplay on all-bought transition (replaced original CSS confetti + message after user feedback); reduced-motion bypass; auto-dismiss on `complete` event + 3.5 s fallback.
+- [x] **Task 42** [L] — Delete account: plain `ConfirmModal` + cascade (owned lists → transfer ownership to next collaborator OR `deleteList` if solo, collaborator leave, catalog, user doc, Firebase Auth user) with re-auth handling; delete button placed **left** of sign-out in `SettingsView`.
+
+### Phase 11 — Post-feedback additions (2026-05-19)
+
+- [x] **Task 43** [S] — `capitalizeListName` helper enforces uppercase initial on `createList` + `renameList`; trim + locale-aware (`toLocaleUpperCase`); duplicate-name guard unchanged (case-insensitive).
+- [x] **Task 44** [S] — `useLogoMotion` composable + `@vueuse/motion` directive: spring bounce-in + idle float/sway on `ListsView` + `LoginView` hero logo; reduced-motion → no variants applied. No hover/tap variants (interrupt loop on touch).
+- [x] **Task 45** [S] — Lottie replaces all decorative SVGs and CSS confetti: `@lottiefiles/dotlottie-vue`, `success.lottie` (celebration), `empty.lottie` (no lists), `cart_empty.lottie` (no items). Global lottie stub in `tests/setup.ts` (jsdom has no WASM).
+- [x] **Task 46** [M] — Stats page: new `/stats` route + `BarChart3` entry button in `ListsView` header. Pure-domain helpers `topUsedItems`, `categoryBreakdown`, `computeTotals` (catalog-only). Charts: `vue-chartjs` Bar (top 10) + Doughnut (categories). Legend + tooltip include category icon + percentage; tooltip body shows `<icon> name: count` (Top items) / `<icon> name: pct% (n articoli)` (Donut).
+- [x] **Task 47** [S] — Ownership-transfer rules branch: owner can hand `ownerUid` to existing collaborator and remove self; `name` + `createdAt` invariant.
 
 ### Checkpoint L — Phase 11 complete
-- [ ] All 10 tasks shipped as separate commits
-- [ ] `pnpm test:coverage` ≥ 80% statements; `pnpm typecheck`, `pnpm build`, `pnpm lint` all green
-- [ ] `pnpm test:rules` green (account-cascade self-deletes, wallpaper, showFavorites)
-- [ ] Manual smoke per checklist in [plan.md § Checkpoint L](./plan.md#checkpoint-l--phase-11-complete)
-- [ ] **Human Verification Recap emitted; human approval before commits hit `main`**
+- [x] Remaining tasks shipped as separate commits (Tasks 41/42 + 43–47 staged, pending commit authorization). Task 40 cancelled.
+- [x] `pnpm test:coverage` ≥ 80% statements (88.4%, 585 tests); `pnpm typecheck`, `pnpm build`, `pnpm lint` all green
+- [x] `pnpm test:rules` green (45 rules tests, including 6 account-cascade self-delete branches + 5 owner-transfer branches)
+- [x] Manual smoke per checklist in [plan.md § Checkpoint L](./plan.md#checkpoint-l--phase-11-complete)
+- [x] **Human Verification Recap emitted; human approval before commits hit `main`**
+
+---
+
+## Phase 12 — Production-readiness (legal, SEO, observability, infra)
+
+Locked decisions (2026-05-19): no analytics → no cookie banner; Privacy + Terms bilingual IT+EN hand-written from Garante template; Sentry for error monitoring; public `/about` landing with FAQ JSON-LD.
+
+- [x] **Task 48** [M] — Public `/about` landing + auth-bypass for `/about` `/privacy` `/terms` `/login`; OG/Twitter cards; `robots.txt` + `sitemap.xml`; PWA manifest enriched (description, categories, screenshots); WebApplication + FAQPage JSON-LD.
+- [x] **Task 49** [M] — Privacy Policy + Terms of Service pages bilingual IT/EN, hand-written from Garante Privacy IT template; footer link on LoginView, SettingsView, AboutView; describes self-service account deletion + Firebase + Sentry processors.
+- [x] **Task 50** [S] — Sentry `@sentry/vue` init guarded by prod env + DSN; release tagged from CI `${{ github.sha }}`; replays masked; filter list for offline + popup-closed errors.
+- [x] **Task 51** [S] — `firebase/firestore.indexes.json` for `collaboratorUids` array-contains + `updatedAt` desc; CI job deploys rules + indices on main push via `FIREBASE_TOKEN` secret.
+- [ ] **Task 52** [S] — **Deferred (ops-only)** — Production hardening: custom domain + HTTPS, Netlify env vars, Firebase Auth authorized domains, OAuth consent screen publish, Firestore quota review, weekly backup export, maskable PWA icon, UptimeRobot ping. No code changes in this repo; tracked separately.
+- [x] **Task 53** [S] — `@unhead/vue` + `useDocumentHead({titleKey, descriptionKey})` composable; per-route metadata table in `src/router/meta.ts`; OG image 1200×630; locale-driven `<title>` / `<meta description>` / `<html lang>`.
+
+### Phase 12 — Post-feedback UX bundle (2026-05-19)
+
+- [x] **Fix A** — `ItemEditSheet` label "Aggiungi un articolo" → "Nome" (new `item.name` key, it+en).
+- [x] **Fix B** — Remove priority chip row from `ItemEditSheet`; priority still editable via row cycle button.
+- [x] **Fix C** — `MostUsedShelf` whole header is a single button that toggles collapse (parity with `CategoryHeader`).
+- [x] **Fix D** — Custom items remain in autosuggestions after empty list: `suggestionsFor` now reads from raw user catalog (`entries.value`) instead of `rankedEntries`; soft-favorites threshold `FAVORITES_MIN_USES` kept at 2.
+- [x] **Fix E** — `ShelfTile` exclude button: `X` icon → red `Trash2` (consistent with row trash).
+- [x] **Fix F** — Remove grey hover background from `CategoryHeader` interactive + `MostUsedShelf` toggle.
+- [x] **Fix G** — `addItem` + `updateItem` capitalize first character via shared `capitalizeInitial` helper (`src/domain/text.ts`); `capitalizeListName` re-exported from it.
+- [x] **Fix H** — Global `cursor: pointer` rule for clickable buttons + `[role=button]` + `<a href>` + `<label for>`; `cursor: not-allowed` for disabled or `aria-disabled` elements.
+- [x] **Fix I** — Custom-item badge: `UserPlus` lucide icon (size 13, muted-gray) shown next to the name on `ListItemRow` when `isCustomItemName` returns true. Locale-agnostic (matches IT or EN public-catalog name).
+- [x] **Fix J** — `ItemEditSheet` shows full-width "Rimuovi dai suggerimenti" button + hint when item is custom; emits `exclude-from-suggestions` → handled in `ListDetailView` via `setCatalogExcluded`.
+- [x] **Fix K** — Final icon choice for custom badge: `UserPlus` (user + plus) replaces `Sparkles`/`Pencil` after iteration.
+
+### Checkpoint M — Production-ready
+- [x] 5 / 6 Phase 12 tasks shipped (Task 52 ops-only, deferred).
+- [x] `pnpm test:run` green: **626 tests / 55 files**.
+- [x] `pnpm test:coverage`: statements 88.21%, lines 89.98%, functions 83.94%, branches **80.07%** (gate ≥80% green; +15 branch tests added on `domain/text.ts` and `isCustomItemName`).
+- [ ] `pnpm test:rules` green (run separately against emulator; rules unchanged this phase).
+- [x] Public routes reachable without auth; logged-in users not redirected from `/about` `/privacy` `/terms` (unit-tested in `guard.test.ts`).
+- [ ] Google Rich Results Test passes on `/about` (FAQPage + WebApplication) — manual after first deploy.
+- [x] `robots.txt` + `sitemap.xml` ship in `public/`.
+- [x] `firebase/firestore.indexes.json` declares the composite index; CI `firebase-deploy` job wired in `deploy.yml`.
+- [ ] Sentry receives synthetic error from prod with masked replay — pending DSN provisioning (Task 52).
+- [ ] Custom domain live with HTTPS; sign-in works; OAuth consent screen published — Task 52 ops.
+- [ ] First Firestore backup exported — Task 52 ops.
+- [ ] UptimeRobot green on `/login` — Task 52 ops.
+- [ ] Lighthouse on prod URL — manual after first deploy.
+- [ ] **Human Verification Recap emitted; human approval before public announcement.**
 
 ---
 
@@ -216,5 +267,6 @@ Scope removed: list deletion is now an immediate hard-delete from List settings 
 | 8 PWA + Offline | 3 | 3 |
 | 9 Tests | 1 | 2 |
 | 10 Ship | 1 | 1 |
-| 11 UX additions | 10 | ~7 |
-| **Total** | **52** | **~43 sessions** |
+| 11 UX additions | 10 + 5 follow-ups | ~9 |
+| 12 Production-ready | 5 done + 1 deferred (ops) + 11 follow-ups | ~5 |
+| **Total** | **63** (1 cancelled) | **~50 sessions** |

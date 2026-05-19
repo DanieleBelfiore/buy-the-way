@@ -41,6 +41,17 @@ service cloud.firestore {
           && request.resource.data.createdAt == resource.data.createdAt
           && resource.data.ownerUid in request.resource.data.collaboratorUids
         )
+        // Owner-transfer: current owner hands ownership to an existing collaborator,
+        // removing themself from collaboratorUids. Name + createdAt unchanged.
+        || (
+          uid() == resource.data.ownerUid
+          && request.resource.data.ownerUid != resource.data.ownerUid
+          && request.resource.data.ownerUid in resource.data.collaboratorUids
+          && request.resource.data.ownerUid in request.resource.data.collaboratorUids
+          && !(uid() in request.resource.data.collaboratorUids)
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.createdAt == resource.data.createdAt
+        )
         // Non-owner update: only allowed to remove own uid from collaboratorUids.
         || (
           uid() != resource.data.ownerUid

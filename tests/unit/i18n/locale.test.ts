@@ -37,11 +37,13 @@ describe('i18n locale files', () => {
     expect(itTagline).not.toBe('');
   });
 
-  it('shelf.title is "Favorites" (en) / "I preferiti" (it)', () => {
+  it('shelf.title pluralizes with count and surfaces "favorit" stem (en/it)', () => {
     const i18n = makeI18n('en');
-    expect(i18n.global.t('shelf.title')).toBe('Favorites');
+    expect(i18n.global.t('shelf.title', 5, { count: 5 })).toBe('Your 5 favorite items');
+    expect(i18n.global.t('shelf.title', 1, { count: 1 })).toBe('Your favorite item');
     i18n.global.locale.value = 'it';
-    expect(i18n.global.t('shelf.title')).toBe('I preferiti');
+    expect(i18n.global.t('shelf.title', 5, { count: 5 })).toBe('I tuoi 5 articoli preferiti');
+    expect(i18n.global.t('shelf.title', 1, { count: 1 })).toBe('Il tuo articolo preferito');
   });
 
   it('collaborators.owner is "Admin" (en) / "Amministratore" (it)', () => {

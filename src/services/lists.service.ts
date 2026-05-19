@@ -17,6 +17,8 @@ import {
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
 import { findUserByEmail } from '@/services/users.service';
+import { isWallpaper, pickRandomWallpaper } from '@/domain/wallpapers';
+import { capitalizeInitial } from '@/domain/text';
 import type { List, UserProfile } from '@/domain/types';
 
 export class UserNotFoundError extends Error {
@@ -47,31 +49,52 @@ export class DuplicateListNameError extends Error {
   }
 }
 
+export class InvalidWallpaperError extends Error {
+  constructor(value: string) {
+    super(`Invalid wallpaper filename: ${value}`);
+    this.name = 'InvalidWallpaperError';
+  }
+}
+
 const normalizeListName = (name: string): string => name.trim().toLowerCase();
+
+export const capitalizeListName = capitalizeInitial;
 
 export const createList = async (
   name: string,
   ownerUid: string,
   existingNames: readonly string[] = [],
 ): Promise<string> => {
-  const trimmed = name.trim();
-  const target = normalizeListName(trimmed);
+  const formatted = capitalizeListName(name);
+  const target = normalizeListName(formatted);
   if (target && existingNames.some((n) => normalizeListName(n) === target)) {
-    throw new DuplicateListNameError(trimmed);
+    throw new DuplicateListNameError(formatted);
   }
   const id = newId();
   const now = Date.now();
   const listData: List = {
     id,
-    name: trimmed,
+    name: formatted,
     ownerUid,
     collaboratorUids: [ownerUid],
     itemCount: 0,
+    wallpaper: pickRandomWallpaper(),
     createdAt: now,
     updatedAt: now,
   };
   await setDoc(doc(db, 'lists', id), listData);
   return id;
+};
+
+export const setListWallpaper = async (
+  listId: string,
+  wallpaper: string,
+): Promise<void> => {
+  if (!isWallpaper(wallpaper)) throw new InvalidWallpaperError(wallpaper);
+  await updateDoc(doc(db, 'lists', listId), {
+    wallpaper,
+    updatedAt: Date.now(),
+  });
 };
 
 export const subscribeUserLists = (
@@ -141,10 +164,35 @@ export const leaveList = async (listId: string, selfUid: string): Promise<void> 
 };
 
 export const renameList = async (listId: string, name: string): Promise<void> => {
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error('List name cannot be empty');
+  const formatted = capitalizeListName(name);
+  if (!formatted) throw new Error('List name cannot be empty');
   await updateDoc(doc(db, 'lists', listId), {
-    name: trimmed,
+    name: formatted,
+    updatedAt: Date.now(),
+  });
+};
+
+export const setListShowFavorites = async (
+  listId: string,
+  showFavorites: boolean,
+): Promise<void> => {
+  await updateDoc(doc(db, 'lists', listId), {
+    showFavorites,
+    updatedAt: Date.now(),
+  });
+};
+
+export const transferListOwnership = async (
+  listId: string,
+  oldOwnerUid: string,
+  newOwnerUid: string,
+): Promise<void> => {
+  if (oldOwnerUid === newOwnerUid) {
+    throw new Error('Cannot transfer ownership to the same user');
+  }
+  await updateDoc(doc(db, 'lists', listId), {
+    ownerUid: newOwnerUid,
+    collaboratorUids: arrayRemove(oldOwnerUid),
     updatedAt: Date.now(),
   });
 };

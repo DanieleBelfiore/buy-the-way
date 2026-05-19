@@ -4,6 +4,8 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
+  getDocs,
   onSnapshot,
   query,
   orderBy,
@@ -13,7 +15,8 @@ import {
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
 import type { ULID } from '@/domain/id';
-import type { Item, Category } from '@/domain/types';
+import type { Item, Category, ItemPriority } from '@/domain/types';
+import { capitalizeInitial } from '@/domain/text';
 import { upsertCatalogEntry } from '@/services/catalog.service';
 
 export const subscribeItems = (
@@ -41,13 +44,15 @@ export const addItem = async (params: {
   category: Category;
   note: string;
   createdByUid: string;
+  priority?: ItemPriority;
 }): Promise<ULID> => {
   const id = newId();
   const now = Date.now();
+  const name = capitalizeInitial(params.name);
   const item: Item = {
     id,
     listId: params.listId,
-    name: params.name,
+    name,
     quantity: params.quantity,
     category: params.category,
     note: params.note,
@@ -55,6 +60,7 @@ export const addItem = async (params: {
     createdByUid: params.createdByUid,
     createdAt: now,
     updatedAt: now,
+    ...(params.priority ? { priority: params.priority } : {}),
   };
 
   const itemsCol = collection(db, 'lists', params.listId, 'items');
@@ -63,7 +69,7 @@ export const addItem = async (params: {
     itemCount: increment(1),
     updatedAt: now,
   });
-  await upsertCatalogEntry(params.createdByUid, params.name, params.category);
+  await upsertCatalogEntry(params.createdByUid, name, params.category);
 
   return id;
 };
@@ -94,6 +100,7 @@ export interface ItemPatch {
   quantity?: string;
   note?: string;
   category?: Category;
+  priority?: ItemPriority | null;
 }
 
 export const updateItem = async (
@@ -102,10 +109,68 @@ export const updateItem = async (
   patch: ItemPatch,
 ): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
-  await updateDoc(doc(itemsCol, itemId), {
-    ...patch,
-    updatedAt: Date.now(),
+  const payload: Record<string, unknown> = { ...patch, updatedAt: Date.now() };
+  if (patch.name !== undefined) {
+    payload.name = capitalizeInitial(patch.name);
+  }
+  if (patch.priority === null) {
+    payload.priority = deleteField();
+  }
+  await updateDoc(doc(itemsCol, itemId), payload);
+};
+
+export const setItemPriority = async (
+  listId: ULID,
+  itemId: ULID,
+  priority: ItemPriority | null,
+): Promise<void> => {
+  await updateItem(listId, itemId, { priority });
+};
+
+export class DuplicateInDestinationError extends Error {
+  constructor(name: string) {
+    super(`An item named "${name}" already exists in the destination list`);
+    this.name = 'DuplicateInDestinationError';
+  }
+}
+
+const dstItemNamesLower = async (dstListId: ULID): Promise<Set<string>> => {
+  const itemsCol = collection(db, 'lists', dstListId, 'items');
+  const snap = await getDocs(itemsCol);
+  return new Set(
+    snap.docs.map((d) => String((d.data() as Item).name ?? '').toLowerCase()),
+  );
+};
+
+export const copyItem = async (
+  item: Item,
+  dstListId: ULID,
+  byUid: string,
+): Promise<ULID> => {
+  const lower = await dstItemNamesLower(dstListId);
+  if (lower.has(item.name.toLowerCase())) {
+    throw new DuplicateInDestinationError(item.name);
+  }
+  return addItem({
+    listId: dstListId,
+    name: item.name,
+    quantity: item.quantity,
+    category: item.category,
+    note: item.note,
+    createdByUid: byUid,
+    priority: item.priority,
   });
+};
+
+export const moveItem = async (
+  srcListId: ULID,
+  item: Item,
+  dstListId: ULID,
+  byUid: string,
+): Promise<ULID> => {
+  const newId_ = await copyItem(item, dstListId, byUid);
+  await removeItem(srcListId, item.id);
+  return newId_;
 };
 
 const EMPTY_LIST_BATCH_SIZE = 500;

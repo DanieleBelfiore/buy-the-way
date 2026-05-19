@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "Buy The Way",
-    "tagline": "La tua lista della spesa intelligente"
+    "tagline": "La tua lista della spesa intelligente",
+    "madeByPrefix": "Fatto da ",
+    "madeBySuffix": " con il ❤️"
   },
   "nav": {
     "lists": "Liste",
@@ -27,6 +29,10 @@
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
+    "name": "Nome",
+    "customBadge": "Articolo personalizzato",
+    "removeFromSuggestions": "Rimuovi dai suggerimenti",
+    "removeFromSuggestionsHint": "Questo articolo non sarà più suggerito quando aggiungi articoli.",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
@@ -37,7 +43,19 @@
     "removeConfirmTitle": "Eliminare l'articolo?",
     "removeConfirmMessage": "\"{name}\" verrà rimosso dalla lista.\nQuesta azione è irreversibile.",
     "removeConfirm": "Elimina",
-    "removeCancel": "Annulla"
+    "removeCancel": "Annulla",
+    "pinFavorite": "Aggiungi ai preferiti",
+    "unpinFavorite": "Rimuovi dai preferiti",
+    "priority": "Priorità",
+    "priorityUrgent": "Urgente",
+    "priorityOptional": "Opzionale",
+    "priorityNone": "Normale",
+    "openSettings": "Modifica articolo",
+    "moveOrCopy": "Sposta o copia",
+    "copy": "Copia",
+    "move": "Sposta",
+    "noOtherLists": "Nessun'altra lista disponibile",
+    "duplicateInDestination": "Un articolo con questo nome esiste già nella lista di destinazione"
   },
   "emptyList": {
     "button": "Svuota lista",
@@ -47,7 +65,7 @@
     "cancel": "Annulla"
   },
   "shelf": {
-    "title": "I preferiti",
+    "title": "I tuoi preferiti | Il tuo articolo preferito | I tuoi {count} articoli preferiti",
     "empty": "Aggiungi articoli per popolare lo scaffale",
     "collapse": "Comprimi scaffale",
     "expand": "Espandi scaffale",
@@ -78,6 +96,10 @@
     "save": "Salva",
     "leaveList": "Abbandona lista",
     "deleteList": "Elimina lista",
+    "showFavorites": "Mostra preferiti",
+    "showFavoritesHint": "Mostra la sezione dei preferiti in cima alla lista (se disponibile)",
+    "wallpaper": "Sfondo",
+    "wallpaperOptionAria": "Seleziona sfondo {name}",
     "stats": {
       "items": "Articoli",
       "bought": "Comprati",
@@ -93,13 +115,22 @@
     "title": "Impostazioni",
     "language": "Lingua",
     "account": "Account",
-    "signOut": "Esci"
+    "signOut": "Esci",
+    "deleteAccount": "Elimina account",
+    "deleteAccountConfirmTitle": "Eliminare definitivamente l'account?",
+    "deleteAccountConfirmMessage": "Tutti i tuoi dati (liste possedute, articoli, catalogo, profilo) e l'accesso verranno rimossi permanentemente.\nQuesta azione è irreversibile.",
+    "deleteAccountConfirm": "Elimina account",
+    "deleteAccountCancel": "Annulla",
+    "deleteAccountReauth": "Per sicurezza, accedi di nuovo per confermare la cancellazione.",
+    "deleteAccountReauthBtn": "Accedi di nuovo",
+    "deleteAccountError": "Eliminazione fallita. Riprova."
   },
   "category": {
     "label": "Categoria",
     "fruit_vegetables": "Frutta e verdura",
     "dairy": "Latticini",
-    "meat_fish": "Carne e pesce",
+    "meat": "Carne",
+    "fish": "Pesce",
     "bakery": "Pane e dolci",
     "beverages": "Bevande",
     "frozen": "Surgelati",
@@ -120,5 +151,86 @@
   },
   "badge": {
     "new": "Nuovo"
+  },
+  "about": {
+    "heroTitle": "Liste della spesa condivise, in tempo reale",
+    "heroSubtitle": "Mobile-first, pronta offline, gratuita. Condividi le liste con la famiglia e spunta gli articoli mentre fai la spesa.",
+    "cta": "Inizia ora",
+    "featuresTitle": "Funzionalità",
+    "features": [
+      "Sincronizzazione in tempo reale su tutti i dispositivi",
+      "Funziona offline — le modifiche si sincronizzano quando torni online",
+      "Condividi le liste con familiari o coinquilini",
+      "Preferiti intelligenti basati su ciò che acquisti più spesso",
+      "Statistiche sulle tue abitudini di acquisto",
+      "Nessuna pubblicità, nessun tracking, nessuna analytics"
+    ],
+    "faqTitle": "Domande frequenti",
+    "faq": [
+      { "q": "Cosa fa Buy The Way?", "a": "Un'app di liste della spesa condivise in tempo reale. Aggiungi articoli, spuntali, sincronizzazione istantanea con chiunque condivida la lista." },
+      { "q": "Funziona offline?", "a": "Sì. Liste e articoli sono memorizzati localmente; ogni modifica offline si sincronizza non appena torni online." },
+      { "q": "Posso condividere una lista?", "a": "Sì. Dalle impostazioni della lista, aggiungi un collaboratore tramite la sua email Google. Vedrà gli aggiornamenti in tempo reale." },
+      { "q": "I miei dati sono al sicuro?", "a": "Le liste sono memorizzate su Google Firestore con regole di accesso strette per utente. Solo tu e i tuoi collaboratori potete leggere o scrivere le vostre liste." },
+      { "q": "Quanto costa?", "a": "Gratuita. Nessun piano a pagamento, nessuna pubblicità, nessuna analytics." },
+      { "q": "Esiste un'app nativa?", "a": "È una PWA — installala dal browser alla schermata home e si comporta come un'app nativa." },
+      { "q": "Posso eliminare il mio account?", "a": "Sì. Dalle Impostazioni → Elimina account: cancella le tue liste, il profilo, il catalogo e revoca l'accesso in un'unica operazione." },
+      { "q": "Quali metodi di accesso sono supportati?", "a": "Solo accesso con Google." },
+      { "q": "Le mie liste sono criptate?", "a": "I dati sono criptati in transito (HTTPS) e a riposo sull'infrastruttura Google. La crittografia end-to-end non è usata per permettere ai collaboratori di leggere gli articoli." },
+      { "q": "Quali lingue sono supportate?", "a": "Italiano e inglese. L'interfaccia cambia in base alla preferenza nelle Impostazioni." }
+    ]
+  },
+  "seo": {
+    "login": {
+      "title": "Accedi · Buy The Way",
+      "description": "Accedi a Buy The Way e condividi le liste della spesa in tempo reale con la tua famiglia."
+    },
+    "about": {
+      "title": "Buy The Way — Liste della spesa condivise, in tempo reale",
+      "description": "PWA mobile-first per liste della spesa condivise. Pronta offline, veloce, gratuita."
+    },
+    "privacy": {
+      "title": "Informativa Privacy · Buy The Way",
+      "description": "Come Buy The Way raccoglie, usa e protegge i tuoi dati."
+    },
+    "terms": {
+      "title": "Termini di Servizio · Buy The Way",
+      "description": "Termini che regolano l'uso di Buy The Way."
+    },
+    "lists": {
+      "title": "Liste · Buy The Way",
+      "description": "Le tue liste della spesa condivise."
+    },
+    "settings": {
+      "title": "Impostazioni · Buy The Way",
+      "description": "Gestisci lingua, account e preferenze."
+    },
+    "stats": {
+      "title": "Statistiche · Buy The Way",
+      "description": "Approfondimenti sulle tue abitudini di acquisto."
+    }
+  },
+  "stats": {
+    "title": "Statistiche",
+    "openButton": "Statistiche",
+    "loading": "Caricamento…",
+    "empty": "Aggiungi qualche articolo per iniziare a vedere le tue statistiche.",
+    "totals": {
+      "lists": "Liste",
+      "collaborators": "Collaboratori",
+      "catalog": "Articoli unici",
+      "favorites": "Preferiti",
+      "totalUsage": "Acquisti totali"
+    },
+    "topItems": {
+      "title": "Top 10 articoli più usati",
+      "subtitle": "Acquisti registrati dal tuo catalogo",
+      "usageLabel": "Acquisti"
+    },
+    "categories": {
+      "title": "Per categoria",
+      "subtitle": "Quanto compri in ogni categoria",
+      "share": "{percent}% · {count} acquisti",
+      "tooltipItems": "no articoli | 1 articolo | {n} articoli"
+    }
   }
 }

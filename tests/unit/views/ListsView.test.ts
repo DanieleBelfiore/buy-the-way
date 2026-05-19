@@ -26,6 +26,8 @@ const i18n = createI18n({
         noListsHint: 'Tap + to create your first list',
       },
       badge: { new: 'New' },
+      settings: { title: 'Settings' },
+      stats: { title: 'Statistics', openButton: 'Statistics' },
     },
   },
 });
@@ -78,6 +80,11 @@ describe('ListsView', () => {
     mountView();
     await flushPromises();
     expect(mockSubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('renders stats button in header', () => {
+    const wrapper = mountView();
+    expect(wrapper.find('[data-testid="open-stats"]').exists()).toBe(true);
   });
 
   it('shows empty state when lists is empty', () => {

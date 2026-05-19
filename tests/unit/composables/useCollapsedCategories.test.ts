@@ -64,4 +64,35 @@ describe('useCollapsedCategories', () => {
     const { collapsed } = useCollapsedCategories('list-1');
     expect(collapsed.value.size).toBe(0);
   });
+
+  it('expandIfCollapsed removes category from set when collapsed', () => {
+    const { isCollapsed, toggle, expandIfCollapsed } = useCollapsedCategories('list-1');
+    toggle('dairy');
+    expect(isCollapsed('dairy')).toBe(true);
+    expandIfCollapsed('dairy');
+    expect(isCollapsed('dairy')).toBe(false);
+  });
+
+  it('expandIfCollapsed is a no-op when category is not collapsed', () => {
+    const { isCollapsed, expandIfCollapsed } = useCollapsedCategories('list-1');
+    expect(isCollapsed('dairy')).toBe(false);
+    expandIfCollapsed('dairy');
+    expect(isCollapsed('dairy')).toBe(false);
+  });
+
+  it('expandIfCollapsed persists the change to localStorage', () => {
+    const { toggle, expandIfCollapsed } = useCollapsedCategories('list-1');
+    toggle('dairy');
+    expect(localStorage.getItem(KEY('list-1'))).toContain('dairy');
+    expandIfCollapsed('dairy');
+    const stored = localStorage.getItem(KEY('list-1'));
+    expect(stored).not.toContain('dairy');
+  });
+
+  it('expandIfCollapsed does not write when category is not collapsed', () => {
+    const { expandIfCollapsed } = useCollapsedCategories('list-1');
+    localStorage.removeItem(KEY('list-1'));
+    expandIfCollapsed('dairy');
+    expect(localStorage.getItem(KEY('list-1'))).toBeNull();
+  });
 });

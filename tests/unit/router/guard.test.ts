@@ -55,6 +55,30 @@ describe('authGuard', () => {
     expect(result).toEqual({ name: 'lists' });
   });
 
+  it.each(['about', 'privacy', 'terms'])(
+    'allows unauthenticated navigation to public route %s',
+    async (name) => {
+      mockUseAuth.mockReturnValue({
+        user: ref(null),
+        ready: ref(true),
+      });
+      const result = await authGuard(makeRoute(name), makeRoute('login'));
+      expect(result).toBeUndefined();
+    },
+  );
+
+  it.each(['about', 'privacy', 'terms'])(
+    'does NOT redirect authenticated user away from public route %s',
+    async (name) => {
+      mockUseAuth.mockReturnValue({
+        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        ready: ref(true),
+      });
+      const result = await authGuard(makeRoute(name), makeRoute('lists'));
+      expect(result).toBeUndefined();
+    },
+  );
+
   it('waits for ready before deciding when auth not ready', async () => {
     const readyRef = ref(false);
     mockUseAuth.mockReturnValue({

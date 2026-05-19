@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, useId } from 'vue';
+import { computed, ref, watch, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Check, Star, X } from '@lucide/vue';
+import { Check, EyeOff, X } from '@lucide/vue';
 import { CATEGORY_ORDER, CATEGORIES } from '@/domain/categories';
+import { isCustomItemName } from '@/domain/public-catalog';
 import type { Item, Category } from '@/domain/types';
 
 const props = withDefaults(
@@ -25,9 +26,18 @@ const emit = defineEmits<{
     },
   ];
   cancel: [];
+  'exclude-from-suggestions': [Item];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+const isCustom = computed(() =>
+  props.item ? isCustomItemName(props.item.name, locale.value) : false,
+);
+
+const onExcludeFromSuggestions = (): void => {
+  if (props.item) emit('exclude-from-suggestions', props.item);
+};
 
 const nameRef = ref('');
 const quantityRef = ref('');
@@ -89,7 +99,7 @@ const onSave = (): void => {
       <div class="space-y-3">
         <div>
           <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
-            {{ t('item.addPlaceholder') }}
+            {{ t('item.name') }}
           </label>
           <input
             v-model="nameRef"
@@ -136,21 +146,25 @@ const onSave = (): void => {
           </select>
         </div>
 
-        <label
-          class="flex items-center justify-between gap-3 cursor-pointer select-none px-1 py-1"
-          data-testid="edit-pinned-row"
+      </div>
+
+      <div
+        v-if="isCustom"
+        data-testid="edit-exclude-block"
+        class="mt-4 pt-4 border-t border-cream-soft"
+      >
+        <button
+          type="button"
+          data-testid="edit-exclude-suggestions"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-700 border border-red-200 bg-red-50/50 hover:bg-red-100 active:bg-red-200 transition-colors"
+          @click="onExcludeFromSuggestions"
         >
-          <span class="inline-flex items-center gap-2 text-sm text-charcoal">
-            <Star :size="16" :stroke-width="2" :fill="pinnedRef ? 'currentColor' : 'none'" aria-hidden="true" />
-            {{ t('shelf.title') }}
-          </span>
-          <input
-            v-model="pinnedRef"
-            type="checkbox"
-            data-testid="edit-pinned"
-            class="h-5 w-5 accent-primary"
-          />
-        </label>
+          <EyeOff :size="16" :stroke-width="2" aria-hidden="true" />
+          {{ t('item.removeFromSuggestions') }}
+        </button>
+        <p class="mt-2 text-xs text-muted-gray text-center">
+          {{ t('item.removeFromSuggestionsHint') }}
+        </p>
       </div>
 
       <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

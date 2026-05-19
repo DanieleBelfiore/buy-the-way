@@ -1,0 +1,97 @@
+{
+  "legal": {
+    "lastUpdated": "2026-05-19",
+    "footer": {
+      "about": "About",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated: {date}",
+      "sections": [
+        {
+          "id": "controller",
+          "heading": "1. Data controller",
+          "body": "The data controller for Buy The Way is the publisher of this application. For any privacy-related request, including access, rectification or deletion, contact: danielebelfiorepc@gmail.com. This service is operated for personal and non-commercial purposes."
+        },
+        {
+          "id": "data-collected",
+          "heading": "2. Data we collect",
+          "body": "When you sign in we collect: the email address and display name associated with your Google account; an authentication identifier (uid) provided by Firebase Authentication; the date and time of your last sign-in. While you use the service we store: the lists and items you create, the collaborators you add, the usage counters for the items in your personal catalog, the wallpaper and favorites preference per list. Your browser stores a local cache of your lists in IndexedDB so the app works offline. Server access logs operated by Google (IP address, user agent) may be retained for security purposes."
+        },
+        {
+          "id": "legal-basis",
+          "heading": "3. Legal basis",
+          "body": "The processing of your data is based on the performance of the contract you enter into with us when you start using the service (art. 6.1.b GDPR). Security logs and abuse prevention rely on our legitimate interest in keeping the service safe (art. 6.1.f GDPR)."
+        },
+        {
+          "id": "processors",
+          "heading": "4. Data processors",
+          "body": "We rely on the following sub-processors: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) — hosting, authentication and storage of all application data; Functional Software Inc. — Sentry, for error monitoring on the production environment only. Both processors have signed standard contractual clauses for data transfers outside the EEA where applicable. Sentry session replays are configured to mask all input and text content; no list items or emails are captured."
+        },
+        {
+          "id": "retention",
+          "heading": "5. Data retention and deletion",
+          "body": "Your account data is retained for as long as your account is active. You can delete your account at any time from Settings → Delete account; the operation removes your owned lists, your collaborator references in other users' lists, your personal catalog, your user profile and revokes your sign-in. Firebase backups follow a 30-day rolling window after which deleted data is permanently removed. Aggregate, anonymous metrics may be retained beyond that period for capacity planning."
+        },
+        {
+          "id": "rights",
+          "heading": "6. Your rights",
+          "body": "You have the right to access your data, rectify it, request erasure, port it to another service, object to certain processing and request its restriction. The erasure right is exercised self-service through the Delete account flow in Settings. For any other request write to danielebelfiorepc@gmail.com. You can also lodge a complaint with the Italian data protection authority (Garante per la Protezione dei Dati Personali, www.garanteprivacy.it)."
+        },
+        {
+          "id": "children",
+          "heading": "7. Children",
+          "body": "The service is not directed at users under the age of 16. We do not knowingly collect data from minors. Access requires a Google account whose terms of service govern the minimum age for account creation."
+        },
+        {
+          "id": "changes",
+          "heading": "8. Changes to this policy",
+          "body": "When we change this policy in a material way we will publish an in-app banner on next sign-in and update the date below. Continued use of the service after the effective date constitutes acceptance of the revised policy."
+        },
+        {
+          "id": "effective-date",
+          "heading": "9. Effective date",
+          "body": "This version of the Privacy Policy is effective from 19 May 2026."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "Last updated: {date}",
+      "sections": [
+        {
+          "id": "service",
+          "heading": "1. The service",
+          "body": "Buy The Way is a real-time shared shopping list application provided free of charge as a progressive web app. The service is offered on a best-effort basis and without any service-level agreement at this stage."
+        },
+        {
+          "id": "responsibilities",
+          "heading": "2. User responsibilities",
+          "body": "You agree to use the service in compliance with applicable laws. You will not upload illegal, harassing or infringing content, and you will not abuse the collaborator-add feature to contact users you do not personally know. You are responsible for the content of the lists you create and share."
+        },
+        {
+          "id": "termination",
+          "heading": "3. Termination",
+          "body": "You may terminate your account at any time through Settings → Delete account. We may suspend or terminate your account in case of repeated or material breach of these terms after reasonable notice, except where immediate suspension is necessary to protect the service or other users."
+        },
+        {
+          "id": "liability",
+          "heading": "4. Liability",
+          "body": "The service is provided \"as is\" and \"as available\". To the maximum extent permitted by law, we exclude all warranties and limit our liability to the amount you have paid for the service in the previous twelve months — which, since the service is free, is zero."
+        },
+        {
+          "id": "law",
+          "heading": "5. Governing law",
+          "body": "These terms are governed by the laws of the Italian Republic, without regard to its conflict-of-law principles."
+        },
+        {
+          "id": "disputes",
+          "heading": "6. Dispute resolution",
+          "body": "Any dispute arising from or relating to these terms shall be submitted to the ordinary courts of the operator's place of residence, subject to mandatory consumer-protection rules that grant you the right to sue at your own place of residence."
+        }
+      ]
+    }
+  }
+}

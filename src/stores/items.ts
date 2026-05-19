@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { subscribeItems } from '@/services/items.service';
-import { CATEGORY_ORDER } from '@/domain/categories';
-import { sortItemsCheckedThenName } from '@/domain/sort';
+import { CATEGORY_ORDER, migrateCategory } from '@/domain/categories';
+import { sortItemsByPriorityThenName } from '@/domain/sort';
 import type { Item, Category } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -17,8 +17,8 @@ export const useItemsStore = defineStore('items', () => {
   const itemsByCategory = computed((): Map<Category, Item[]> => {
     const map = new Map<Category, Item[]>();
     for (const cat of CATEGORY_ORDER) {
-      const catItems = sortItemsCheckedThenName(
-        items.value.filter((i) => i.category === cat),
+      const catItems = sortItemsByPriorityThenName(
+        items.value.filter((i) => migrateCategory(i.category) === cat),
         'en',
       );
       if (catItems.length > 0) map.set(cat, catItems);

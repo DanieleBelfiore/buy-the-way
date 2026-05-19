@@ -4,14 +4,22 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
-import { Plus, X, Settings as SettingsIcon } from '@lucide/vue';
+import { Plus, X, Settings as SettingsIcon, BarChart3 } from '@lucide/vue';
 import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
+import LegalFooter from '@/components/ui/LegalFooter.vue';
+import pkg from '../../package.json';
+
+const APP_VERSION = pkg.version;
 import { DuplicateListNameError } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
+import { useLogoMotion } from '@/composables/useLogoMotion';
+import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
 import type { UserProfile } from '@/domain/types';
+
+const logoMotion = useLogoMotion();
 
 const { t } = useI18n();
 const router = useRouter();
@@ -103,9 +111,18 @@ const openList = (id: string) => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream pb-24">
-    <!-- Top bar with settings button -->
-    <header class="px-5 pt-12 pb-2 flex items-center justify-end">
+  <main class="min-h-screen bg-cream flex flex-col">
+    <!-- Top bar with stats + settings buttons -->
+    <header class="px-5 pt-12 pb-2 flex items-center justify-end gap-1">
+      <button
+        :aria-label="t('stats.title')"
+        data-testid="open-stats"
+        class="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        @click="router.push({ name: 'stats' })"
+      >
+        <BarChart3 :size="20" :stroke-width="2" aria-hidden="true" />
+        <span class="text-sm font-medium">{{ t('stats.openButton') }}</span>
+      </button>
       <button
         :aria-label="t('settings.title')"
         class="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
@@ -119,9 +136,12 @@ const openList = (id: string) => {
     <!-- Hero brand block -->
     <section class="px-5 pt-2 pb-6 text-center">
       <img
+        v-motion="logoMotion"
         src="/branding/logo-original.png"
         :alt="t('app.name')"
-        class="mx-auto h-50 w-auto"
+        data-testid="lists-logo"
+        class="mx-auto h-50 w-auto select-none"
+        draggable="false"
       />
     </section>
 
@@ -160,7 +180,7 @@ const openList = (id: string) => {
     </div>
 
     <!-- List of cards -->
-    <section class="px-5">
+    <section class="px-5 pb-24">
       <Transition name="state-fade" mode="out-in">
         <div v-if="listsStore.loading" key="loading" class="space-y-3">
           <SkeletonCard v-for="i in 3" :key="i" height-class="h-14" />
@@ -175,12 +195,13 @@ const openList = (id: string) => {
           key="empty"
           class="text-center pt-16 space-y-3"
         >
-          <img
-            src="@/assets/illustrations/empty-lists.svg"
-            alt=""
+          <DotLottieVue
+            data-testid="lists-empty-lottie"
             aria-hidden="true"
-            loading="lazy"
-            class="mx-auto h-28 w-28 opacity-90"
+            class="mx-auto h-40 w-40"
+            src="/animations/empty.lottie"
+            :autoplay="true"
+            :loop="true"
           />
           <p class="text-charcoal font-medium">{{ t('list.noLists') }}</p>
           <p class="text-sm text-muted-gray">{{ t('list.noListsHint') }}</p>
@@ -201,6 +222,27 @@ const openList = (id: string) => {
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
+
+    <div class="mt-auto pb-3">
+      <LegalFooter dense />
+      <p
+        data-testid="made-by"
+        class="px-5 text-center text-xs text-muted-gray"
+      >
+        {{ t('app.madeByPrefix') }}<a
+          href="https://www.linkedin.com/in/danielebelfiore/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline"
+        >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
+      </p>
+      <footer
+        data-testid="app-version"
+        class="px-5 text-center text-xs text-muted-gray"
+      >
+        v{{ APP_VERSION }}
+      </footer>
+    </div>
   </main>
 </template>
 

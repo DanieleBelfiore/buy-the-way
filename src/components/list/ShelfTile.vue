@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { X } from '@lucide/vue';
+import { Trash2 } from '@lucide/vue';
 import { iconForName } from '@/domain/public-catalog';
 import type { CatalogEntry } from '@/domain/types';
 
@@ -109,13 +109,13 @@ const titleAttr = computed(() => (props.isInList ? t('shelf.alreadyInList') : un
       data-testid="shelf-tile-exclude"
       :aria-label="t('shelf.excludeTitle')"
       :title="t('shelf.excludeTitle')"
-      class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-6 h-6 rounded-full text-muted-gray hover:bg-red-100 hover:text-red-600 active:bg-red-200 transition-colors cursor-pointer"
+      class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:bg-red-100 active:bg-red-200 transition-colors cursor-pointer"
       @click="onRemoveClick"
       @pointerdown.stop
       @keydown.enter="onRemoveClick($event as unknown as MouseEvent)"
       @keydown.space.prevent="onRemoveClick($event as unknown as MouseEvent)"
     >
-      <X :size="14" :stroke-width="2.25" aria-hidden="true" />
+      <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
     </span>
   </button>
 </template>

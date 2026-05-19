@@ -3,10 +3,23 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useLogoMotion } from '@/composables/useLogoMotion';
+import { useDocumentHead } from '@/composables/useDocumentHead';
+import LegalFooter from '@/components/ui/LegalFooter.vue';
+import pkg from '../../package.json';
+
+const APP_VERSION = pkg.version;
 
 const { t } = useI18n();
+
+useDocumentHead({
+  titleKey: 'seo.login.title',
+  descriptionKey: 'seo.login.description',
+});
 const router = useRouter();
 const auth = useAuthStore();
+
+const logoMotion = useLogoMotion();
 
 // Redirect as soon as Firebase resolves the authenticated user.
 // The guard only runs during navigation, so we must watch here too.
@@ -34,15 +47,18 @@ const handleSignIn = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream flex flex-col items-center justify-center px-6">
-    <div class="w-full max-w-sm space-y-10">
+  <main class="min-h-screen bg-cream flex flex-col items-center px-6">
+    <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center">
       <!-- Logo + Wordmark -->
       <div class="text-center space-y-3">
         <img
+          v-motion="logoMotion"
           src="/branding/logo-original.png"
           alt=""
           aria-hidden="true"
-          class="login-logo mx-auto h-50 w-auto"
+          data-testid="login-logo"
+          class="mx-auto h-50 w-auto select-none"
+          draggable="false"
         />
       </div>
 
@@ -82,26 +98,25 @@ const handleSignIn = async () => {
         </p>
       </div>
     </div>
+    <div class="w-full pb-3">
+      <LegalFooter dense />
+      <p
+        data-testid="made-by"
+        class="px-5 text-center text-xs text-muted-gray"
+      >
+        {{ t('app.madeByPrefix') }}<a
+          href="https://www.linkedin.com/in/danielebelfiore/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline"
+        >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
+      </p>
+      <footer
+        data-testid="app-version"
+        class="px-5 text-center text-xs text-muted-gray"
+      >
+        v{{ APP_VERSION }}
+      </footer>
+    </div>
   </main>
 </template>
-
-<style scoped>
-.login-logo {
-  animation: login-logo-in 600ms ease-out both;
-}
-@keyframes login-logo-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .login-logo {
-    animation: none;
-  }
-}
-</style>

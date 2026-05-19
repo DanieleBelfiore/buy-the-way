@@ -10,7 +10,11 @@ import {
   leaveList,
   renameList,
   deleteList,
+  setListShowFavorites,
+  setListWallpaper,
 } from '@/services/lists.service';
+import WallpaperPicker from '@/components/list/WallpaperPicker.vue';
+import type { Wallpaper } from '@/domain/wallpapers';
 import { getUsersByUids } from '@/services/users.service';
 import { ArrowLeft, Check, LogOut, Trash2 } from '@lucide/vue';
 import AddCollaboratorForm from '@/components/collaborators/AddCollaboratorForm.vue';
@@ -40,6 +44,38 @@ const membersLoading = ref(false);
 
 const deleteOpen = ref(false);
 const actionError = ref<string | null>(null);
+
+const showFavoritesValue = computed(() => list.value?.showFavorites !== false);
+const togglingFavorites = ref(false);
+
+const handleToggleShowFavorites = async (next: boolean): Promise<void> => {
+  if (!isOwner.value) return;
+  togglingFavorites.value = true;
+  actionError.value = null;
+  try {
+    await setListShowFavorites(listId.value, next);
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    togglingFavorites.value = false;
+  }
+};
+
+const wallpaperValue = computed(() => list.value?.wallpaper);
+const settingWallpaper = ref(false);
+
+const handleSelectWallpaper = async (wallpaper: Wallpaper): Promise<void> => {
+  if (!isOwner.value) return;
+  settingWallpaper.value = true;
+  actionError.value = null;
+  try {
+    await setListWallpaper(listId.value, wallpaper);
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    settingWallpaper.value = false;
+  }
+};
 
 let listsUnsub: (() => void) | null = null;
 
@@ -178,6 +214,34 @@ const handleDelete = async () => {
           </button>
         </div>
         <p v-if="renameError" class="text-red-500 text-xs">{{ renameError }}</p>
+      </section>
+
+      <section v-if="isOwner" data-testid="wallpaper-section" class="space-y-2">
+        <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
+          {{ t('listSettings.wallpaper') }}
+        </label>
+        <WallpaperPicker
+          :current="wallpaperValue"
+          :busy="settingWallpaper"
+          @select="handleSelectWallpaper"
+        />
+      </section>
+
+      <section v-if="isOwner" data-testid="show-favorites-section" class="space-y-2">
+        <label class="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            data-testid="show-favorites-toggle"
+            class="mt-1 h-4 w-4 accent-charcoal cursor-pointer"
+            :checked="showFavoritesValue"
+            :disabled="togglingFavorites"
+            @change="handleToggleShowFavorites(($event.target as HTMLInputElement).checked)"
+          />
+          <span class="flex-1">
+            <span class="block text-sm font-medium text-charcoal">{{ t('listSettings.showFavorites') }}</span>
+            <span class="block text-xs text-muted-gray">{{ t('listSettings.showFavoritesHint') }}</span>
+          </span>
+        </label>
       </section>
 
       <section class="space-y-3">

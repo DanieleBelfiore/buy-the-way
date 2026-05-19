@@ -1,0 +1,97 @@
+{
+  "legal": {
+    "lastUpdated": "2026-05-19",
+    "footer": {
+      "about": "Chi siamo",
+      "privacy": "Privacy",
+      "terms": "Termini"
+    },
+    "privacy": {
+      "title": "Informativa Privacy",
+      "lastUpdated": "Ultimo aggiornamento: {date}",
+      "sections": [
+        {
+          "id": "controller",
+          "heading": "1. Titolare del trattamento",
+          "body": "Il titolare del trattamento dei dati di Buy The Way è l'editore di questa applicazione. Per qualsiasi richiesta relativa alla privacy, inclusi accesso, rettifica o cancellazione, scrivi a: danielebelfiorepc@gmail.com. Il servizio è erogato a scopo personale e non commerciale."
+        },
+        {
+          "id": "data-collected",
+          "heading": "2. Dati raccolti",
+          "body": "Al momento dell'accesso raccogliamo: l'indirizzo email e il nome visualizzato associati al tuo account Google; un identificatore di autenticazione (uid) fornito da Firebase Authentication; la data e l'ora del tuo ultimo accesso. Durante l'uso del servizio memorizziamo: le liste e gli articoli che crei, i collaboratori che aggiungi, i contatori d'uso degli articoli nel tuo catalogo personale, le preferenze di sfondo e preferiti per ogni lista. Il tuo browser conserva una copia locale delle liste in IndexedDB per consentire l'uso offline. I log di accesso al server gestiti da Google (indirizzo IP, user agent) possono essere conservati per finalità di sicurezza."
+        },
+        {
+          "id": "legal-basis",
+          "heading": "3. Base giuridica",
+          "body": "Il trattamento dei tuoi dati si fonda sull'esecuzione del contratto che concludi con noi al momento dell'utilizzo del servizio (art. 6.1.b GDPR). I log di sicurezza e la prevenzione degli abusi si basano sul nostro legittimo interesse a mantenere il servizio sicuro (art. 6.1.f GDPR)."
+        },
+        {
+          "id": "processors",
+          "heading": "4. Responsabili del trattamento",
+          "body": "Ci avvaliamo dei seguenti responsabili: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) — hosting, autenticazione e memorizzazione di tutti i dati applicativi; Functional Software Inc. — Sentry, per il monitoraggio degli errori solo nell'ambiente di produzione. Entrambi i responsabili hanno sottoscritto le clausole contrattuali standard per i trasferimenti di dati al di fuori dello SEE, ove applicabile. Le session replay di Sentry sono configurate per mascherare tutti i contenuti dei campi di input e del testo; non vengono raccolti articoli delle liste né email."
+        },
+        {
+          "id": "retention",
+          "heading": "5. Conservazione e cancellazione",
+          "body": "I dati del tuo account sono conservati finché l'account è attivo. Puoi eliminare l'account in qualsiasi momento da Impostazioni → Elimina account; l'operazione rimuove le liste di cui sei proprietario, i riferimenti come collaboratore nelle liste altrui, il tuo catalogo personale, il tuo profilo utente e revoca l'accesso. I backup di Firebase seguono una finestra mobile di 30 giorni dopo i quali i dati cancellati sono rimossi in modo permanente. Metriche aggregate e anonime possono essere conservate oltre tale periodo per finalità di capacity planning."
+        },
+        {
+          "id": "rights",
+          "heading": "6. I tuoi diritti",
+          "body": "Hai il diritto di accedere ai tuoi dati, rettificarli, richiederne la cancellazione, ottenerne la portabilità verso altro servizio, opporti a determinati trattamenti e richiederne la limitazione. Il diritto alla cancellazione si esercita in autonomia tramite la funzione Elimina account in Impostazioni. Per qualsiasi altra richiesta scrivi a danielebelfiorepc@gmail.com. Puoi inoltre proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it)."
+        },
+        {
+          "id": "children",
+          "heading": "7. Minori",
+          "body": "Il servizio non è rivolto a utenti di età inferiore ai 16 anni. Non raccogliamo consapevolmente dati di minori. L'accesso richiede un account Google, i cui termini di servizio regolano l'età minima per la creazione dell'account."
+        },
+        {
+          "id": "changes",
+          "heading": "8. Modifiche all'informativa",
+          "body": "In caso di modifiche sostanziali pubblicheremo un avviso in-app al successivo accesso e aggiorneremo la data sotto riportata. L'uso continuato del servizio dopo la data di efficacia costituisce accettazione della versione aggiornata."
+        },
+        {
+          "id": "effective-date",
+          "heading": "9. Data di efficacia",
+          "body": "Questa versione dell'Informativa Privacy è efficace dal 19 maggio 2026."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Termini di Servizio",
+      "lastUpdated": "Ultimo aggiornamento: {date}",
+      "sections": [
+        {
+          "id": "service",
+          "heading": "1. Il servizio",
+          "body": "Buy The Way è un'applicazione per liste della spesa condivise in tempo reale, fornita gratuitamente come progressive web app. Il servizio è erogato sulla base del miglior sforzo e senza alcun accordo sui livelli di servizio in questa fase."
+        },
+        {
+          "id": "responsibilities",
+          "heading": "2. Responsabilità dell'utente",
+          "body": "Ti impegni a utilizzare il servizio nel rispetto delle leggi applicabili. Non caricherai contenuti illeciti, molesti o che violino diritti altrui e non utilizzerai la funzione di aggiunta collaboratore per contattare utenti che non conosci personalmente. Sei responsabile dei contenuti delle liste che crei e condividi."
+        },
+        {
+          "id": "termination",
+          "heading": "3. Recesso e sospensione",
+          "body": "Puoi recedere in qualsiasi momento tramite Impostazioni → Elimina account. Possiamo sospendere o chiudere il tuo account in caso di violazioni ripetute o sostanziali dei presenti termini, previa ragionevole comunicazione, salvo quando la sospensione immediata sia necessaria per proteggere il servizio o altri utenti."
+        },
+        {
+          "id": "liability",
+          "heading": "4. Responsabilità",
+          "body": "Il servizio è fornito \"così com'è\" e \"secondo disponibilità\". Nei limiti consentiti dalla legge, escludiamo ogni garanzia e limitiamo la nostra responsabilità all'importo da te corrisposto nei dodici mesi precedenti — che, essendo il servizio gratuito, è pari a zero."
+        },
+        {
+          "id": "law",
+          "heading": "5. Legge applicabile",
+          "body": "I presenti termini sono regolati dalla legge italiana, escluse le norme di conflitto."
+        },
+        {
+          "id": "disputes",
+          "heading": "6. Risoluzione delle controversie",
+          "body": "Per ogni controversia derivante o connessa ai presenti termini è competente il foro del luogo di residenza dell'operatore, fatti salvi i diritti inderogabili a tutela del consumatore che ti consentono di adire il tribunale del tuo luogo di residenza."
+        }
+      ]
+    }
+  }
+}

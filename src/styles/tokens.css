@@ -13,6 +13,10 @@
   --primary-hover: #0d264a;
   --primary-active: #091a33;
 
+  /* Favorites accent (gold) */
+  --favorite-gold: #c9a227;
+  --favorite-gold-soft: #f5ecc6;
+
   /* Focus */
   --ring-blue: rgba(59, 130, 246, 0.5);
 
@@ -28,6 +32,7 @@
   --cat-fruit: #4a7048;
   --cat-dairy: #3e5b7a;
   --cat-meat: #8a3d3d;
+  --cat-fish: #2c6c8a;
   --cat-bakery: #8a6a2c;
   --cat-bev: #2c6c8a;
   --cat-frozen: #3a6a8a;

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { PUBLIC_ROUTE_NAMES } from '@/router/meta';
 import type { RouteLocationNormalized } from 'vue-router';
 
 export const authGuard = async (
@@ -22,8 +23,9 @@ export const authGuard = async (
 
   const isAuthenticated = user.value !== null;
   const isLoginRoute = to.name === 'login';
+  const isPublicRoute = typeof to.name === 'string' && PUBLIC_ROUTE_NAMES.has(to.name);
 
-  if (!isAuthenticated && !isLoginRoute) {
+  if (!isAuthenticated && !isPublicRoute) {
     return { name: 'login' };
   }
 
@@ -47,6 +49,21 @@ const router = createRouter({
       component: () => import('@/views/LoginView.vue'),
     },
     {
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/AboutView.vue'),
+    },
+    {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('@/views/PrivacyView.vue'),
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('@/views/TermsView.vue'),
+    },
+    {
       path: '/lists',
       name: 'lists',
       component: () => import('@/views/ListsView.vue'),
@@ -65,6 +82,11 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
+    },
+    {
+      path: '/stats',
+      name: 'stats',
+      component: () => import('@/views/StatsView.vue'),
     },
   ],
 });

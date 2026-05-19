@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   PUBLIC_CATALOG,
   iconForName,
+  isCustomItemName,
   findPublicEntryByName,
   getPublicCatalogName,
   GENERIC_ITEM_ICON,
@@ -85,5 +86,34 @@ describe('iconForName', () => {
 
   it('returns generic icon for unknown names', () => {
     expect(iconForName('Tofu fritto', 'it')).toBe(GENERIC_ITEM_ICON);
+  });
+});
+
+describe('isCustomItemName', () => {
+  it('returns false for empty name', () => {
+    expect(isCustomItemName('')).toBe(false);
+    expect(isCustomItemName('   ')).toBe(false);
+  });
+
+  it('returns false for IT name in public catalog (Latte)', () => {
+    expect(isCustomItemName('Latte')).toBe(false);
+  });
+
+  it('returns false for EN name in public catalog (Milk)', () => {
+    expect(isCustomItemName('Milk')).toBe(false);
+  });
+
+  it('is locale-agnostic — Latte not custom even with en locale arg', () => {
+    expect(isCustomItemName('Latte', 'en')).toBe(false);
+  });
+
+  it('returns true for name not in any locale', () => {
+    expect(isCustomItemName('Babà')).toBe(true);
+    expect(isCustomItemName('Zarbo')).toBe(true);
+  });
+
+  it('matches case-insensitively via normalizeName', () => {
+    expect(isCustomItemName('LATTE')).toBe(false);
+    expect(isCustomItemName('milk')).toBe(false);
   });
 });

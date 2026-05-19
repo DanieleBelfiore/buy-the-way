@@ -10,7 +10,12 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
 }));
 
-import { createList, subscribeUserLists, DuplicateListNameError } from '@/services/lists.service';
+import {
+  createList,
+  subscribeUserLists,
+  capitalizeListName,
+  DuplicateListNameError,
+} from '@/services/lists.service';
 import { setDoc, onSnapshot } from 'firebase/firestore';
 
 describe('lists.service', () => {
@@ -63,6 +68,52 @@ describe('lists.service', () => {
       await createList('  Spesa  ', 'uid-1');
       const [, data] = vi.mocked(setDoc).mock.calls[0];
       expect((data as any).name).toBe('Spesa');
+    });
+
+    it('capitalizes the first letter when input is lowercase', async () => {
+      await createList('spesa', 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).name).toBe('Spesa');
+    });
+
+    it('preserves capitalization beyond the first letter', async () => {
+      await createList('iPhone shopping', 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).name).toBe('IPhone shopping');
+    });
+
+    it('handles unicode initials', async () => {
+      await createList('über shop', 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).name).toBe('Über shop');
+    });
+
+    it('treats whitespace-only name as duplicate of empty (no write skipped beyond existing logic)', async () => {
+      await createList('  ', 'uid-1');
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect((data as any).name).toBe('');
+    });
+  });
+
+  describe('capitalizeListName', () => {
+    it('uppercases the first letter', () => {
+      expect(capitalizeListName('spesa')).toBe('Spesa');
+    });
+
+    it('leaves already-capitalized name alone', () => {
+      expect(capitalizeListName('Spesa')).toBe('Spesa');
+    });
+
+    it('trims surrounding whitespace', () => {
+      expect(capitalizeListName('  spesa  ')).toBe('Spesa');
+    });
+
+    it('returns empty string for blank input', () => {
+      expect(capitalizeListName('   ')).toBe('');
+    });
+
+    it('leaves non-letter initials alone', () => {
+      expect(capitalizeListName('123 lista')).toBe('123 lista');
     });
   });
 

@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "Buy The Way",
-    "tagline": "Your smart grocery list"
+    "tagline": "Your smart grocery list",
+    "madeByPrefix": "Made by ",
+    "madeBySuffix": " with ❤️"
   },
   "nav": {
     "lists": "Lists",
@@ -27,6 +29,10 @@
   },
   "item": {
     "addPlaceholder": "Add an item",
+    "name": "Name",
+    "customBadge": "Custom item",
+    "removeFromSuggestions": "Remove from suggestions",
+    "removeFromSuggestionsHint": "This item will no longer be suggested when adding items.",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
     "addCustom": "Add \"{name}\" as a custom item",
@@ -37,7 +43,19 @@
     "removeConfirmTitle": "Delete this item?",
     "removeConfirmMessage": "\"{name}\" will be removed from the list.\nThis cannot be undone.",
     "removeConfirm": "Delete",
-    "removeCancel": "Cancel"
+    "removeCancel": "Cancel",
+    "pinFavorite": "Pin to favorites",
+    "unpinFavorite": "Unpin from favorites",
+    "priority": "Priority",
+    "priorityUrgent": "Urgent",
+    "priorityOptional": "Optional",
+    "priorityNone": "Normal",
+    "openSettings": "Edit item",
+    "moveOrCopy": "Move or copy",
+    "copy": "Copy",
+    "move": "Move",
+    "noOtherLists": "No other lists available",
+    "duplicateInDestination": "An item with this name already exists in the destination list"
   },
   "emptyList": {
     "button": "Empty list",
@@ -47,7 +65,7 @@
     "cancel": "Cancel"
   },
   "shelf": {
-    "title": "Favorites",
+    "title": "Your favorites | Your favorite item | Your {count} favorite items",
     "empty": "Add items to populate your shelf",
     "collapse": "Collapse shelf",
     "expand": "Expand shelf",
@@ -78,6 +96,10 @@
     "save": "Save",
     "leaveList": "Leave list",
     "deleteList": "Delete list",
+    "showFavorites": "Show favorites",
+    "showFavoritesHint": "Show the favorites section at the top of the list (if available)",
+    "wallpaper": "Wallpaper",
+    "wallpaperOptionAria": "Select wallpaper {name}",
     "stats": {
       "items": "Items",
       "bought": "Bought",
@@ -93,13 +115,22 @@
     "title": "Settings",
     "language": "Language",
     "account": "Account",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirmTitle": "Delete account permanently?",
+    "deleteAccountConfirmMessage": "All your data (owned lists, items, catalog, profile) and sign-in access will be permanently removed.\nThis action cannot be undone.",
+    "deleteAccountConfirm": "Delete account",
+    "deleteAccountCancel": "Cancel",
+    "deleteAccountReauth": "Please sign in again to confirm deletion.",
+    "deleteAccountReauthBtn": "Sign in again",
+    "deleteAccountError": "Delete failed. Please try again."
   },
   "category": {
     "label": "Category",
     "fruit_vegetables": "Fruit & Veg",
     "dairy": "Dairy",
-    "meat_fish": "Meat & Fish",
+    "meat": "Meat",
+    "fish": "Fish",
     "bakery": "Bakery",
     "beverages": "Beverages",
     "frozen": "Frozen",
@@ -120,5 +151,86 @@
   },
   "badge": {
     "new": "New"
+  },
+  "about": {
+    "heroTitle": "Shared shopping lists, in real time",
+    "heroSubtitle": "Mobile-first, offline-ready, free. Share lists with your family and check items as you shop.",
+    "cta": "Get started",
+    "featuresTitle": "Features",
+    "features": [
+      "Real-time sync across devices",
+      "Works offline — changes sync when you reconnect",
+      "Share lists with family or roommates",
+      "Smart favorites based on what you buy most",
+      "Statistics on your shopping habits",
+      "No ads, no tracking, no analytics"
+    ],
+    "faqTitle": "Frequently asked questions",
+    "faq": [
+      { "q": "What does Buy The Way do?", "a": "A real-time shared shopping list app. Add items, check them off, sync instantly with anyone you share a list with." },
+      { "q": "Does it work offline?", "a": "Yes. Lists and items are cached locally; any change you make offline syncs as soon as you reconnect." },
+      { "q": "Can I share a list?", "a": "Yes. From list settings, add a collaborator by their Google email. They see updates in real time." },
+      { "q": "Is my data safe?", "a": "Lists are stored in Google Firestore with strict per-user access rules. Only you and your collaborators can read or write your lists." },
+      { "q": "How much does it cost?", "a": "Free. No paid tier, no ads, no analytics." },
+      { "q": "Is there a native app?", "a": "It is a PWA — install it from your browser to your home screen and it behaves like a native app." },
+      { "q": "Can I delete my account?", "a": "Yes. From Settings → Delete account: wipes your lists, profile, catalog and revokes sign-in access in one operation." },
+      { "q": "Which sign-in methods are supported?", "a": "Google sign-in only." },
+      { "q": "Are my lists encrypted?", "a": "Data is encrypted in transit (HTTPS) and at rest on Google infrastructure. End-to-end encryption is not used so collaborators can read items." },
+      { "q": "Which languages are supported?", "a": "Italian and English. The interface switches based on your preference in Settings." }
+    ]
+  },
+  "seo": {
+    "login": {
+      "title": "Sign in · Buy The Way",
+      "description": "Sign in to Buy The Way and share real-time shopping lists with your family."
+    },
+    "about": {
+      "title": "Buy The Way — Shared shopping lists, in real time",
+      "description": "Mobile-first PWA for grocery lists shared with family. Offline-ready, fast, free."
+    },
+    "privacy": {
+      "title": "Privacy Policy · Buy The Way",
+      "description": "How Buy The Way collects, uses, and protects your data."
+    },
+    "terms": {
+      "title": "Terms of Service · Buy The Way",
+      "description": "Terms governing the use of Buy The Way."
+    },
+    "lists": {
+      "title": "Lists · Buy The Way",
+      "description": "Your shared shopping lists."
+    },
+    "settings": {
+      "title": "Settings · Buy The Way",
+      "description": "Manage language, account, and preferences."
+    },
+    "stats": {
+      "title": "Statistics · Buy The Way",
+      "description": "Insights from your shopping habits."
+    }
+  },
+  "stats": {
+    "title": "Statistics",
+    "openButton": "Statistics",
+    "loading": "Loading…",
+    "empty": "Add a few items to start seeing your statistics.",
+    "totals": {
+      "lists": "Lists",
+      "collaborators": "Collaborators",
+      "catalog": "Unique items",
+      "favorites": "Favorites",
+      "totalUsage": "Total purchases"
+    },
+    "topItems": {
+      "title": "Top 10 most-used items",
+      "subtitle": "Purchases tracked from your catalog",
+      "usageLabel": "Purchases"
+    },
+    "categories": {
+      "title": "By category",
+      "subtitle": "How much you buy in each category",
+      "share": "{percent}% · {count} purchases",
+      "tooltipItems": "no items | 1 item | {n} items"
+    }
   }
 }

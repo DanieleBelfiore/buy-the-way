@@ -50,6 +50,8 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 | i18n | vue-i18n | ^10 (legacy: false, Composition API) |
 | Styling | Tailwind CSS | ^3.4 |
 | PWA | vite-plugin-pwa (Workbox) | ^0.20 |
+| Head / SEO | @unhead/vue | ^3 (composable + plugin) |
+| Error monitoring | @sentry/vue | ^10 (production-only, masked replays) |
 | Backend (Auth + DB + Realtime) | Firebase: Auth + Firestore | SDK ^10 (modular) |
 | ID generation | `ulid` (npm) | ^2 |
 | Unit testing | Vitest + @vue/test-utils | ^2 / ^2 |
@@ -172,46 +174,73 @@ buy-the-way/
 │   │   ├── ListsView.vue             # Home: all user lists + new-lists badge
 │   │   ├── ListDetailView.vue        # Single list detail
 │   │   ├── ListSettingsView.vue      # Owner: rename, manage collaborators, hard-delete (irreversible). Collaborator: leave
-│   │   └── SettingsView.vue          # Language, account, logout
+│   │   ├── SettingsView.vue          # Language, account, logout, account deletion
+│   │   ├── StatsView.vue             # Totals + top items + category donut (lazy)
+│   │   ├── AboutView.vue             # Public landing + FAQ + JSON-LD
+│   │   ├── PrivacyView.vue           # Bilingual Privacy Policy (9 sections)
+│   │   └── TermsView.vue             # Bilingual Terms of Service (6 sections)
 │   ├── components/
 │   │   ├── list/
 │   │   │   ├── ListCard.vue
-│   │   │   ├── ListItemRow.vue
+│   │   │   ├── ListItemRow.vue       # Row + custom-item UserPlus badge + priority cycle
 │   │   │   ├── ItemAutocomplete.vue  # Input + inline suggestions
+│   │   │   ├── ItemEditSheet.vue     # Edit + exclude-from-suggestions (custom only)
+│   │   │   ├── ListPickerSheet.vue   # Copy / move target picker
+│   │   │   ├── PriorityPickerSheet.vue
+│   │   │   ├── WallpaperPicker.vue
 │   │   │   ├── CategoryHeader.vue
 │   │   │   ├── CategorySection.vue
-│   │   │   ├── MostUsedShelf.vue     # Dense always-visible grid with collapse toggle ("I preferiti")
+│   │   │   ├── MostUsedShelf.vue     # Header is a single button toggling collapse
+│   │   │   ├── ShelfTile.vue         # Trash2 exclude action
 │   │   │   └── EmptyListButton.vue   # Ghost-destructive pill to clear list with count badge
+│   │   ├── stats/
+│   │   │   ├── TopItemsChart.vue
+│   │   │   └── CategoryDonut.vue
 │   │   ├── collaborators/
 │   │   │   ├── AddCollaboratorForm.vue   # Lookup by email + add
 │   │   │   └── CollaboratorList.vue      # Member list + remove (owner) / leave (self)
-│   │   └── ui/                       # Buttons, inputs, modals, toasts
+│   │   └── ui/                       # Buttons, inputs, modals, toasts, LegalFooter, CompletionCelebration
 │   ├── composables/
 │   │   ├── useAuth.ts
-│   │   ├── useFirestoreCollection.ts # Realtime onSnapshot wrapper
-│   │   ├── useOfflineQueue.ts        # Online/offline state
-│   │   └── useDebouncedRef.ts
+│   │   ├── useDebouncedRef.ts
+│   │   ├── useCollapsedCategories.ts
+│   │   ├── useDocumentHead.ts        # @unhead/vue wrapper, locale-reactive title + meta
+│   │   ├── useHaptic.ts
+│   │   ├── useLogoMotion.ts
+│   │   └── useReducedMotion.ts
 │   ├── services/                     # Firebase access layer
 │   │   ├── firebase.ts               # Init app + getAuth + getFirestore
-│   │   ├── auth.service.ts           # signInWithGoogle, signOut, onAuthState, upsert users/{uid}
+│   │   ├── auth.service.ts           # signInWithGoogle, signOut, onAuthState, upsert users/{uid}, deleteAccountCascade
 │   │   ├── users.service.ts          # findUserByEmail (query users collection)
-│   │   ├── lists.service.ts          # CRUD lists + addCollaborator/removeCollaborator/leave + soft-delete
-│   │   ├── items.service.ts          # CRUD items + toggle checked
-│   │   └── catalog.service.ts        # Personal catalog + ranking
+│   │   ├── lists.service.ts          # CRUD lists + addCollaborator/removeCollaborator/leave + hard-delete + ownership transfer
+│   │   ├── items.service.ts          # CRUD items + toggle checked + capitalizeInitial on name
+│   │   ├── catalog.service.ts        # Personal catalog + ranking + pin/exclude
+│   │   └── sentry.ts                 # Production-only init + shouldFilterEvent
 │   ├── domain/                       # Pure types and logic, no I/O
-│   │   ├── types.ts                  # List, Item, User, CatalogEntry, Category
+│   │   ├── types.ts                  # List, Item, User, CatalogEntry, Category, ItemPriority
 │   │   ├── categories.ts             # Predefined category seed enum
+│   │   ├── public-catalog.ts         # ~200 public items + iconForName + isCustomItemName
 │   │   ├── ranking.ts                # Recency-weighted ranking algorithm
+│   │   ├── sort.ts                   # Locale-aware sorting
+│   │   ├── stats.ts                  # Top items + category breakdown + totals
+│   │   ├── text.ts                   # capitalizeInitial helper
+│   │   ├── wallpapers.ts             # Wallpaper allow-list + random picker
 │   │   └── id.ts                     # ulid() wrapper
 │   ├── i18n/
-│   │   ├── index.ts                  # vue-i18n setup
+│   │   ├── index.ts                  # vue-i18n setup + legal partials merged at init
 │   │   └── locales/
 │   │       ├── it.json
-│   │       └── en.json
+│   │       ├── en.json
+│   │       ├── legal.it.json         # Privacy + Terms content (IT)
+│   │       └── legal.en.json         # Privacy + Terms content (EN)
+│   ├── router/
+│   │   ├── index.ts                  # Route definitions + auth guard with public-route bypass
+│   │   └── meta.ts                   # Per-route SEO metadata + PUBLIC_ROUTE_NAMES
 │   ├── styles/
 │   │   ├── tokens.css                # CSS custom properties
-│   │   └── global.css                # Reset, base
+│   │   └── global.css                # Reset, base, global cursor rules
 │   └── pwa/
+│       ├── manifest.ts               # Manifest definition (description, categories, screenshots)
 │       └── registerSW.ts             # Service worker registration + update prompt
 ├── tests/
 │   ├── unit/                         # Vitest: domain, composables, stores, services (mocked)
@@ -226,13 +255,17 @@ buy-the-way/
 │   ├── branding/
 │   │   └── logo-original.png         # Master logo 2816x1536 RGBA, source for derivatives
 │   ├── icons/                        # PWA icons 192/512/maskable, favicon, apple-touch (generated from the logo)
+│   ├── animations/                   # success/empty/cart_empty lotties
+│   ├── wallpapers/                   # 10 list-card backgrounds
+│   ├── robots.txt                    # Allow public routes + Sitemap pointer
+│   ├── sitemap.xml                   # 5 public URLs
 │   └── manifest.webmanifest          # (generated by plugin)
 ├── firebase/
 │   ├── firestore.rules               # Security rules
-│   └── firestore.indexes.json        # Composite indexes
+│   └── firestore.indexes.json        # Composite index for lists.collaboratorUids + updatedAt desc
 ├── .github/workflows/
 │   ├── ci.yml                        # Lint + typecheck + test + build
-│   └── deploy.yml                    # Deploy to Netlify on main
+│   └── deploy.yml                    # Deploy to Netlify on main + firebase-deploy job (rules + indices)
 ├── netlify.toml                      # SPA fallback + headers
 ├── SPEC.md
 ├── README.md
@@ -463,7 +496,7 @@ const onToggle = () => {
 
 **Ask first:**
 
-- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB). Phase 7.5 introduces `lucide-vue-next` (icons) and `canvas-confetti` (lazy-imported on the "all done" event); no other libs added.
+- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB). Phase 7.5 introduces `lucide-vue-next` (icons). Phase 11 adds: `@vueuse/motion` (~34 KB precache delta — hero-logo bounce + idle float on `ListsView` + `LoginView`, respects `prefers-reduced-motion`); `@lottiefiles/dotlottie-vue` (~320 KB — celebration + empty-state lotties; only loads on routes that render a lottie); `chart.js` + `vue-chartjs` (~50 KB gz combined — bar + donut on `/stats`; lazy-loaded via the StatsView route chunk).
 - Changing the Firestore data schema (adding/renaming fields on existing collections).
 - Modifying `firestore.rules`.
 - Adding new categories to the `Category` enum.
@@ -510,9 +543,16 @@ const onToggle = () => {
 - [ ] Offline: edits work without connectivity; sync is automatic when back online; per-item conflict is last-write-wins.
 - [ ] Language switchable between it/en at runtime; no hardcoded UI string.
 - [ ] PWA installable (valid manifest, active SW, offline shell).
-- [ ] Lighthouse: PWA ≥ 90, mobile Performance ≥ 85, Accessibility ≥ 95.
+- [ ] Lighthouse: PWA ≥ 90, mobile Performance ≥ 85, Accessibility ≥ 95, SEO ≥ 95 on `/about` + `/login`.
 - [ ] Test coverage ≥ 80%; CI green.
 - [ ] Firestore rules tested with the emulator: no bypass possible for non-owner / non-collaborator.
+- [ ] Public marketing/legal routes (`/about`, `/privacy`, `/terms`) reachable without authentication; not redirected away when authenticated.
+- [ ] `/about` ships FAQPage + WebApplication JSON-LD (Google Rich Results valid).
+- [ ] `robots.txt` allows public routes only; `sitemap.xml` lists the 5 public URLs.
+- [ ] Privacy Policy enumerates Firebase + Sentry as sub-processors; describes self-service account-deletion as the right-to-erasure path.
+- [ ] Sentry production build masks all input + text in replays; offline + popup-closed errors filtered before they leave the browser.
+- [ ] Custom items flagged with `UserPlus` badge on `ListItemRow`; exclude-from-suggestions one-tap from the edit sheet.
+- [ ] Item names auto-capitalized on add and edit (shared `capitalizeInitial`).
 
 ## Open Questions
 
@@ -524,5 +564,5 @@ None blocking. All v1 decisions locked. Out-of-scope items below are deferred or
 - User-defined custom categories: out of scope for v1.
 - Dark theme: **rejected.** Single direction (Editorial Cream) only, v1 and v1.x.
 - Trash / soft-delete with recovery: **rejected for v1.** List deletion is immediate hard-delete from List Settings, gated by an irreversible-action confirm. Reintroducible as a separate phase if usage shows real demand for undo.
-- Error tracking (Sentry/Highlight): deferred to v1.x.
+- ~~Error tracking (Sentry/Highlight): deferred to v1.x.~~ **Shipped in Phase 12** (`@sentry/vue`, production-only, masked replays, filtered offline + popup-closed errors). DSN provisioning is part of Task 52 (ops).
 - Analytics: never on v1; reconsider v1.x only if usage data is genuinely needed.

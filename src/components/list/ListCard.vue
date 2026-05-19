@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { wallpaperUrl } from '@/domain/wallpapers';
 import type { List, UserProfile } from '@/domain/types';
 
 const props = withDefaults(
@@ -42,6 +43,18 @@ const MAX_AVATARS = 3;
 const visibleMembers = computed(() => props.members.slice(0, MAX_AVATARS));
 const overflowCount = computed(() => Math.max(0, props.members.length - MAX_AVATARS));
 
+const hasWallpaper = computed(() => Boolean(props.list.wallpaper));
+
+const cardStyle = computed(() =>
+  props.list.wallpaper
+    ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('${wallpaperUrl(props.list.wallpaper)}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : {},
+);
+
 const dateFormatter = computed(
   () =>
     new Intl.DateTimeFormat(locale.value, {
@@ -60,9 +73,14 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
 
 <template>
   <button
-    class="w-full text-left px-4 py-3 bg-offwhite rounded-2xl
-           border border-cream-soft
-           flex items-center gap-3"
+    data-testid="list-card"
+    :class="[
+      'w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3',
+      hasWallpaper
+        ? 'text-offwhite border-transparent shadow-sm'
+        : 'bg-offwhite text-charcoal border-cream-soft',
+    ]"
+    :style="cardStyle"
     :aria-label="props.list.name"
     @click="emit('open', props.list.id)"
   >
@@ -92,7 +110,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     <!-- Title + meta -->
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="font-medium text-charcoal truncate">{{ props.list.name }}</span>
+        <span :class="['font-medium truncate', hasWallpaper ? 'text-offwhite' : 'text-charcoal']">{{ props.list.name }}</span>
         <span
           v-if="props.isNew"
           data-testid="new-badge"
@@ -101,7 +119,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
           {{ t('badge.new') }}
         </span>
       </div>
-      <div class="flex items-center gap-1.5 text-xs text-muted-gray mt-0.5">
+      <div :class="['flex items-center gap-1.5 text-xs mt-0.5', hasWallpaper ? 'text-offwhite/85' : 'text-muted-gray']">
         <span v-if="itemCount > 0" data-testid="item-count">{{ itemCountLabel }}</span>
         <span v-if="itemCount > 0" aria-hidden="true">·</span>
         <span data-testid="updated-at">{{ updatedLabel }}</span>
@@ -109,7 +127,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     </div>
 
     <svg
-      class="shrink-0 text-muted-gray"
+      :class="['shrink-0', hasWallpaper ? 'text-offwhite' : 'text-muted-gray']"
       width="16"
       height="16"
       viewBox="0 0 16 16"
