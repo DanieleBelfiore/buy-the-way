@@ -15,7 +15,7 @@ export const setupServiceWorker = async (): Promise<SWState> => {
     return { needRefresh, offlineReady, updateServiceWorker };
   }
   try {
-    const mod = await import(/* @vite-ignore */ 'virtual:pwa-register');
+    const mod = await import('virtual:pwa-register');
     updateServiceWorker = mod.registerSW({
       immediate: true,
       onNeedRefresh() {
