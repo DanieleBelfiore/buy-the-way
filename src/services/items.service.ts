@@ -82,10 +82,14 @@ export const toggleChecked = async (
   checked: boolean,
 ): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
+  const now = Date.now();
   await updateDoc(doc(itemsCol, itemId), {
     checked,
-    updatedAt: Date.now(),
+    updatedAt: now,
   });
+  // Bump parent list's updatedAt so lists sorted by recency reflect activity.
+  // Rules allow any collaborator to touch only updatedAt (subset of itemCount+updatedAt branch).
+  await updateDoc(doc(db, 'lists', listId), { updatedAt: now });
 };
 
 export const removeItem = async (listId: ULID, itemId: ULID): Promise<void> => {
@@ -111,7 +115,8 @@ export const updateItem = async (
   patch: ItemPatch,
 ): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
-  const payload: Record<string, unknown> = { ...patch, updatedAt: Date.now() };
+  const now = Date.now();
+  const payload: Record<string, unknown> = { ...patch, updatedAt: now };
   if (patch.name !== undefined) {
     payload.name = capitalizeInitial(patch.name);
   }
@@ -119,6 +124,7 @@ export const updateItem = async (
     payload.priority = deleteField();
   }
   await updateDoc(doc(itemsCol, itemId), payload);
+  await updateDoc(doc(db, 'lists', listId), { updatedAt: now });
 };
 
 export const setItemPriority = async (

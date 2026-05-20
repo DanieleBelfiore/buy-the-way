@@ -123,17 +123,24 @@ describe('items.service', () => {
   });
 
   describe('toggleChecked', () => {
-    it('calls updateDoc', async () => {
+    it('calls updateDoc twice (item + parent list updatedAt)', async () => {
       await toggleChecked(listId, itemId, true);
-      expect(updateDoc).toHaveBeenCalledOnce();
+      expect(updateDoc).toHaveBeenCalledTimes(2);
     });
 
-    it('patches only checked + updatedAt', async () => {
+    it('patches only checked + updatedAt on the item', async () => {
       await toggleChecked(listId, itemId, true);
       const [, data] = vi.mocked(updateDoc).mock.calls[0];
       expect(data).toMatchObject({ checked: true });
       expect(Object.keys(data as object)).toHaveLength(2);
       expect(Object.keys(data as object)).toContain('updatedAt');
+    });
+
+    it('bumps parent list updatedAt only', async () => {
+      await toggleChecked(listId, itemId, true);
+      const [, listPayload] = vi.mocked(updateDoc).mock.calls[1]!;
+      expect(Object.keys(listPayload as object)).toEqual(['updatedAt']);
+      expect(typeof (listPayload as { updatedAt: unknown }).updatedAt).toBe('number');
     });
 
     it('patches checked = false correctly', async () => {
@@ -179,14 +186,16 @@ describe('items.service', () => {
   });
 
   describe('updateItem', () => {
-    it('calls updateDoc with patch + updatedAt', async () => {
+    it('calls updateDoc twice (item patch + parent list updatedAt)', async () => {
       await updateItem(listId, itemId, { name: 'Latte fresco', quantity: '2L' });
-      expect(updateDoc).toHaveBeenCalledOnce();
+      expect(updateDoc).toHaveBeenCalledTimes(2);
       const call = vi.mocked(updateDoc).mock.calls[0]!;
       const payload = call[1] as Record<string, unknown>;
       expect(payload.name).toBe('Latte fresco');
       expect(payload.quantity).toBe('2L');
       expect(typeof payload.updatedAt).toBe('number');
+      const listPayload = vi.mocked(updateDoc).mock.calls[1]![1] as Record<string, unknown>;
+      expect(Object.keys(listPayload)).toEqual(['updatedAt']);
     });
 
     it('accepts partial patches (note only)', async () => {

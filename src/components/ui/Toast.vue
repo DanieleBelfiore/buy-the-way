@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, type Component } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -7,6 +7,7 @@ const props = withDefaults(
     open: boolean;
     durationMs?: number;
     actionLabel?: string;
+    actionIcon?: Component;
   }>(),
   { durationMs: 2500 },
 );
@@ -54,7 +55,7 @@ const onAction = (): void => {
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
         'w-[calc(100vw-2rem)] max-w-md',
         'flex items-center justify-between gap-3',
-        'bg-charcoal text-offwhite shadow-xl',
+        'text-offwhite shadow-xl bg-primary',
         props.actionLabel
           ? 'rounded-2xl px-4 py-3'
           : 'rounded-full px-4 py-2',
@@ -65,9 +66,16 @@ const onAction = (): void => {
         v-if="props.actionLabel"
         type="button"
         data-testid="toast-action"
-        class="shrink-0 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-charcoal hover:opacity-90 active:opacity-80 transition-opacity"
+        class="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary hover:opacity-90 active:opacity-80 transition-opacity"
         @click="onAction"
       >
+        <component
+          v-if="props.actionIcon"
+          :is="props.actionIcon"
+          :size="16"
+          :stroke-width="2.5"
+          aria-hidden="true"
+        />
         {{ props.actionLabel }}
       </button>
     </div>
