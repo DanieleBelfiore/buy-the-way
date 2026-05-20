@@ -44,7 +44,7 @@
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     Content-Security-Policy = """
       default-src 'self';
-      script-src 'self' https://apis.google.com https://www.gstatic.com;
+      script-src 'self' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com;
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;
       img-src 'self' data: blob: https://lh3.googleusercontent.com;

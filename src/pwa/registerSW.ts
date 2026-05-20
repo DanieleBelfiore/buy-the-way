@@ -31,4 +31,11 @@ export const setupServiceWorker = async (): Promise<SWState> => {
   return { needRefresh, offlineReady, updateServiceWorker };
 };
 
-export const useSW = (): SWState => ({ needRefresh, offlineReady, updateServiceWorker });
+// Wrap in a closure that dereferences the latest `updateServiceWorker` on each call.
+// Without this, consumers capture the initial no-op (set before the dynamic import
+// of `virtual:pwa-register` resolves) and clicking "Reload" silently does nothing.
+export const useSW = (): SWState => ({
+  needRefresh,
+  offlineReady,
+  updateServiceWorker: (reloadPage?: boolean) => updateServiceWorker(reloadPage),
+});
