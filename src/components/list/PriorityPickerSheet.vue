@@ -64,10 +64,10 @@ const onSelect = (p: ItemPriority | null): void => emit('select', p);
           data-testid="priority-picker-urgent"
           :aria-checked="currentPriority() === 'urgent'"
           :class="[
-            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left',
+            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left text-red-700',
             currentPriority() === 'urgent'
-              ? 'border-red-600 bg-red-50 text-red-700'
-              : 'border-cream-soft bg-offwhite text-charcoal hover:bg-cream',
+              ? 'border-red-600 bg-red-50'
+              : 'border-cream-soft bg-offwhite hover:bg-red-50/60',
           ]"
           @click="onSelect('urgent')"
         >
@@ -96,10 +96,10 @@ const onSelect = (p: ItemPriority | null): void => emit('select', p);
           data-testid="priority-picker-optional"
           :aria-checked="currentPriority() === 'optional'"
           :class="[
-            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left',
+            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left text-muted-gray',
             currentPriority() === 'optional'
-              ? 'border-muted-gray bg-cream text-muted-gray'
-              : 'border-cream-soft bg-offwhite text-charcoal hover:bg-cream',
+              ? 'border-muted-gray bg-cream'
+              : 'border-cream-soft bg-offwhite hover:bg-cream',
           ]"
           @click="onSelect('optional')"
         >

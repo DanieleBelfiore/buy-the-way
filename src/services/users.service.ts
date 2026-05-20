@@ -33,6 +33,7 @@ export const findUserByEmail = async (email: string): Promise<UserProfile | null
     displayName: data.displayName ?? '',
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
+    ...(data.photoURL && { photoURL: data.photoURL }),
   };
 };
 
@@ -46,6 +47,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     displayName: data.displayName ?? '',
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
+    ...(data.photoURL && { photoURL: data.photoURL }),
   };
 };
 
