@@ -1,13 +1,15 @@
 import type { VitePWAOptions } from 'vite-plugin-pwa';
 
-export interface ManifestIcon {
+export interface ManifestIcon
+{
   src: string;
   sizes: string;
   type: string;
   purpose?: string;
 }
 
-export interface ManifestScreenshot {
+export interface ManifestScreenshot
+{
   src: string;
   sizes: string;
   type: string;
@@ -15,7 +17,8 @@ export interface ManifestScreenshot {
   label?: string;
 }
 
-export interface PwaManifest {
+export interface PwaManifest
+{
   name: string;
   short_name: string;
   description: string;
@@ -49,6 +52,7 @@ export const pwaManifest: PwaManifest = {
     { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
     { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     { src: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
+    { src: '/icons/icon-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
   ],
   screenshots: [
     {
