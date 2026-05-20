@@ -51,17 +51,22 @@ const handleSignIn = async () => {
     <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center">
       <!-- Logo + Wordmark -->
       <div class="text-center space-y-3">
-        <img
-          v-motion="logoMotion"
-          src="/branding/logo-original.png"
-          alt=""
-          aria-hidden="true"
-          data-testid="login-logo"
-          width="1316"
-          height="974"
-          class="mx-auto h-50 w-auto select-none"
-          draggable="false"
-        />
+        <picture>
+          <source srcset="/branding/logo-540.avif" type="image/avif" />
+          <img
+            v-motion="logoMotion"
+            src="/branding/logo-original.png"
+            alt=""
+            aria-hidden="true"
+            data-testid="login-logo"
+            width="540"
+            height="399"
+            fetchpriority="high"
+            decoding="async"
+            class="mx-auto h-50 w-auto select-none"
+            draggable="false"
+          />
+        </picture>
       </div>
 
       <!-- CTA -->

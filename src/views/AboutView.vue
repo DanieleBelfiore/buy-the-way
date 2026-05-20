@@ -79,15 +79,19 @@ const goToLogin = (): void => {
 <template>
   <main class="min-h-screen bg-cream text-charcoal">
     <section class="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center space-y-6">
-      <img
-        src="/branding/logo-original.png"
-        alt=""
-        aria-hidden="true"
-        width="1316"
-        height="974"
-        class="mx-auto h-32 w-auto select-none"
-        draggable="false"
-      />
+      <picture>
+        <source srcset="/branding/logo-540.avif" type="image/avif" />
+        <img
+          src="/branding/logo-original.png"
+          alt=""
+          aria-hidden="true"
+          width="540"
+          height="399"
+          decoding="async"
+          class="mx-auto h-32 w-auto select-none"
+          draggable="false"
+        />
+      </picture>
       <h1 class="text-3xl font-semibold tracking-tight">
         {{ t('about.heroTitle') }}
       </h1>

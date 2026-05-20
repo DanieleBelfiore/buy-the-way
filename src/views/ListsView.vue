@@ -112,12 +112,12 @@ const openList = (id: string) => {
 
 <template>
   <main class="min-h-screen bg-cream flex flex-col">
-    <!-- Top bar with stats + settings buttons -->
-    <header class="px-5 pt-12 pb-2 flex items-center justify-end gap-1">
+    <!-- Top bar with stats + settings buttons (split 50/50 full width). -->
+    <header class="px-5 pt-12 pb-2 flex items-center gap-2">
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
         @click="router.push({ name: 'stats' })"
       >
         <BarChart3 :size="20" :stroke-width="2" aria-hidden="true" />
@@ -125,7 +125,7 @@ const openList = (id: string) => {
       </button>
       <button
         :aria-label="t('settings.title')"
-        class="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
         @click="router.push({ name: 'settings' })"
       >
         <SettingsIcon :size="20" :stroke-width="2" aria-hidden="true" />
@@ -135,16 +135,21 @@ const openList = (id: string) => {
 
     <!-- Hero brand block -->
     <section class="px-5 pt-2 pb-6 text-center">
-      <img
-        v-motion="logoMotion"
-        src="/branding/logo-original.png"
-        :alt="t('app.name')"
-        data-testid="lists-logo"
-        width="1316"
-        height="974"
-        class="mx-auto h-50 w-auto select-none"
-        draggable="false"
-      />
+      <picture>
+        <source srcset="/branding/logo-540.avif" type="image/avif" />
+        <img
+          v-motion="logoMotion"
+          src="/branding/logo-original.png"
+          :alt="t('app.name')"
+          data-testid="lists-logo"
+          width="540"
+          height="399"
+          fetchpriority="high"
+          decoding="async"
+          class="mx-auto h-50 w-auto select-none"
+          draggable="false"
+        />
+      </picture>
     </section>
 
     <!-- Create input (inline, appears when FAB tapped) -->

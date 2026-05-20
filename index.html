@@ -10,6 +10,22 @@
     <meta name="theme-color" content="#1c1c1c" />
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Preconnect to third-party origins used early in load (Firebase Auth + Google sign-in). -->
+    <link rel="preconnect" href="https://apis.google.com" crossorigin />
+    <link rel="preconnect" href="https://buy-the-way-2ac6e.firebaseapp.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+
+    <!-- Preload the LCP image so the browser fetches it before parsing JS chunks. -->
+    <link
+      rel="preload"
+      as="image"
+      href="/branding/logo-540.avif"
+      type="image/avif"
+      fetchpriority="high"
+    />
+
     <title>Buy The Way</title>
   </head>
   <body>
