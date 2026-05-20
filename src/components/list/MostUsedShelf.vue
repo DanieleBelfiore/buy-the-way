@@ -57,6 +57,40 @@ watch(
 const groups = computed<Array<[Category, CatalogEntry[]]>>(() =>
   groupCatalogByCategory(stableEntries.value, (c) => t(CATEGORIES[c].labelKey), locale.value),
 );
+
+// Smooth height-based collapse, identical to CategorySection's cat-collapse
+// transition (categories vs favorites parity).
+const beforeEnter = (el: Element): void => {
+  const node = el as HTMLElement;
+  node.style.height = '0px';
+  node.style.opacity = '0';
+};
+const onEnter = (el: Element, done: () => void): void => {
+  const node = el as HTMLElement;
+  requestAnimationFrame(() => {
+    node.style.height = `${node.scrollHeight}px`;
+    node.style.opacity = '1';
+  });
+  node.addEventListener('transitionend', done, { once: true });
+};
+const afterEnter = (el: Element): void => {
+  const node = el as HTMLElement;
+  node.style.height = '';
+  node.style.opacity = '';
+};
+const beforeLeave = (el: Element): void => {
+  const node = el as HTMLElement;
+  node.style.height = `${node.scrollHeight}px`;
+  node.style.opacity = '1';
+};
+const onLeave = (el: Element, done: () => void): void => {
+  const node = el as HTMLElement;
+  requestAnimationFrame(() => {
+    node.style.height = '0px';
+    node.style.opacity = '0';
+  });
+  node.addEventListener('transitionend', done, { once: true });
+};
 </script>
 
 <template>
@@ -101,36 +135,49 @@ const groups = computed<Array<[Category, CatalogEntry[]]>>(() =>
       </span>
     </button>
 
-    <div v-if="!collapsed" class="space-y-3">
-      <section
-        v-for="[category, items] in groups"
-        :key="category"
-        :data-testid="`shelf-group-${category}`"
-      >
-        <h3
-          class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-gray font-medium mb-1.5"
-          :data-testid="`shelf-group-title-${category}`"
+    <Transition
+      name="shelf-collapse"
+      @before-enter="beforeEnter"
+      @enter="onEnter"
+      @after-enter="afterEnter"
+      @before-leave="beforeLeave"
+      @leave="onLeave"
+    >
+      <div v-if="!collapsed" class="shelf-collapse-inner space-y-3">
+        <section
+          v-for="[category, items] in groups"
+          :key="category"
+          :data-testid="`shelf-group-${category}`"
         >
-          <span aria-hidden="true" :style="{ color: CATEGORIES[category].cssVar }">{{ CATEGORIES[category].icon }}</span>
-          <span>{{ t(CATEGORIES[category].labelKey) }}</span>
-        </h3>
-        <TransitionGroup name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
-          <ShelfTile
-            v-for="entry in items"
-            :key="entry.id"
-            :entry="entry"
-            :is-top="topIds.has(entry.id)"
-            :is-in-list="itemNamesInList.has(entry.name)"
-            @add="onAdd"
-            @long-press="onLongPress"
-          />
-        </TransitionGroup>
-      </section>
-    </div>
+          <h3
+            class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-gray font-medium mb-1.5"
+            :data-testid="`shelf-group-title-${category}`"
+          >
+            <span aria-hidden="true" :style="{ color: CATEGORIES[category].cssVar }">{{ CATEGORIES[category].icon }}</span>
+            <span>{{ t(CATEGORIES[category].labelKey) }}</span>
+          </h3>
+          <TransitionGroup name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
+            <ShelfTile
+              v-for="entry in items"
+              :key="entry.id"
+              :entry="entry"
+              :is-top="topIds.has(entry.id)"
+              :is-in-list="itemNamesInList.has(entry.name)"
+              @add="onAdd"
+              @long-press="onLongPress"
+            />
+          </TransitionGroup>
+        </section>
+      </div>
+    </Transition>
   </section>
 </template>
 
 <style scoped>
+.shelf-collapse-inner {
+  overflow: hidden;
+  transition: height 240ms ease, opacity 200ms ease;
+}
 .shelf-tile-enter-active,
 .shelf-tile-leave-active {
   transition: opacity 220ms ease, transform 220ms ease;
@@ -150,6 +197,7 @@ const groups = computed<Array<[Category, CatalogEntry[]]>>(() =>
   transition: transform 260ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
+  .shelf-collapse-inner,
   .shelf-tile-enter-active,
   .shelf-tile-leave-active,
   .shelf-tile-move {

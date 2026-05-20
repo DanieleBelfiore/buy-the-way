@@ -235,19 +235,38 @@ Locked decisions (2026-05-19): no analytics → no cookie banner; Privacy + Term
 
 ### Checkpoint M — Production-ready
 - [x] 5 / 6 Phase 12 tasks shipped (Task 52 ops-only, deferred).
-- [x] `pnpm test:run` green: **626 tests / 55 files**.
+- [x] `pnpm test:run` green: **646 tests / 56 files** (post-go-live fixes).
 - [x] `pnpm test:coverage`: statements 88.21%, lines 89.98%, functions 83.94%, branches **80.07%** (gate ≥80% green; +15 branch tests added on `domain/text.ts` and `isCustomItemName`).
 - [ ] `pnpm test:rules` green (run separately against emulator; rules unchanged this phase).
 - [x] Public routes reachable without auth; logged-in users not redirected from `/about` `/privacy` `/terms` (unit-tested in `guard.test.ts`).
-- [ ] Google Rich Results Test passes on `/about` (FAQPage + WebApplication) — manual after first deploy.
-- [x] `robots.txt` + `sitemap.xml` ship in `public/`.
-- [x] `firebase/firestore.indexes.json` declares the composite index; CI `firebase-deploy` job wired in `deploy.yml`.
-- [ ] Sentry receives synthetic error from prod with masked replay — pending DSN provisioning (Task 52).
-- [ ] Custom domain live with HTTPS; sign-in works; OAuth consent screen published — Task 52 ops.
-- [ ] First Firestore backup exported — Task 52 ops.
-- [ ] UptimeRobot green on `/login` — Task 52 ops.
-- [ ] Lighthouse on prod URL — manual after first deploy.
-- [ ] **Human Verification Recap emitted; human approval before public announcement.**
+- [x] Google Rich Results Test passes on `/about`: FAQPage + WebApplication both valid (only non-critical `aggregateRating` missing, optional).
+- [x] `robots.txt` + `sitemap.xml` ship in `public/` with absolute URLs.
+- [x] `firebase/firestore.indexes.json` declares the composite index; CI `firebase-deploy` job wired in `deploy.yml` (refactored to firebase-only since Netlify builds the SPA).
+- [x] Custom domain live with HTTPS: `https://buy-the-way.danielebelfiore.dev`; sign-in works; OAuth consent screen published.
+- [x] Lighthouse mobile on prod URL (incognito): **Performance 77 / Accessibility 100 / Best Practices 100 / SEO 100**.
+- [x] **Production live and verified end-to-end (2026-05-20).**
+
+### Checkpoint M — Post-go-live fixes (2026-05-20)
+- [x] `.firebaserc` + `.env.example` → project ID `buy-the-way-2ac6e` (immutable Firebase suffix).
+- [x] `netlify.toml` CSP hardened: `wasm-unsafe-eval` + `blob:` for Lottie WASM; `apis.google.com` + `www.gstatic.com` for Firebase Auth; `cdn.jsdelivr.net` + `unpkg.com` for dotlottie CDN.
+- [x] `netlify.toml` `Cross-Origin-Opener-Policy: same-origin-allow-popups` for clean Firebase Auth popup.
+- [x] `netlify.toml` build command injects `VITE_RELEASE=$COMMIT_REF` (Netlify-native SHA for Sentry release tag).
+- [x] `src/pwa/registerSW.ts` fix: removed `@vite-ignore` (virtual:pwa-register now bundled, not loaded as runtime URL); `useSW()` closure bug fix (consumers were capturing the initial no-op).
+- [x] `index.html`: preconnect Firebase/Google origins; preload LCP image (AVIF).
+- [x] Logo optimized: `public/branding/logo-540.avif` (27 KB, was 132 KB PNG). `<picture>` with AVIF source + PNG fallback in `LoginView`, `ListsView`, `AboutView`. `fetchpriority="high"` + `decoding="async"`.
+- [x] All `<img>` tags have explicit `width` / `height` (CLS prevention).
+- [x] Touch targets: `LegalFooter` router-links now 44px+ tap area; LinkedIn link in `LoginView` `inline-block` + padded.
+- [x] `ListsView` header: Stats + Settings buttons now `flex-1` 50/50 full-width split.
+- [x] `AboutView.vue` + `tests/unit/views/AboutView.test.ts`: switched JSON-LD `children` → `innerHTML` (correct @unhead v3 API; was emitting empty `<script>` tags so Rich Results test failed).
+- [x] CI failure email notifications enabled on GitHub user settings.
+
+### Deferred (no blocker for v1)
+- [ ] **Sentry** — code wired (`src/services/sentry.ts`), guard checks `import.meta.env.PROD && VITE_SENTRY_DSN`. Just add DSN to Netlify env vars + redeploy. Smoke: `throw new Error('sentry-test')` in DevTools.
+- [ ] **Firestore backup** — requires upgrade to Blaze (Spark blocks `firestore export`). Plan: Cloud Scheduler weekly export to GCS, 30d retention; budget alert €5/mo.
+- [ ] **UptimeRobot** — free ping on `/login` every 5 min, alert email on 2+ consecutive failures.
+- [ ] **Self-host dotlottie WASM** — privacy + remove jsdelivr/unpkg CDN dependency from CSP. Requires download of `dotlottie-player.wasm` + config player to use local URL.
+- [ ] **Bundle triage** (Performance 77 → 85+) — `pnpm build:analyze`, then split chart.js + lottie + Sentry into named chunks in `vite.config.ts` manualChunks. Lighthouse "Unused JavaScript" still flags ~158 KiB. Estimated effort 1-3h.
+- [ ] **Branch protection / safety net** — replaced with CI failure email notifications. Re-evaluate if team grows beyond 1 dev.
 
 ---
 
@@ -268,5 +287,16 @@ Locked decisions (2026-05-19): no analytics → no cookie banner; Privacy + Term
 | 9 Tests | 1 | 2 |
 | 10 Ship | 1 | 1 |
 | 11 UX additions | 10 + 5 follow-ups | ~9 |
-| 12 Production-ready | 5 done + 1 deferred (ops) + 11 follow-ups | ~5 |
-| **Total** | **63** (1 cancelled) | **~50 sessions** |
+| 12 Production-ready | 5 done + 1 deferred (ops) + 11 follow-ups + post-go-live hardening | ~6 |
+| **Total** | **63** (1 cancelled) | **~51 sessions** |
+
+---
+
+## Production live — 2026-05-20
+
+- **URL**: https://buy-the-way.danielebelfiore.dev
+- **Firebase project**: `buy-the-way-2ac6e` (Spark)
+- **Netlify**: builds from `main` push; serves SPA from `dist/`
+- **GitHub Actions**: `ci.yml` (lint, typecheck, unit, rules, e2e) + `deploy.yml` (Firestore rules + indices only)
+- **Lighthouse mobile (incognito)**: Perf 77, A11y 100, BP 100, SEO 100
+- **Rich Results**: FAQPage + WebApplication valid

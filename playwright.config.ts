@@ -16,6 +16,10 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     actionTimeout: 7_000,
+    // Disable CSS transitions / @vueuse/motion variants so axe never reads
+    // mid-fade computed colors. The app already honors prefers-reduced-motion
+    // (App.vue view-fade + useLogoMotion).
+    reducedMotion: 'reduce',
   },
   projects: [
     {
@@ -31,6 +35,14 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !isCI,
     timeout: 60_000,
-    env: { VITE_E2E: 'true', VITE_USE_EMULATOR: 'true' },
+    env: {
+      VITE_E2E: 'true',
+      VITE_USE_EMULATOR: 'true',
+      // Pin the emulator project id so the app and `firebase emulators:exec
+      // --project=buy-the-way` (test:e2e script) agree. Without this the
+      // emulator emits "Multiple projectIds" warnings and inter-context
+      // realtime sync (Bob seeing Alice's writes) becomes inconsistent.
+      VITE_FIREBASE_PROJECT_ID: 'buy-the-way',
+    },
   },
 });

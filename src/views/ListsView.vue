@@ -9,10 +9,6 @@ import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
-import LegalFooter from '@/components/ui/LegalFooter.vue';
-import pkg from '../../package.json';
-
-const APP_VERSION = pkg.version;
 import { DuplicateListNameError } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
@@ -155,21 +151,21 @@ const openList = (id: string) => {
     <!-- Create input (inline, appears when FAB tapped) -->
     <div v-if="showCreateInput" class="px-5 mb-4 space-y-2">
       <AlertMessage v-if="createError" :message="createError" />
+      <input
+        v-model="newListName"
+        :aria-label="t('list.newPlaceholder')"
+        :placeholder="t('list.newPlaceholder')"
+        class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl
+               text-sm text-charcoal placeholder-muted-gray
+               focus:outline-none focus:ring-2 focus:ring-charcoal/20"
+        autofocus
+        @keydown.enter="submitCreate"
+        @keydown.escape="cancelCreate"
+      />
       <div class="flex gap-2">
-        <input
-          v-model="newListName"
-          :aria-label="t('list.newPlaceholder')"
-          :placeholder="t('list.newPlaceholder')"
-          class="flex-1 px-4 py-3 bg-offwhite border border-cream-soft rounded-xl
-                 text-sm text-charcoal placeholder-muted-gray
-                 focus:outline-none focus:ring-2 focus:ring-charcoal/20"
-          autofocus
-          @keydown.enter="submitCreate"
-          @keydown.escape="cancelCreate"
-        />
         <button
           :disabled="creating || !newListName.trim()"
-          class="inline-flex items-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl
+          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl
                  hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="submitCreate"
         >
@@ -177,7 +173,7 @@ const openList = (id: string) => {
           {{ t('list.create') }}
         </button>
         <button
-          class="inline-flex items-center gap-1.5 px-3 py-3 text-muted-gray text-sm"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 text-muted-gray text-sm rounded-xl hover:bg-black/5"
           @click="cancelCreate"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
@@ -229,27 +225,6 @@ const openList = (id: string) => {
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
-
-    <div class="mt-auto pb-3">
-      <LegalFooter dense />
-      <p
-        data-testid="made-by"
-        class="px-5 text-center text-xs text-muted-gray"
-      >
-        {{ t('app.madeByPrefix') }}<a
-          href="https://www.linkedin.com/in/danielebelfiore/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline"
-        >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
-      </p>
-      <footer
-        data-testid="app-version"
-        class="px-5 text-center text-xs text-muted-gray"
-      >
-        v{{ APP_VERSION }}
-      </footer>
-    </div>
   </main>
 </template>
 

@@ -23,7 +23,7 @@ const onSelect = (w: Wallpaper): void => {
 <template>
   <div
     data-testid="wallpaper-picker"
-    class="flex gap-2 overflow-x-auto -mx-5 px-5 pb-2 snap-x"
+    class="flex flex-wrap gap-2 pb-2"
   >
     <button
       v-for="w in WALLPAPERS"
@@ -34,7 +34,7 @@ const onSelect = (w: Wallpaper): void => {
       :aria-pressed="current === w"
       :disabled="busy"
       :class="[
-        'relative shrink-0 w-20 h-20 snap-start rounded-xl overflow-hidden border-2 transition-colors',
+        'relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors',
         current === w ? 'border-charcoal' : 'border-cream-soft hover:border-charcoal/40',
         busy ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
       ]"
