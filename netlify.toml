@@ -3,7 +3,8 @@
 
 [build]
   publish = "dist"
-  command = "pnpm build"
+  # COMMIT_REF is injected by Netlify on every deploy.
+  command = "VITE_RELEASE=$COMMIT_REF pnpm build"
 
 [build.environment]
   NODE_VERSION = "22"

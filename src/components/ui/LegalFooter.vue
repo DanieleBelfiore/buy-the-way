@@ -13,14 +13,14 @@ const { t } = useI18n();
       dense ? 'pt-4 pb-1' : 'pt-6 pb-10',
     ]"
   >
-    <nav aria-label="Legal" class="flex flex-wrap justify-center gap-3">
-      <router-link to="/about" class="underline">
+    <nav aria-label="Legal" class="flex flex-wrap justify-center gap-2">
+      <router-link to="/about" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
         {{ t('legal.footer.about') }}
       </router-link>
-      <router-link to="/privacy" class="underline">
+      <router-link to="/privacy" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
         {{ t('legal.footer.privacy') }}
       </router-link>
-      <router-link to="/terms" class="underline">
+      <router-link to="/terms" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
         {{ t('legal.footer.terms') }}
       </router-link>
     </nav>

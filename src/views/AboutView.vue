@@ -83,6 +83,8 @@ const goToLogin = (): void => {
         src="/branding/logo-original.png"
         alt=""
         aria-hidden="true"
+        width="1316"
+        height="974"
         class="mx-auto h-32 w-auto select-none"
         draggable="false"
       />

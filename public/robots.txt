@@ -9,4 +9,4 @@ Disallow: /lists/
 Disallow: /settings
 Disallow: /stats
 
-Sitemap: /sitemap.xml
+Sitemap: https://buy-the-way.danielebelfiore.dev/sitemap.xml

@@ -57,6 +57,8 @@ const handleSignIn = async () => {
           alt=""
           aria-hidden="true"
           data-testid="login-logo"
+          width="1316"
+          height="974"
           class="mx-auto h-50 w-auto select-none"
           draggable="false"
         />
@@ -83,6 +85,8 @@ const handleSignIn = async () => {
             src="/branding/google-g.svg"
             alt=""
             aria-hidden="true"
+            width="24"
+            height="24"
             class="w-6 h-6"
           />
           <span>{{ loading ? t('auth.signingIn') : t('auth.continueWithGoogle') }}</span>
@@ -102,13 +106,13 @@ const handleSignIn = async () => {
       <LegalFooter dense />
       <p
         data-testid="made-by"
-        class="px-5 text-center text-xs text-muted-gray"
+        class="px-5 text-center text-xs text-muted-gray leading-loose"
       >
         {{ t('app.madeByPrefix') }}<a
           href="https://www.linkedin.com/in/danielebelfiore/"
           target="_blank"
           rel="noopener noreferrer"
-          class="underline"
+          class="underline inline-block min-h-[44px] px-2 py-2 align-middle"
         >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
       </p>
       <footer

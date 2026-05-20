@@ -140,6 +140,8 @@ const openList = (id: string) => {
         src="/branding/logo-original.png"
         :alt="t('app.name')"
         data-testid="lists-logo"
+        width="1316"
+        height="974"
         class="mx-auto h-50 w-auto select-none"
         draggable="false"
       />
