@@ -50,14 +50,22 @@ const onAction = (): void => {
       role="status"
       aria-live="polite"
       data-testid="toast"
-      class="fixed left-1/2 bottom-24 z-[200] -translate-x-1/2 flex items-center gap-3 rounded-full bg-charcoal px-4 py-2 text-sm font-medium text-offwhite shadow-lg"
+      :class="[
+        'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
+        'w-[calc(100vw-2rem)] max-w-md',
+        'flex items-center justify-between gap-3',
+        'bg-charcoal text-offwhite shadow-xl',
+        props.actionLabel
+          ? 'rounded-2xl px-4 py-3'
+          : 'rounded-full px-4 py-2',
+      ]"
     >
-      <span>{{ props.message }}</span>
+      <span class="text-sm font-medium leading-snug min-w-0 flex-1">{{ props.message }}</span>
       <button
         v-if="props.actionLabel"
         type="button"
         data-testid="toast-action"
-        class="rounded-full bg-offwhite px-3 py-1 text-xs font-semibold text-charcoal hover:opacity-90"
+        class="shrink-0 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-charcoal hover:opacity-90 active:opacity-80 transition-opacity"
         @click="onAction"
       >
         {{ props.actionLabel }}

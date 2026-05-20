@@ -92,11 +92,21 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
         :title="m.displayName || m.email"
         :data-testid="`avatar-${m.uid}`"
         :class="[
-          'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold border border-offwhite',
-          colorFor(m.uid),
+          'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold border border-offwhite overflow-hidden',
+          m.photoURL ? 'bg-offwhite text-charcoal' : colorFor(m.uid),
         ]"
       >
-        {{ initialFor(m) }}
+        <img
+          v-if="m.photoURL"
+          :src="m.photoURL"
+          :alt="''"
+          referrerpolicy="no-referrer"
+          loading="lazy"
+          width="28"
+          height="28"
+          class="w-full h-full object-cover"
+        />
+        <template v-else>{{ initialFor(m) }}</template>
       </span>
       <span
         v-if="overflowCount > 0"

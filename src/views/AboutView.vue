@@ -80,7 +80,10 @@ const goToLogin = (): void => {
   <main class="min-h-screen bg-cream text-charcoal">
     <section class="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center space-y-6">
       <picture>
-        <source srcset="/branding/logo-540.avif" type="image/avif" />
+        <source
+          srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"
+          type="image/avif"
+        />
         <img
           src="/branding/logo-original.png"
           alt=""

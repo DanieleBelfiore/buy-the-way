@@ -16,7 +16,12 @@ export const useListsStore = defineStore('lists', () => {
 
   const subscribe = (): (() => void) => {
     const auth = useAuthStore();
-    loading.value = true;
+    // Only show the skeleton on the first-ever load. Re-subscribing on
+    // re-mount (e.g. returning from /settings) must not flash the skeleton
+    // when the Pinia store already holds fresh data.
+    if (lists.value.length === 0) {
+      loading.value = true;
+    }
     return subscribeUserLists(
       auth.user!.uid,
       (incoming) => {

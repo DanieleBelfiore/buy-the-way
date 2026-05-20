@@ -160,6 +160,7 @@ export const onAuthChanged = (
         email: (firebaseUser.email ?? '').toLowerCase().trim(),
         displayName: firebaseUser.displayName ?? '',
         lastLoginAt: Date.now(),
+        ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
       };
       try {
         await setDoc(doc(db, 'users', firebaseUser.uid), profile, { merge: true });

@@ -36,6 +36,16 @@ const labelFor = (m: UserProfile): string =>
         :data-testid="`collab-chip-${m.uid}`"
         class="inline-flex items-center gap-2 rounded-full bg-offwhite px-3 py-1.5 text-sm text-charcoal border border-cream-soft"
       >
+        <img
+          v-if="m.photoURL"
+          :src="m.photoURL"
+          :alt="''"
+          referrerpolicy="no-referrer"
+          loading="lazy"
+          width="20"
+          height="20"
+          class="w-5 h-5 rounded-full object-cover -ml-1"
+        />
         <span class="font-medium">{{ labelFor(m) }}</span>
         <span
           v-if="m.uid === props.ownerUid"

@@ -132,7 +132,10 @@ const openList = (id: string) => {
     <!-- Hero brand block -->
     <section class="px-5 pt-2 pb-6 text-center">
       <picture>
-        <source srcset="/branding/logo-540.avif" type="image/avif" />
+        <source
+          srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"
+          type="image/avif"
+        />
         <img
           v-motion="logoMotion"
           src="/branding/logo-original.png"
