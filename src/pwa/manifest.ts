@@ -36,7 +36,7 @@ export interface PwaManifest
 
 export const pwaManifest: PwaManifest = {
   name: 'Buy The Way',
-  short_name: 'BuyTheWay',
+  short_name: 'Buy The Way',
   description:
     'Real-time shared shopping lists. Mobile-first PWA — installable, offline-ready, free.',
   start_url: '/',
