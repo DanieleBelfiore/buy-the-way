@@ -55,14 +55,14 @@ describe('AboutView', () => {
     expect(headCall).toBeTruthy();
     const scripts = headCall!.script!;
     expect(scripts).toHaveLength(2);
-    const faqPayload = JSON.parse(scripts[0]!.children!());
+    const faqPayload = JSON.parse(scripts[0]!.innerHTML!());
     expect(faqPayload['@type']).toBe('FAQPage');
     expect(faqPayload.mainEntity).toHaveLength(10);
     expect(faqPayload.mainEntity[0]).toMatchObject({
       '@type': 'Question',
       acceptedAnswer: { '@type': 'Answer' },
     });
-    const webAppPayload = JSON.parse(scripts[1]!.children!());
+    const webAppPayload = JSON.parse(scripts[1]!.innerHTML!());
     expect(webAppPayload['@type']).toBe('WebApplication');
     expect(webAppPayload.name).toBe('Buy The Way');
     expect(webAppPayload.offers.price).toBe('0');

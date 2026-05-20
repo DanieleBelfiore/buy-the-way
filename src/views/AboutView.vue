@@ -60,12 +60,12 @@ useHead({
   script: [
     {
       type: 'application/ld+json',
-      children: () => faqJsonLd.value,
+      innerHTML: () => faqJsonLd.value,
       'data-jsonld': 'faq',
     },
     {
       type: 'application/ld+json',
-      children: () => webAppJsonLd.value,
+      innerHTML: () => webAppJsonLd.value,
       'data-jsonld': 'webapp',
     },
   ],
