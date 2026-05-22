@@ -10,6 +10,12 @@
   NODE_VERSION = "22"
   PNPM_VERSION = "11"
 
+# Serverless functions live in netlify/functions; the modern esbuild bundler
+# handles the TS source + the firebase-admin / resend imports natively.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # SPA fallback — Vue Router uses HTML5 history; all unmatched paths serve index.html.
 [[redirects]]
   from = "/*"

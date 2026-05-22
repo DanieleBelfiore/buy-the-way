@@ -94,10 +94,8 @@
     "cancel": "Annulla",
     "owner": "Amministratore",
     "pendingBadge": "In attesa",
-    "pendingShareTitle": "Invita {email} all'app",
-    "pendingShareMessage": "{email} non ha ancora un account. Quando si iscriverà vedrà automaticamente la lista. Vuoi condividere il link dell'app per invitarlo?",
-    "pendingShareConfirm": "Condividi link",
-    "pendingShareCancel": "No, grazie"
+    "inviteEmailSent": "Email di invito inviata a {email}.",
+    "inviteEmailFailed": "Invio email a {email} non riuscito. L'invito è salvato comunque."
   },
   "listSettings": {
     "title": "Impostazioni lista",
@@ -181,7 +179,7 @@
     "new": "Nuovo"
   },
   "about": {
-    "heroTitle": "Liste della spesa condivise, in tempo reale",
+    "heroTitle": "La tua lista della spesa intelligente",
     "heroSubtitle": "Mobile-first, pronta offline, gratuita. Condividi le liste con la famiglia e spunta gli articoli mentre fai la spesa.",
     "cta": "Inizia ora",
     "featuresTitle": "Funzionalità",
@@ -243,7 +241,7 @@
       "description": "Accedi a Buy The Way e condividi le liste della spesa in tempo reale con la tua famiglia."
     },
     "about": {
-      "title": "Buy The Way — Liste della spesa condivise, in tempo reale",
+      "title": "Buy The Way — La tua lista della spesa intelligente",
       "description": "PWA mobile-first per liste della spesa condivise. Pronta offline, veloce, gratuita."
     },
     "privacy": {

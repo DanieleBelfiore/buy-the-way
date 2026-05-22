@@ -8,7 +8,8 @@ import legalEn from '@/i18n/locales/legal.en.json';
 const useHeadCalls: Array<{ script?: Array<{ type?: string; children?: () => string }> }> = [];
 
 vi.mock('@unhead/vue', () => ({
-  useHead: (arg: { script?: Array<{ type?: string; children?: () => string }> }) => {
+  useHead: (arg: { script?: Array<{ type?: string; children?: () => string }> }) =>
+  {
     useHeadCalls.push(arg);
   },
 }));
@@ -34,22 +35,26 @@ const buildI18n = () =>
     },
   });
 
-describe('AboutView', () => {
-  beforeEach(() => {
+describe('AboutView', () =>
+{
+  beforeEach(() =>
+  {
     useHeadCalls.length = 0;
   });
 
-  it('renders hero, features and FAQ from i18n', async () => {
+  it('renders hero, features and FAQ from i18n', async () =>
+  {
     const wrapper = mount(AboutView, {
       global: { plugins: [buildI18n(), buildRouter()] },
     });
     await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('Shared shopping lists, in real time');
+    expect(wrapper.text()).toContain('Your smart shopping list');
     expect(wrapper.findAll('li').length).toBeGreaterThanOrEqual(6);
     expect(wrapper.findAll('dt').length).toBe(10);
   });
 
-  it('emits FAQPage and WebApplication JSON-LD via useHead', async () => {
+  it('emits FAQPage and WebApplication JSON-LD via useHead', async () =>
+  {
     mount(AboutView, { global: { plugins: [buildI18n(), buildRouter()] } });
     const headCall = useHeadCalls.find((c) => c.script);
     expect(headCall).toBeTruthy();
@@ -68,7 +73,8 @@ describe('AboutView', () => {
     expect(webAppPayload.offers.price).toBe('0');
   });
 
-  it('CTA button navigates to /login', async () => {
+  it('CTA button navigates to /login', async () =>
+  {
     const router = buildRouter();
     const pushSpy = vi.spyOn(router, 'push');
     const wrapper = mount(AboutView, { global: { plugins: [buildI18n(), router] } });

@@ -15,8 +15,10 @@ import {
   setListWallpaper,
   type AddCollaboratorResult,
 } from '@/services/lists.service';
-import { useShareApp } from '@/composables/useShareApp';
+import { sendInviteEmail } from '@/services/invites.service';
 import { useSafeBack } from '@/composables/useSafeBack';
+import Toast from '@/components/ui/Toast.vue';
+import type { Locale } from '@/domain/types';
 import WallpaperPicker from '@/components/list/WallpaperPicker.vue';
 import type { Wallpaper } from '@/domain/wallpapers';
 import { getUsersByUids } from '@/services/users.service';
@@ -27,7 +29,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import type { ULID } from '@/domain/id';
 import type { UserProfile } from '@/domain/types';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const listsStore = useListsStore();
@@ -148,26 +150,39 @@ const pendingInviteEmails = computed<readonly string[]>(
   () => list.value?.pendingInviteEmails ?? [],
 );
 
-// State for the "this email isn't registered" confirmation modal.
-const pendingShareEmail = ref<string | null>(null);
+// Toast surface for the invite-email outcome (success or quiet failure).
+const inviteToastOpen = ref(false);
+const inviteToastMessage = ref('');
+const showInviteToast = (message: string): void => {
+  inviteToastMessage.value = message;
+  inviteToastOpen.value = false;
+  void Promise.resolve().then(() => {
+    inviteToastOpen.value = true;
+  });
+};
 
-const { shareApp } = useShareApp();
 const safeBack = useSafeBack();
 const handleBack = (): void => safeBack({ name: 'list-detail', params: { id: listId.value } });
 
-const onCollaboratorPending = (email: string): void => {
-  // Surface a confirmation: the invite is queued, ask whether to share the
-  // app link with the invitee via the native share sheet.
-  pendingShareEmail.value = email;
-};
-
-const confirmShareForPending = async (): Promise<void> => {
-  await shareApp();
-  pendingShareEmail.value = null;
-};
-
-const dismissPendingShare = (): void => {
-  pendingShareEmail.value = null;
+const onCollaboratorPending = async (email: string): Promise<void> => {
+  // Fire-and-forget transactional email via the Netlify send-invite function.
+  // The pending invite is already in Firestore — a delivery failure here just
+  // means the invitee won't get the heads-up email; nothing else breaks.
+  if (!list.value || !authStore.user) return;
+  const inviterName =
+    (authStore.user.displayName ?? '').trim() || authStore.user.email || '';
+  try {
+    await sendInviteEmail({
+      email,
+      listName: list.value.name,
+      inviterName,
+      locale: locale.value as Locale,
+    });
+    showInviteToast(t('collaborators.inviteEmailSent', { email }));
+  } catch (err) {
+    console.warn('[ListSettingsView] sendInviteEmail failed:', err);
+    showInviteToast(t('collaborators.inviteEmailFailed', { email }));
+  }
 };
 
 const handleCancelPending = async (email: string): Promise<void> => {
@@ -383,16 +398,11 @@ const handleDelete = async () => {
         @cancel="deleteOpen = false"
       />
 
-      <ConfirmModal
-        v-if="pendingShareEmail"
-        data-testid="pending-share-modal"
-        :open="pendingShareEmail !== null"
-        :title="t('collaborators.pendingShareTitle')"
-        :message="t('collaborators.pendingShareMessage', { email: pendingShareEmail })"
-        :confirm-label="t('collaborators.pendingShareConfirm')"
-        :cancel-label="t('collaborators.pendingShareCancel')"
-        @confirm="confirmShareForPending"
-        @cancel="dismissPendingShare"
+      <Toast
+        :open="inviteToastOpen"
+        :message="inviteToastMessage"
+        :duration-ms="4000"
+        @close="inviteToastOpen = false"
       />
     </div>
   </main>

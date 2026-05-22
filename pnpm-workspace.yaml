@@ -3,3 +3,6 @@ allowBuilds:
   esbuild: true
   protobufjs: true
   vue-demi: true
+minimumReleaseAgeExclude:
+  - '@lottiefiles/dotlottie-vue@0.11.15'
+  - '@lottiefiles/dotlottie-web@0.74.0'

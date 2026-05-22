@@ -94,10 +94,8 @@
     "cancel": "Cancel",
     "owner": "Admin",
     "pendingBadge": "Pending",
-    "pendingShareTitle": "Invite {email} to the app",
-    "pendingShareMessage": "{email} doesn't have an account yet. When they sign up they'll see this list automatically. Want to share the app link to invite them?",
-    "pendingShareConfirm": "Share link",
-    "pendingShareCancel": "No, thanks"
+    "inviteEmailSent": "Invite email sent to {email}.",
+    "inviteEmailFailed": "Invite email to {email} failed. The invite is still saved."
   },
   "listSettings": {
     "title": "List settings",
@@ -181,7 +179,7 @@
     "new": "New"
   },
   "about": {
-    "heroTitle": "Shared shopping lists, in real time",
+    "heroTitle": "Your smart shopping list",
     "heroSubtitle": "Mobile-first, offline-ready, free. Share lists with your family and check items as you shop.",
     "cta": "Get started",
     "featuresTitle": "Features",
@@ -243,7 +241,7 @@
       "description": "Sign in to Buy The Way and share real-time shopping lists with your family."
     },
     "about": {
-      "title": "Buy The Way — Shared shopping lists, in real time",
+      "title": "Buy The Way — Your smart shopping list",
       "description": "Mobile-first PWA for grocery lists shared with family. Offline-ready, fast, free."
     },
     "privacy": {
