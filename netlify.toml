@@ -7,6 +7,11 @@
   # in `quality`. This `publish` line just tells the CLI which directory
   # to ship when `--dir` isn't passed explicitly.
   publish = "dist"
+  # Empty command overrides whatever is still configured in the Netlify
+  # dashboard UI (values in netlify.toml win). Without this, `netlify deploy`
+  # in CI tries to run the dashboard's `pnpm run build`, which fails because
+  # the deploy-only runner doesn't have pnpm installed.
+  command = ""
 
 # Serverless functions live in netlify/functions; the modern esbuild bundler
 # handles the TS source + the firebase-admin / resend imports natively.

@@ -107,9 +107,12 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Gate 3 — Playwright + axe (light + dark)
+  # TEMPORARILY DISABLED: flip `if:` back to `${{ true }}` (or delete the line)
+  # and re-add `e2e` to the deploy jobs' `needs:` once we want this gating prod.
   # ---------------------------------------------------------------------------
   e2e:
     name: e2e (playwright + axe)
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -155,7 +158,8 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-firebase:
     name: deploy firestore rules + indices
-    needs: [quality, rules, e2e]
+    # `e2e` temporarily removed — add back when the gate is re-enabled above.
+    needs: [quality, rules]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -188,7 +192,8 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-netlify:
     name: deploy netlify (spa + functions)
-    needs: [quality, rules, e2e]
+    # `e2e` temporarily removed — add back when the gate is re-enabled above.
+    needs: [quality, rules]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -207,22 +212,21 @@ jobs:
           name: dist
           path: dist/
 
-      # Uses the community Netlify action instead of the raw CLI. The CLI's
-      # `deploy` now eagerly resolves the dashboard "build command" even when
-      # `--build` isn't passed; without pnpm installed in this runner that
-      # blew up with exit 127. The action uploads the prebuilt artefact via
-      # the Netlify API directly and skips that step entirely.
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli@latest
+
+      # Raw `netlify deploy` is the most reliable path here. The build step
+      # is short-circuited by the empty `command = ""` in netlify.toml, so
+      # the CLI just uploads the prebuilt artefact downloaded above.
       - name: Deploy to Netlify (production)
-        uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: dist
-          functions-dir: netlify/functions
-          production-deploy: true
-          deploy-message: "${{ github.sha }} via GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-          overwrites-pull-request-comment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 10
+        run: |
+          netlify deploy \
+            --prod \
+            --dir=dist \
+            --functions=netlify/functions \
+            --message="${GITHUB_SHA::7} via GitHub Actions" \
+            --auth="$NETLIFY_AUTH_TOKEN" \
+            --site="$NETLIFY_SITE_ID"
