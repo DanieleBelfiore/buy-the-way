@@ -43,6 +43,16 @@ export default defineConfig({
       // emulator emits "Multiple projectIds" warnings and inter-context
       // realtime sync (Bob seeing Alice's writes) becomes inconsistent.
       VITE_FIREBASE_PROJECT_ID: 'buy-the-way',
+      // Firebase SDK still calls initializeApp() before the emulator hook
+      // kicks in, and it rejects an empty apiKey. In CI there's no .env.local
+      // to supply the real values, so feed the SDK harmless placeholders —
+      // every auth + firestore call gets rerouted to the local emulator the
+      // moment connectAuthEmulator / connectFirestoreEmulator run anyway.
+      VITE_FIREBASE_API_KEY: 'demo-api-key',
+      VITE_FIREBASE_AUTH_DOMAIN: 'demo.firebaseapp.com',
+      VITE_FIREBASE_STORAGE_BUCKET: 'demo.appspot.com',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '1234567890',
+      VITE_FIREBASE_APP_ID: '1:1234567890:web:demo',
     },
   },
 });
