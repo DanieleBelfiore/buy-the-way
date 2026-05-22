@@ -107,12 +107,17 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Gate 3 — Playwright + axe (light + dark)
-  # TEMPORARILY DISABLED: flip `if:` back to `${{ true }}` (or delete the line)
-  # and re-add `e2e` to the deploy jobs' `needs:` once we want this gating prod.
+  #
+  # Toggled by the repository variable `E2E_ENABLED`:
+  #   GitHub → repo Settings → Secrets and variables → Actions → Variables
+  #   → set `E2E_ENABLED = true` to gate deploys on e2e, anything else (or
+  #   missing) skips this job.
+  # When skipped, the deploy jobs still run because their `if:` accepts a
+  # `skipped` result for `e2e` alongside `success`.
   # ---------------------------------------------------------------------------
   e2e:
     name: e2e (playwright + axe)
-    if: ${{ false }}
+    if: ${{ vars.E2E_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -158,9 +163,15 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-firebase:
     name: deploy firestore rules + indices
-    # `e2e` temporarily removed — add back when the gate is re-enabled above.
-    needs: [quality, rules]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, rules, e2e]
+    # Allow `skipped` as a green signal for e2e so the toggle above can turn
+    # the gate off without blocking prod. quality + rules must still succeed.
+    if: |
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && needs.quality.result == 'success'
+      && needs.rules.result == 'success'
+      && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -192,9 +203,14 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy-netlify:
     name: deploy netlify (spa + functions)
-    # `e2e` temporarily removed — add back when the gate is re-enabled above.
-    needs: [quality, rules]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, rules, e2e]
+    # Same gating as deploy-firebase: e2e success OR skipped both unblock.
+    if: |
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && needs.quality.result == 'success'
+      && needs.rules.result == 'success'
+      && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
