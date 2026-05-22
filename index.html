@@ -68,6 +68,15 @@
       Inline theme hydration. Runs before Vue mounts so the first paint already
       carries the right data-theme attribute and we never flash light-on-dark
       (or vice versa) at reload. Kept tiny + dependency-free on purpose.
+
+      CSP-SENSITIVE: the inline script block below is hash-allowlisted in
+      netlify.toml under script-src (sha256-...). Editing the body — including
+      whitespace — changes the hash and CSP will block the new version. After
+      any change:
+        1. Run `pnpm csp:hash` (also runs as a CI gate in ci-cd.yml) to detect
+           the drift and print the new sha256-... token.
+        2. Replace the existing sha256-... token in netlify.toml.
+        3. Verify in browser DevTools that no CSP violation appears.
     -->
     <script>
       (function () {

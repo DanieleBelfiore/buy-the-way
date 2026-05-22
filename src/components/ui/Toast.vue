@@ -55,8 +55,10 @@ const onAction = (): void => {
       :class="[
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
         // Hug the content's intrinsic width; only wrap when the message
-        // would otherwise overflow the viewport (minus a 1rem gutter).
-        'w-fit max-w-[calc(100vw-2rem)]',
+        // would otherwise overflow the viewport. Half-rem gutter on each
+        // side keeps the toast off the screen edge without sacrificing the
+        // single-line layout for medium-length messages on narrow phones.
+        'w-fit max-w-[calc(100vw-1rem)]',
         'flex items-center justify-between gap-3',
         'text-white shadow-xl bg-primary',
         props.actionLabel

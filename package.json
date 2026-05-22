@@ -21,6 +21,7 @@
     "firebase:emulators": "firebase emulators:start --only auth,firestore",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes",
     "firebase:wipe:prod": "node scripts/wipe-firestore.mjs",
+    "csp:hash": "node scripts/check-csp-hash.mjs",
     "release:patch": "pnpm version patch -m \"🦄 RELEASE: v%s\"",
     "release:minor": "pnpm version minor -m \"🦄 RELEASE: v%s\"",
     "release:major": "pnpm version major -m \"🦄 RELEASE: v%s\""

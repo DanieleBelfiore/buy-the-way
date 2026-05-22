@@ -589,63 +589,66 @@ watch(
       </button>
     </header>
 
-    <!-- Stats strip -->
+    <!-- Stats strip — two rows on every viewport: row 1 covers the at-a-glance
+         counts (items / bought / users), row 2 reserves a dedicated line for
+         the "updated" timestamp which would otherwise wrap awkwardly on
+         narrow phones. -->
     <div
       v-if="list"
       data-testid="list-stats"
-      class="px-5 pb-3 flex items-center gap-3 text-xs text-muted-gray"
+      class="px-5 pb-3 flex flex-col gap-y-1 text-xs text-muted-gray"
     >
-      <span data-testid="stat-items" class="inline-flex items-center gap-1">
-        <span>{{ t('listSettings.stats.items') }}:</span>
-        <span class="font-semibold text-charcoal">{{ itemCount }}</span>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span data-testid="stat-bought" class="inline-flex items-center gap-1">
-        <span>{{ t('listSettings.stats.bought') }}:</span>
-        <span class="font-semibold text-charcoal tabular-nums">{{ boughtCount }}/{{ itemCount }}</span>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span
-        data-testid="stat-users"
-        class="inline-flex items-center gap-1"
-        :aria-label="t('listSettings.stats.users') + ': ' + usersCount"
-      >
-        <span>{{ t('listSettings.stats.users') }}:</span>
-        <span v-if="visibleMembers.length > 0" class="flex -space-x-1.5">
-          <span
-            v-for="m in visibleMembers"
-            :key="m.uid"
-            :title="m.displayName || m.email"
-            :data-testid="`stat-avatar-${m.uid}`"
-            :class="[
-              'inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold border border-cream overflow-hidden',
-              m.photoURL ? 'bg-offwhite text-charcoal' : avatarColorFor(m.uid),
-            ]"
-          >
-            <img
-              v-if="m.photoURL"
-              :src="m.photoURL"
-              alt=""
-              referrerpolicy="no-referrer"
-              loading="lazy"
-              width="20"
-              height="20"
-              class="w-full h-full object-cover"
-            />
-            <template v-else>{{ initialFor(m) }}</template>
-          </span>
-          <span
-            v-if="overflowMembersCount > 0"
-            class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-semibold bg-cream-soft text-charcoal border border-cream"
-          >
-            +{{ overflowMembersCount }}
-          </span>
+      <div class="flex items-center gap-3">
+        <span data-testid="stat-items" class="inline-flex items-center gap-1">
+          <span>{{ t('listSettings.stats.items') }}:</span>
+          <span class="font-semibold text-charcoal">{{ itemCount }}</span>
         </span>
-        <span v-else class="font-semibold text-charcoal">{{ usersCount }}</span>
-      </span>
-      <span v-if="list" aria-hidden="true">·</span>
+        <span aria-hidden="true">·</span>
+        <span data-testid="stat-bought" class="inline-flex items-center gap-1">
+          <span>{{ t('listSettings.stats.bought') }}:</span>
+          <span class="font-semibold text-charcoal tabular-nums">{{ boughtCount }}/{{ itemCount }}</span>
+        </span>
+        <span aria-hidden="true">·</span>
+        <span
+          data-testid="stat-users"
+          class="inline-flex items-center gap-1"
+          :aria-label="t('listSettings.stats.users') + ': ' + usersCount"
+        >
+          <span>{{ t('listSettings.stats.users') }}:</span>
+          <span v-if="visibleMembers.length > 0" class="flex -space-x-1.5">
+            <span
+              v-for="m in visibleMembers"
+              :key="m.uid"
+              :title="m.displayName || m.email"
+              :data-testid="`stat-avatar-${m.uid}`"
+              :class="[
+                'inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold border border-cream overflow-hidden',
+                m.photoURL ? 'bg-offwhite text-charcoal' : avatarColorFor(m.uid),
+              ]"
+            >
+              <img
+                v-if="m.photoURL"
+                :src="m.photoURL"
+                alt=""
+                referrerpolicy="no-referrer"
+                loading="lazy"
+                width="20"
+                height="20"
+                class="w-full h-full object-cover"
+              />
+              <template v-else>{{ initialFor(m) }}</template>
+            </span>
+            <span
+              v-if="overflowMembersCount > 0"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-semibold bg-cream-soft text-charcoal border border-cream"
+            >
+              +{{ overflowMembersCount }}
+            </span>
+          </span>
+          <span v-else class="font-semibold text-charcoal">{{ usersCount }}</span>
+        </span>
+      </div>
       <span
-        v-if="list"
         data-testid="stat-updated"
         class="inline-flex items-center gap-1"
       >

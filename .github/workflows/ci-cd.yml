@@ -46,6 +46,14 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Detects drift between the sha256 hash allowlisted in netlify.toml's
+      # CSP `script-src` and the actual body of every inline <script> in
+      # index.html. CSP would otherwise silently block the modified script in
+      # production and the theme would briefly flash the wrong colour before
+      # Vue mounts.
+      - name: CSP hash check
+        run: pnpm csp:hash
+
       - name: Unit tests
         run: pnpm test:run
 
@@ -227,8 +235,14 @@ jobs:
           node-version: 26
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      # `--config.node-linker=hoisted` forces pnpm to write a flat
+      # node_modules layout (npm-style) instead of the default symlinked
+      # .pnpm store. Netlify's zip-it-and-ship-it bundler doesn't follow
+      # pnpm's symlink structure when bundling functions — packages like
+      # `resend` are left as external imports and the deployed .mjs blows
+      # up with ERR_MODULE_NOT_FOUND at runtime.
+      - name: Install dependencies (hoisted for function bundling)
+        run: pnpm install --frozen-lockfile --config.node-linker=hoisted
 
       - name: Download dist artefact
         uses: actions/download-artifact@v7
