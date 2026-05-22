@@ -263,6 +263,7 @@ describe('ListsView', () => {
         ],
         loading: false,
         error: null,
+        initialized: true,
         lastSeenLists: 0,
         subscribe: mockSubscribe,
         createList: mockCreateList,

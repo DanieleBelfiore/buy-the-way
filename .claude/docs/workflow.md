@@ -34,3 +34,25 @@ Whenever a task introduces a new backend resource (Firestore collection, DB tabl
 
 - Never end a response with "Vuoi committare?" / "Ready to commit?" / "Should I commit now?". Summaries end with gate status, not commit prompts.
 - Commits require one of these explicit authorization phrases: `I authorize this commit` / `commit now` / `go ahead and commit`. Single-use, expires after one commit.
+
+## CI gotcha: GitHub Actions `needs:` + skipped jobs
+
+When a downstream job lists a job in `needs:` that can legitimately end up `skipped` (e.g. a gate behind a repo variable like `if: ${{ vars.E2E_ENABLED == 'true' }}`), the downstream job **must** include a status-function call (`!cancelled()`, `always()`, etc.) in its `if:`. Without it, GitHub Actions silently applies the default rule "skip dependents when any need didn't succeed" and never evaluates the explicit conditional — even when the conditional looks correct.
+
+**Symptom:** every deploy job shows `0s` / skipped in the pipeline view even though `quality` + `rules` are green and the `if:` clearly handles the `'skipped'` result of the optional gate. Downstream commits never actually land in prod and the user diagnoses the wrong thing (CSP, caching, etc.) because the workflow looks "green".
+
+**Fix template:**
+
+```yaml
+deploy-prod:
+  needs: [quality, rules, e2e]
+  if: |
+    !cancelled()
+    && github.event_name == 'push'
+    && github.ref == 'refs/heads/main'
+    && needs.quality.result == 'success'
+    && needs.rules.result == 'success'
+    && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped')
+```
+
+**How to apply:** any time a `needs:` job has an `if:` that can return false (toggleable gate, conditional matrix, env-based skip), the dependents need `!cancelled()` (or `always()`) at the top of their `if:`. Add it preemptively when introducing a toggle — never wait for the broken deploy to find out.

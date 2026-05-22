@@ -271,7 +271,16 @@ watch(
     <!-- List of cards -->
     <section class="px-5 pb-24">
       <Transition name="state-fade" mode="out-in">
-        <div v-if="listsStore.loading" key="loading" class="space-y-3">
+        <!-- Treat the pre-subscription window (mount → first Firestore
+             snapshot) as "loading" too: without the `!initialized` guard the
+             template falls through to the empty-state branch on hard refresh
+             because `loading` flips to true only after `await loadLastSeen()`
+             resolves, leaving a frame where lists=[] + loading=false. -->
+        <div
+          v-if="listsStore.loading || !listsStore.initialized"
+          key="loading"
+          class="space-y-3"
+        >
           <SkeletonCard v-for="i in 3" :key="i" height-class="h-14" />
         </div>
 
