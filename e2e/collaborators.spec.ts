@@ -23,7 +23,7 @@ test.beforeEach(async ({ context }) => {
   await pinLocaleEN(context);
 });
 
-test('add collaborator: invalid email shows not-found', async ({ page }) => {
+test('add collaborator: unregistered email queues a pending invite', async ({ page }) => {
   await signInAs(page, ALICE);
   await page.getByRole('button', { name: 'New list' }).click();
   await page.getByPlaceholder('List name').fill('Family');
@@ -35,7 +35,10 @@ test('add collaborator: invalid email shows not-found', async ({ page }) => {
 
   await page.getByPlaceholder('Email address').fill('ghost@nowhere.test');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.getByText('No registered user with that email.')).toBeVisible();
+  // The unregistered email goes into pendingInviteEmails — the chip surfaces
+  // it back to the owner. The send-invite email function isn't reachable
+  // under the e2e emulator, so we don't assert on the toast outcome here.
+  await expect(page.getByTestId('pending-ghost@nowhere.test')).toBeVisible();
 });
 
 test('share list with Bob: rename + leave + new-badge', async ({ browser }) => {

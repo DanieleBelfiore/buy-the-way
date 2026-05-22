@@ -11,6 +11,7 @@ import { setLocale } from '@/i18n';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import FeedbackModal from '@/components/ui/FeedbackModal.vue';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
+import Toast from '@/components/ui/Toast.vue';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
 import type { Locale } from '@/domain/types';
 import pkg from '../../package.json';
@@ -26,11 +27,19 @@ const deletingAccount = ref(false);
 const deleteConfirmOpen = ref(false);
 const reauthNeeded = ref(false);
 const deleteError = ref<string | null>(null);
-const shareCopiedVisible = ref(false);
-let shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
+// Unified toast surface — both "link copied" (share fallback) and "feedback
+// received" funnel through the same Toast instance so they're styled the same
+// (Info icon, content-hugging width) and never clash with each other.
+const toastOpen = ref(false);
+const toastMessage = ref('');
+const showToast = (message: string): void => {
+  toastMessage.value = message;
+  toastOpen.value = false;
+  void Promise.resolve().then(() => {
+    toastOpen.value = true;
+  });
+};
 const feedbackOpen = ref(false);
-const feedbackThanksVisible = ref(false);
-let feedbackThanksTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentLocale = computed<Locale>(() => locale.value as Locale);
 const user = computed(() => authStore.user);
@@ -44,20 +53,12 @@ const handleSetTheme = (next: ThemeMode): void => {
   themeStore.setMode(next);
 };
 
-const showShareCopiedToast = () => {
-  shareCopiedVisible.value = true;
-  if (shareCopiedTimer) clearTimeout(shareCopiedTimer);
-  shareCopiedTimer = setTimeout(() => {
-    shareCopiedVisible.value = false;
-  }, 2500);
-};
-
 const { shareApp } = useShareApp();
 const safeBack = useSafeBack();
 const handleBack = (): void => safeBack({ name: 'lists' });
 const handleShare = async (): Promise<void> => {
   const res = await shareApp();
-  if (res.copied) showShareCopiedToast();
+  if (res.copied) showToast(t('settings.shareCopied'));
 };
 
 const openFeedback = (): void => {
@@ -67,11 +68,7 @@ const closeFeedback = (): void => {
   feedbackOpen.value = false;
 };
 const onFeedbackSubmitted = (): void => {
-  feedbackThanksVisible.value = true;
-  if (feedbackThanksTimer) clearTimeout(feedbackThanksTimer);
-  feedbackThanksTimer = setTimeout(() => {
-    feedbackThanksVisible.value = false;
-  }, 3000);
+  showToast(t('settings.feedbackThanks'));
 };
 
 const handleSignOut = async () => {
@@ -283,42 +280,26 @@ const reauthAndRetry = async () => {
         <button
           type="button"
           data-testid="share-btn"
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white font-medium rounded-xl
+          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-primary text-white font-medium rounded-xl
                  hover:bg-primary/90 active:bg-primary/80 transition-colors"
           @click="handleShare"
         >
-          <Share2 :size="18" :stroke-width="2" aria-hidden="true" />
-          {{ t('settings.share') }}
+          <Share2 :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+          <!-- min-w-0 + truncate-by-clamp keeps both labels on a single line
+               on the narrowest phones; flex-basis 0 lets them shrink equally. -->
+          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.share') }}</span>
         </button>
         <button
           type="button"
           data-testid="feedback-btn"
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
+          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
                  hover:bg-black/5 active:bg-black/10 transition-colors"
           @click="openFeedback"
         >
-          <MessageSquare :size="18" :stroke-width="2" aria-hidden="true" />
-          {{ t('settings.feedback') }}
+          <MessageSquare :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.feedback') }}</span>
         </button>
       </div>
-      <p
-        v-if="shareCopiedVisible"
-        data-testid="share-copied-toast"
-        role="status"
-        aria-live="polite"
-        class="mt-2 text-center text-sm text-muted-gray"
-      >
-        {{ t('settings.shareCopied') }}
-      </p>
-      <p
-        v-if="feedbackThanksVisible"
-        data-testid="feedback-thanks-toast"
-        role="status"
-        aria-live="polite"
-        class="mt-2 text-center text-sm text-muted-gray"
-      >
-        {{ t('settings.feedbackThanks') }}
-      </p>
     </section>
 
     <div class="mt-auto">
@@ -327,23 +308,23 @@ const reauthAndRetry = async () => {
           v-if="user"
           :disabled="deletingAccount"
           data-testid="delete-account-btn"
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-800 text-white font-medium rounded-xl
+          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-800 text-white font-medium rounded-xl
                  hover:bg-red-900 active:bg-red-950 transition-colors disabled:opacity-40"
           @click="openDeleteConfirm"
         >
-          <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
-          {{ t('settings.deleteAccount') }}
+          <Trash2 :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.deleteAccount') }}</span>
         </button>
 
         <button
           :disabled="signingOut"
           data-testid="sign-out-btn"
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-red-700 text-white font-medium rounded-xl
+          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-700 text-white font-medium rounded-xl
                  hover:bg-red-800 active:bg-red-900 transition-colors disabled:opacity-40"
           @click="handleSignOut"
         >
-          <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
-          {{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}
+          <LogOut :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}</span>
         </button>
       </section>
 
@@ -396,6 +377,13 @@ const reauthAndRetry = async () => {
       destructive
       @confirm="reauthAndRetry"
       @cancel="cancelDelete"
+    />
+
+    <Toast
+      :open="toastOpen"
+      :message="toastMessage"
+      :duration-ms="3500"
+      @close="toastOpen = false"
     />
   </main>
 </template>

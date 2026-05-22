@@ -240,12 +240,62 @@ Rules summary: any signed-in user can read `users/{uid}` for the email-lookup fl
 
 ## Deployment
 
-CI/CD via GitHub Actions:
+CI/CD is one GitHub Actions workflow — `.github/workflows/ci-cd.yml` — that gates production on every check.
 
-- **CI workflow** runs on every push and PR: lint, typecheck, unit tests, build, Firestore rules tests, E2E suite.
-- **Deploy workflow** runs on `main`: builds and deploys to Netlify (`netlify.toml` configures the build command and publish directory).
+### Pipeline shape
 
-Firebase rules + indices are deployed from a CI step using a service-account token stored as a repo secret (`FIREBASE_TOKEN`). See `Phase 12` in `tasks/plan.md` for production checklist.
+```
+                  ┌──────────────┐
+                  │  quality     │  (lint • typecheck • unit • build → dist/)
+                  ├──────────────┤
+push / PR ───────▶│  rules       │  (firestore rules vs. emulator)
+                  ├──────────────┤
+                  │  e2e         │  (playwright + axe, light + dark)
+                  └─────┬────────┘
+                        │ all green AND push to main
+                        ▼
+            ┌──────────────────────────┐
+            │  deploy-firebase         │  (firestore rules + indices)
+            ├──────────────────────────┤
+            │  deploy-netlify          │  (uploads dist/ + functions)
+            └──────────────────────────┘
+```
+
+- Pull-request runs: only `quality`, `rules`, `e2e`. Deploy jobs are gated by `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`.
+- Push-to-main runs: every gate, then both deploys in parallel.
+- The Netlify deploy downloads the `dist/` artefact uploaded by `quality`, so the bytes that pass CI are exactly the bytes that ship.
+
+### GitHub secrets
+
+Repo → Settings → Secrets and variables → Actions.
+
+| Name | Purpose |
+|---|---|
+| `FIREBASE_TOKEN` | `firebase deploy` token for rules + indices |
+| `NETLIFY_AUTH_TOKEN` | Netlify Personal Access Token, used by `netlify deploy` |
+| `NETLIFY_SITE_ID` | Netlify site API ID (Site settings → General → Site information) |
+| `VITE_FIREBASE_API_KEY` | Firebase web SDK config — baked into the build |
+| `VITE_FIREBASE_AUTH_DOMAIN` | ditto |
+| `VITE_FIREBASE_PROJECT_ID` | ditto |
+| `VITE_FIREBASE_STORAGE_BUCKET` | ditto |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | ditto |
+| `VITE_FIREBASE_APP_ID` | ditto |
+| `VITE_SENTRY_DSN` | Sentry DSN — only baked into production builds |
+
+`RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL` stay on **Netlify** — they are runtime env vars for the `send-invite` function, not build inputs.
+
+### Netlify configuration changes (one-off)
+
+Now that GitHub Actions is the single source of deploys, Netlify must stop auto-publishing on every git push.
+
+1. Netlify dashboard → Site → **Site settings** → **Build & deploy** → **Continuous deployment**.
+2. **Build settings** → click **Edit settings** → **Stop builds** (or set Build command to `# no-op` and Publish directory to `dist`). The GitHub Action uploads `dist/` directly; Netlify shouldn't try to build.
+3. Optional but recommended: **Deploy contexts** → **Deploy Previews** → off (we don't publish previews from this pipeline).
+4. Keep the Netlify env vars intact — the `send-invite` function still needs `RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL`.
+5. Generate a Netlify Personal Access Token: **User settings** → **Applications** → **Personal access tokens** → **New access token**. Copy it once, store as `NETLIFY_AUTH_TOKEN` in GitHub secrets.
+6. Copy the Site ID: Site settings → **General** → **Site information** → **API ID**. Save as `NETLIFY_SITE_ID` in GitHub secrets.
+
+After step 2, every Netlify-side build is disabled — the only path to production is the GitHub Action.
 
 ---
 

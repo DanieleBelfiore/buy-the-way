@@ -196,7 +196,7 @@ watch(
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="router.push({ name: 'stats' })"
       >
         <BarChart3 :size="20" :stroke-width="2" aria-hidden="true" />
@@ -204,7 +204,7 @@ watch(
       </button>
       <button
         :aria-label="t('settings.title')"
-        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="router.push({ name: 'settings' })"
       >
         <SettingsIcon :size="20" :stroke-width="2" aria-hidden="true" />

@@ -1,0 +1,224 @@
+name: CI/CD
+
+# Single pipeline: every gate runs first; production deploys only fire on
+# pushes to main and only after every gate has passed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+  CI: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate 1 — static checks + build artefact
+  # ---------------------------------------------------------------------------
+  quality:
+    name: lint + typecheck + unit + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:run
+
+      # Build with the commit SHA as the Sentry release tag, exactly as the
+      # Netlify-side build used to do via the COMMIT_REF env var.
+      - name: Build production bundle
+        env:
+          VITE_RELEASE: ${{ github.sha }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm build
+
+      # The deploy-netlify job downloads this artefact instead of rebuilding,
+      # so the bytes that pass CI are exactly the bytes that go to prod.
+      - name: Upload dist artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 3
+
+  # ---------------------------------------------------------------------------
+  # Gate 2 — Firestore rules
+  # ---------------------------------------------------------------------------
+  rules:
+    name: firestore rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install firebase-tools
+        run: pnpm add -g firebase-tools@latest
+
+      - name: Run firestore rules tests against emulator
+        run: pnpm test:rules
+
+  # ---------------------------------------------------------------------------
+  # Gate 3 — Playwright + axe (light + dark)
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: e2e (playwright + axe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install firebase-tools
+        run: pnpm add -g firebase-tools@latest
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e suite
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Deploy — Firestore rules + indices
+  # Runs only on push to main, and only when every gate above has passed.
+  # ---------------------------------------------------------------------------
+  deploy-firebase:
+    name: deploy firestore rules + indices
+    needs: [quality, rules, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools@latest
+
+      - name: Deploy firestore rules + indices
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes \
+            --project buy-the-way-2ac6e \
+            --token "$FIREBASE_TOKEN" \
+            --non-interactive
+
+  # ---------------------------------------------------------------------------
+  # Deploy — Netlify (SPA + functions)
+  # Pulls the dist artefact built in `quality`, ships it together with the
+  # netlify/functions/* source. Runs only on push to main after gates pass.
+  # ---------------------------------------------------------------------------
+  deploy-netlify:
+    name: deploy netlify (spa + functions)
+    needs: [quality, rules, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+
+      - name: Download dist artefact
+        uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli@latest
+
+      - name: Deploy to Netlify (production)
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          netlify deploy \
+            --prod \
+            --dir=dist \
+            --functions=netlify/functions \
+            --message="${GITHUB_SHA::7} via GitHub Actions" \
+            --auth="$NETLIFY_AUTH_TOKEN" \
+            --site="$NETLIFY_SITE_ID"

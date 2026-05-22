@@ -342,11 +342,10 @@ describe('SettingsView', () => {
       await wrapper.find('[data-testid="share-btn"]').trigger('click');
       await flushPromises();
       expect(writeText).not.toHaveBeenCalled();
-      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="toast"]').exists()).toBe(false);
     });
 
     it('falls back to clipboard and shows toast when navigator.share missing', async () => {
-      vi.useFakeTimers();
       Object.defineProperty(window.navigator, 'share', {
         configurable: true,
         value: undefined,
@@ -359,15 +358,15 @@ describe('SettingsView', () => {
       const wrapper = mountView();
       await wrapper.find('[data-testid="share-btn"]').trigger('click');
       await flushPromises();
+      // Wait one more microtask: showToast resets and re-sets `open`,
+      // so the Toast renders on the next tick.
+      await flushPromises();
       expect(writeText).toHaveBeenCalledOnce();
       const payload = writeText.mock.calls[0]?.[0];
       expect(typeof payload).toBe('string');
       expect(payload).toContain('Lista');
-      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(true);
-      // toast auto-hides after timeout
-      vi.advanceTimersByTime(2600);
-      await flushPromises();
-      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="toast"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="toast"]').text()).toContain('Link copiato');
     });
 
     it('renders the feedback button next to the share button', () => {

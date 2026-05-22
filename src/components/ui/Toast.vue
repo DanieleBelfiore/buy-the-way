@@ -70,7 +70,16 @@ const onAction = (): void => {
         class="shrink-0"
         aria-hidden="true"
       />
-      <span class="text-sm font-medium leading-snug min-w-0 flex-1">{{ props.message }}</span>
+      <!-- No flex-1 / min-w-0 on the simple variant: we want the toast to
+           hug the message width (single line if it fits) and only wrap when
+           max-w-[calc(100vw-2rem)] caps the container. With actionLabel the
+           button needs the span to grow, so we keep flex behaviour there. -->
+      <span
+        :class="[
+          'text-sm font-medium leading-snug',
+          props.actionLabel ? 'min-w-0 flex-1' : '',
+        ]"
+      >{{ props.message }}</span>
       <button
         v-if="props.actionLabel"
         type="button"

@@ -2,13 +2,11 @@
 # Build is performed in GitHub Actions; Netlify serves the pre-built `dist/`.
 
 [build]
+  # Netlify is no longer git-connected — the Netlify CLI deploy in the
+  # GitHub Actions `deploy-netlify` job uploads the dist/ artefact built
+  # in `quality`. This `publish` line just tells the CLI which directory
+  # to ship when `--dir` isn't passed explicitly.
   publish = "dist"
-  # COMMIT_REF is injected by Netlify on every deploy.
-  command = "VITE_RELEASE=$COMMIT_REF pnpm build"
-
-[build.environment]
-  NODE_VERSION = "22"
-  PNPM_VERSION = "11"
 
 # Serverless functions live in netlify/functions; the modern esbuild bundler
 # handles the TS source + the firebase-admin / resend imports natively.

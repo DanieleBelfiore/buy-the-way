@@ -58,10 +58,11 @@
   --charcoal: #ece8de;
   --muted-gray: #9d9d9b;
 
-  /* Primary brand — lifted blue so it pops against dark surfaces */
-  --primary: #6b8fd6;
-  --primary-hover: #88a4dd;
-  --primary-active: #5476c4;
+  /* Primary brand — darker than the light-mode #113261 cousin so that white
+     CTAs on top still hit WCAG AA contrast (≥ 4.5:1) in dark mode. */
+  --primary: #2d5aa0;
+  --primary-hover: #3a6abc;
+  --primary-active: #234884;
 
   /* Favorites accent (gold) — desaturated for dark; soft tinted */
   --favorite-gold: #d8b54a;
