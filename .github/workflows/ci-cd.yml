@@ -207,18 +207,22 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Install Netlify CLI
-        run: npm install -g netlify-cli@latest
-
+      # Uses the community Netlify action instead of the raw CLI. The CLI's
+      # `deploy` now eagerly resolves the dashboard "build command" even when
+      # `--build` isn't passed; without pnpm installed in this runner that
+      # blew up with exit 127. The action uploads the prebuilt artefact via
+      # the Netlify API directly and skips that step entirely.
       - name: Deploy to Netlify (production)
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: dist
+          functions-dir: netlify/functions
+          production-deploy: true
+          deploy-message: "${{ github.sha }} via GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          overwrites-pull-request-comment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        run: |
-          netlify deploy \
-            --prod \
-            --dir=dist \
-            --functions=netlify/functions \
-            --message="${GITHUB_SHA::7} via GitHub Actions" \
-            --auth="$NETLIFY_AUTH_TOKEN" \
-            --site="$NETLIFY_SITE_ID"
+        timeout-minutes: 10
