@@ -172,10 +172,15 @@ jobs:
   deploy-firebase:
     name: deploy firestore rules + indices
     needs: [quality, rules, e2e]
-    # Allow `skipped` as a green signal for e2e so the toggle above can turn
-    # the gate off without blocking prod. quality + rules must still succeed.
+    # `!cancelled()` is mandatory whenever any needs-job can legitimately be
+    # `skipped`: without a status-function call GitHub applies the default
+    # "skip the dependent job when any needed job didn't succeed" rule and
+    # never even evaluates this `if:`. With it, the explicit result checks
+    # below run and let the deploy proceed when e2e is intentionally off.
+    # quality + rules must still succeed; e2e is allowed to be skipped.
     if: |
-      github.event_name == 'push'
+      !cancelled()
+      && github.event_name == 'push'
       && github.ref == 'refs/heads/main'
       && needs.quality.result == 'success'
       && needs.rules.result == 'success'
@@ -212,9 +217,11 @@ jobs:
   deploy-netlify:
     name: deploy netlify (spa + functions)
     needs: [quality, rules, e2e]
-    # Same gating as deploy-firebase: e2e success OR skipped both unblock.
+    # Same gating as deploy-firebase — see the comment there for why
+    # `!cancelled()` is required when e2e can legitimately be skipped.
     if: |
-      github.event_name == 'push'
+      !cancelled()
+      && github.event_name == 'push'
       && github.ref == 'refs/heads/main'
       && needs.quality.result == 'success'
       && needs.rules.result == 'success'
