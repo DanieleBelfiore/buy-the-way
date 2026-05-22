@@ -19,7 +19,7 @@ const emit = defineEmits<{
   'toggle-checked': [id: ULID, checked: boolean];
   'remove-item': [id: ULID];
   'toggle-collapse': [category: Category];
-  'long-press': [item: Item];
+  'open-edit': [item: Item];
   'request-priority': [item: Item];
   'move-copy': [item: Item];
   'toggle-pinned': [item: Item];
@@ -88,7 +88,7 @@ const onLeave = (el: Element, done: () => void): void => {
           :pinned="props.pinnedNames.has(item.name)"
           @toggle-checked="(val) => emit('toggle-checked', item.id, val)"
           @remove="emit('remove-item', item.id)"
-          @long-press="(it) => emit('long-press', it)"
+          @open-edit="(it) => emit('open-edit', it)"
           @request-priority="(it) => emit('request-priority', it)"
           @move-copy="(it) => emit('move-copy', it)"
           @toggle-pinned="(it) => emit('toggle-pinned', it)"

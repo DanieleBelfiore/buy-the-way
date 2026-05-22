@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <strong>Production:</strong> <em>set after first Netlify deploy</em> — e.g. <code>https://buy-the-way.netlify.app</code>
+  <a href="https://buy-the-way.danielebelfiore.dev" target="_blank">Live Web App</a>
 </p>
 
 ---
@@ -246,6 +246,114 @@ CI/CD via GitHub Actions:
 - **Deploy workflow** runs on `main`: builds and deploys to Netlify (`netlify.toml` configures the build command and publish directory).
 
 Firebase rules + indices are deployed from a CI step using a service-account token stored as a repo secret (`FIREBASE_TOKEN`). See `Phase 12` in `tasks/plan.md` for production checklist.
+
+---
+
+## Release process
+
+End-to-end checklist for shipping a new version to production. The CI/CD pipeline above takes over once the tag lands on `main` — these steps cover what you do **before** the push.
+
+### 1. Pre-release gates (run locally on `main`, working tree clean)
+
+```bash
+pnpm install                        # in case lockfile changed
+pnpm run typecheck                  # vue-tsc --noEmit
+pnpm run lint                       # ESLint
+pnpm test:run                       # unit + component tests
+pnpm test:coverage                  # branches must be ≥ 80%
+pnpm test:rules                     # Firestore rules (needs `pnpm firebase:emulators` running)
+pnpm test:e2e                       # Playwright + emulators (slow)
+```
+
+If any gate fails: fix on a branch, PR, merge, then restart from step 1.
+
+### 2. Bump the version
+
+Use the convenience scripts — they wrap `pnpm version` to add a Conventional Commits message and create an annotated tag in one shot.
+
+```bash
+# Pick ONE depending on the kind of changes since the last tag:
+pnpm release:patch                  # bug fixes only        → v1.2.3 → v1.2.4
+pnpm release:minor                  # new features, backwards-compatible → v1.2.3 → v1.3.0
+pnpm release:major                  # breaking changes     → v1.2.3 → v2.0.0
+```
+
+What `pnpm release:*` does, atomically:
+
+1. Bumps the `version` field in `package.json` (and `pnpm-lock.yaml` if needed).
+2. Creates a commit: `🦄 RELEASE: vX.Y.Z`.
+3. Creates an **annotated** Git tag `vX.Y.Z` pointing at that commit.
+
+### 3. Push commit + tag
+
+```bash
+git push --follow-tags
+```
+
+`--follow-tags` pushes the new commit **and** the annotated tag it created in a single round-trip. Safer than `git push --tags` (which would also push any unrelated local tags).
+
+### 4. CI/CD takes over
+
+GitHub Actions detects the push to `main` and runs:
+
+1. **CI workflow** (`.github/workflows/ci.yml`): lint, typecheck, build, unit tests, rules tests, E2E. Blocks the deploy if anything fails.
+2. **Deploy workflow** (`.github/workflows/deploy.yml`): builds the production bundle, runs `vite build`, pushes the `dist/` directory to Netlify, and uploads source maps to Sentry tagged with `VITE_RELEASE=vX.Y.Z`.
+3. **Firestore rules step**: if `firebase/firestore.rules` or `firebase/firestore.indexes.json` changed, deploys them with `firebase deploy --only firestore:rules,firestore:indexes` using `FIREBASE_TOKEN`.
+
+Watch the runs at <https://github.com/DanieleBelfiore/buy-the-way/actions>. Typical end-to-end time: 4–6 minutes.
+
+### 5. Verify in production
+
+- Open <https://buy-the-way.danielebelfiore.dev> in a private window (skip stale cache).
+- DevTools → Application → check **Service Worker** updated to the new version (visible in the SW URL hash).
+- Confirm the floating **"new version available"** prompt fires for already-installed clients within ~30 s.
+- Spot-check Sentry → **Releases** → the new `vX.Y.Z` should appear with the uploaded source maps.
+
+### 6. Rollback (if something is on fire)
+
+> Always prefer **rolling forward** with a hotfix. Rollback is destructive; only use it within the first few minutes of a bad release before users have written meaningful data against the new schema.
+
+```bash
+# Option A — Netlify "Publish previous deploy" button (UI, instant, recommended)
+#   Site → Deploys → click the last green deploy → "Publish deploy"
+
+# Option B — Revert the release commit and ship a follow-up
+git revert <hash-of-🦄 RELEASE-commit>
+pnpm release:patch                  # ships e.g. vX.Y.(Z+1) with the revert
+git push --follow-tags
+```
+
+If Firestore rules changed and need rolling back:
+
+```bash
+git checkout v<previous-tag> -- firebase/firestore.rules firebase/firestore.indexes.json
+pnpm run firebase:deploy:rules
+git checkout main -- firebase/firestore.rules firebase/firestore.indexes.json
+```
+
+### 7. Hotfix workflow
+
+For an urgent fix that must skip the usual `develop` → `main` cycle:
+
+```bash
+git checkout -b hotfix/<short-name> main
+# make the fix, commit normally
+pnpm test:run && pnpm run typecheck && pnpm run lint
+git push -u origin hotfix/<short-name>
+# Open a PR targeting main; once merged, immediately:
+git checkout main && git pull
+pnpm release:patch
+git push --follow-tags
+```
+
+### Cheat sheet (TL;DR)
+
+```bash
+pnpm test:run && pnpm run typecheck && pnpm run lint        # gates
+pnpm release:patch                                          # or minor / major
+git push --follow-tags                                      # push commit + tag
+# → CI builds, deploys to Netlify, uploads source maps to Sentry
+```
 
 ---
 

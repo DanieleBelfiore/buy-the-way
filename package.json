@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "NODE_OPTIONS=--disable-warning=DEP0205 vite",
     "preview": "vite preview",
-    "build": "vue-tsc --noEmit && vite build",
-    "build:analyze": "vite build --mode analyze",
+    "build": "vue-tsc --noEmit && NODE_OPTIONS=--disable-warning=DEP0205 vite build",
+    "build:analyze": "NODE_OPTIONS=--disable-warning=DEP0205 vite build --mode analyze",
     "typecheck": "vue-tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "NODE_OPTIONS=--disable-warning=DEP0205 vitest",
+    "test:run": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run",
+    "test:coverage": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run --coverage",
     "test:e2e": "firebase emulators:exec --only auth,firestore --project=buy-the-way 'playwright test'",
     "test:e2e:ui": "firebase emulators:exec --only auth,firestore --project=buy-the-way 'playwright test --ui'",
     "test:rules": "firebase emulators:exec --only firestore --project=demo-buy-the-way 'vitest run --config vitest.rules.config.ts'",
@@ -19,7 +19,10 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "firebase:emulators": "firebase emulators:start --only auth,firestore",
-    "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
+    "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes",
+    "release:patch": "pnpm version patch -m \"🦄 RELEASE: v%s\"",
+    "release:minor": "pnpm version minor -m \"🦄 RELEASE: v%s\"",
+    "release:major": "pnpm version major -m \"🦄 RELEASE: v%s\""
   },
   "dependencies": {
     "@fontsource-variable/hanken-grotesk": "^5.2.8",
@@ -36,13 +39,6 @@
     "vue-chartjs": "^5.3.3",
     "vue-i18n": "^11.4.4",
     "vue-router": "^5.0.7"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "protobufjs",
-      "vue-demi"
-    ]
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

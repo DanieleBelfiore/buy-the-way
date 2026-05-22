@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import ListCard from '@/components/list/ListCard.vue';
 import type { List } from '@/domain/types';
@@ -7,7 +8,12 @@ import type { List } from '@/domain/types';
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en: { badge: { new: 'New' } } },
+  messages: {
+    en: {
+      badge: { new: 'New' },
+      list: { setDefault: 'Set as default list', unsetDefault: 'Unset default list' },
+    },
+  },
 });
 
 const mockList: List = {
@@ -19,10 +25,14 @@ const mockList: List = {
   updatedAt: 200,
 };
 
-const mountCard = (props: { list: List; isNew?: boolean }) =>
-  mount(ListCard, { props, global: { plugins: [i18n] } });
+const mountCard = (props: { list: List; isNew?: boolean; isDefault?: boolean }) =>
+  mount(ListCard, { props, global: { plugins: [i18n, createPinia()] } });
 
 describe('ListCard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   it('renders the list name', () => {
     const wrapper = mountCard({ list: mockList });
     expect(wrapper.text()).toContain('Spesa');
@@ -65,9 +75,70 @@ describe('ListCard', () => {
     expect(style).toContain('cover');
   });
 
-  it('switches text color to offwhite when wallpaper is present', () => {
+  it('switches text color to white when wallpaper is present', () => {
     const wrapper = mountCard({ list: { ...mockList, wallpaper: '05.jpg' } });
     const title = wrapper.find('[data-testid="list-card"] span');
-    expect(title.classes()).toContain('text-offwhite');
+    expect(title.classes()).toContain('text-white');
+  });
+
+  it('renders a star toggle button labelled "set as default" when not default', () => {
+    const wrapper = mountCard({ list: mockList });
+    const star = wrapper.find(`[data-testid="star-${mockList.id}"]`);
+    expect(star.exists()).toBe(true);
+    expect(star.attributes('aria-pressed')).toBe('false');
+    expect(star.attributes('aria-label')).toBe('Set as default list');
+  });
+
+  it('flips the star button label to "unset" when isDefault is true', () => {
+    const wrapper = mountCard({ list: mockList, isDefault: true });
+    const star = wrapper.find(`[data-testid="star-${mockList.id}"]`);
+    expect(star.attributes('aria-pressed')).toBe('true');
+    expect(star.attributes('aria-label')).toBe('Unset default list');
+  });
+
+  it('emits toggle-default with the list id when the star is clicked', async () => {
+    const wrapper = mountCard({ list: mockList });
+    await wrapper.find(`[data-testid="star-${mockList.id}"]`).trigger('click');
+    expect(wrapper.emitted('toggle-default')?.[0]).toEqual([mockList.id]);
+  });
+
+  it('does not also emit open when the star is clicked (stopPropagation)', async () => {
+    const wrapper = mountCard({ list: mockList });
+    await wrapper.find(`[data-testid="star-${mockList.id}"]`).trigger('click');
+    expect(wrapper.emitted('open')).toBeUndefined();
+  });
+
+  it('still emits open when the card body is clicked', async () => {
+    const wrapper = mountCard({ list: mockList });
+    await wrapper.find('[data-testid="list-card"]').trigger('click');
+    expect(wrapper.emitted('open')?.[0]).toEqual([mockList.id]);
+  });
+
+  it('avatar chips carry both light and dark Tailwind palette classes', () => {
+    const wrapper = mountCard({
+      list: {
+        ...mockList,
+        collaboratorUids: ['uid-1', 'uid-2'],
+      },
+    });
+    // Force render with stub members so we get rendered avatar nodes.
+    const wrapperWithMembers = mount(ListCard, {
+      props: {
+        list: mockList,
+        members: [
+          { uid: 'uid-1', email: 'a@x', displayName: 'A', lastLoginAt: 0 },
+        ],
+      },
+      global: { plugins: [i18n, createPinia()] },
+    });
+    const avatar = wrapperWithMembers.find('[data-testid="avatar-uid-1"]');
+    expect(avatar.exists()).toBe(true);
+    // Each chip must declare a light hue AND a dark hue so contrast holds in both themes.
+    const cls = avatar.classes().join(' ');
+    expect(/bg-(rose|amber|emerald|sky|violet|pink|lime|cyan)-200/.test(cls)).toBe(true);
+    expect(/dark:bg-(rose|amber|emerald|sky|violet|pink|lime|cyan)-900/.test(cls)).toBe(true);
+    expect(/text-(rose|amber|emerald|sky|violet|pink|lime|cyan)-900/.test(cls)).toBe(true);
+    expect(/dark:text-(rose|amber|emerald|sky|violet|pink|lime|cyan)-100/.test(cls)).toBe(true);
+    expect(wrapper).toBeTruthy();
   });
 });

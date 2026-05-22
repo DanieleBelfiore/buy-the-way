@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
@@ -35,6 +35,22 @@ import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.
 const settingsIt = {
   title: 'Impostazioni',
   language: 'Lingua',
+  theme: 'Tema',
+  themeSystem: 'Sistema',
+  themeLight: 'Chiaro',
+  themeDark: 'Scuro',
+  share: 'Consiglia a un amico',
+  shareMessage: 'Buy The Way — La Tua Lista Della Spesa Intelligente. Provala:',
+  shareCopied: 'Link copiato negli appunti',
+  feedback: 'Invia feedback',
+  feedbackTitle: 'Manda un feedback',
+  feedbackHint: 'Bug, idea, frustrazione.',
+  feedbackPlaceholder: 'Scrivi…',
+  feedbackSubmit: 'Invia',
+  feedbackCancel: 'Annulla',
+  feedbackSending: 'Invio…',
+  feedbackThanks: 'Grazie!',
+  feedbackError: 'Invio non riuscito.',
   account: 'Account',
   signOut: 'Esci',
   deleteAccount: 'Elimina account',
@@ -125,6 +141,28 @@ describe('SettingsView', () => {
     const wrapper = mountView();
     await wrapper.find('[data-testid="locale-it"]').trigger('click');
     expect(setLocale).toHaveBeenCalledWith('it');
+  });
+
+  describe('theme selector', () => {
+    it('renders two theme radios (light, dark)', () => {
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="theme-light"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="theme-dark"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="theme-system"]').exists()).toBe(false);
+    });
+
+    it('marks the active mode with aria-checked=true', async () => {
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="theme-light"]').attributes('aria-checked')).toBe('true');
+      expect(wrapper.find('[data-testid="theme-dark"]').attributes('aria-checked')).toBe('false');
+    });
+
+    it('clicking a theme radio updates aria-checked', async () => {
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="theme-dark"]').trigger('click');
+      expect(wrapper.find('[data-testid="theme-dark"]').attributes('aria-checked')).toBe('true');
+      expect(wrapper.find('[data-testid="theme-light"]').attributes('aria-checked')).toBe('false');
+    });
   });
 
   it('renders account section with email and displayName', () => {
@@ -244,5 +282,120 @@ describe('SettingsView', () => {
     await wrapper.find('[data-testid="delete-account-btn"]').trigger('click');
     await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
     expect(wrapper.find('[data-testid="confirm-modal-confirm"]').exists()).toBe(false);
+  });
+
+  describe('share button', () => {
+    const originalShare = (window.navigator as any).share;
+    const originalClipboard = (window.navigator as any).clipboard;
+
+    afterEach(() => {
+      // Restore navigator after each test to keep isolation
+      Object.defineProperty(window.navigator, 'share', {
+        configurable: true,
+        value: originalShare,
+      });
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: originalClipboard,
+      });
+      vi.useRealTimers();
+    });
+
+    it('renders share button with i18n label', () => {
+      const wrapper = mountView();
+      const btn = wrapper.find('[data-testid="share-btn"]');
+      expect(btn.exists()).toBe(true);
+      expect(btn.text()).toContain('Consiglia a un amico');
+    });
+
+    it('calls navigator.share with title/text/url when available', async () => {
+      const shareSpy = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'share', {
+        configurable: true,
+        value: shareSpy,
+      });
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="share-btn"]').trigger('click');
+      await flushPromises();
+      expect(shareSpy).toHaveBeenCalledOnce();
+      const arg = shareSpy.mock.calls[0]?.[0];
+      expect(arg.title).toBe('Buy The Way');
+      expect(arg.text).toContain('Lista');
+      expect(typeof arg.url).toBe('string');
+      expect(arg.url.length).toBeGreaterThan(0);
+    });
+
+    it('does not fall back to clipboard when share is cancelled (AbortError)', async () => {
+      const shareSpy = vi.fn().mockRejectedValue(
+        new DOMException('cancel', 'AbortError'),
+      );
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'share', {
+        configurable: true,
+        value: shareSpy,
+      });
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="share-btn"]').trigger('click');
+      await flushPromises();
+      expect(writeText).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(false);
+    });
+
+    it('falls back to clipboard and shows toast when navigator.share missing', async () => {
+      vi.useFakeTimers();
+      Object.defineProperty(window.navigator, 'share', {
+        configurable: true,
+        value: undefined,
+      });
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="share-btn"]').trigger('click');
+      await flushPromises();
+      expect(writeText).toHaveBeenCalledOnce();
+      const payload = writeText.mock.calls[0]?.[0];
+      expect(typeof payload).toBe('string');
+      expect(payload).toContain('Lista');
+      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(true);
+      // toast auto-hides after timeout
+      vi.advanceTimersByTime(2600);
+      await flushPromises();
+      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(false);
+    });
+
+    it('renders the feedback button next to the share button', () => {
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="feedback-btn"]').exists()).toBe(true);
+    });
+
+    it('clicking the feedback button opens the modal', async () => {
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="feedback-textarea"]').exists()).toBe(false);
+      await wrapper.find('[data-testid="feedback-btn"]').trigger('click');
+      expect(wrapper.find('[data-testid="feedback-textarea"]').exists()).toBe(true);
+    });
+
+    it('silently swallows clipboard failure', async () => {
+      Object.defineProperty(window.navigator, 'share', {
+        configurable: true,
+        value: undefined,
+      });
+      const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+      Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="share-btn"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.find('[data-testid="share-copied-toast"]').exists()).toBe(false);
+    });
   });
 });

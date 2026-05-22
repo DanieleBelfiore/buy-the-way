@@ -6,13 +6,17 @@ import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import {
   addCollaborator,
+  cancelPendingInvite,
   removeCollaborator,
   leaveList,
   renameList,
   deleteList,
   setListShowFavorites,
   setListWallpaper,
+  type AddCollaboratorResult,
 } from '@/services/lists.service';
+import { useShareApp } from '@/composables/useShareApp';
+import { useSafeBack } from '@/composables/useSafeBack';
 import WallpaperPicker from '@/components/list/WallpaperPicker.vue';
 import type { Wallpaper } from '@/domain/wallpapers';
 import { getUsersByUids } from '@/services/users.service';
@@ -132,10 +136,47 @@ const handleRename = async () => {
   }
 };
 
-const handleAddCollaborator = async (email: string): Promise<UserProfile> => {
-  const profile = await addCollaborator(listId.value, email);
-  await loadMembers([...(list.value?.collaboratorUids ?? []), profile.uid]);
-  return profile;
+const handleAddCollaborator = async (email: string): Promise<AddCollaboratorResult> => {
+  const result = await addCollaborator(listId.value, email);
+  if (result.profile) {
+    await loadMembers([...(list.value?.collaboratorUids ?? []), result.profile.uid]);
+  }
+  return result;
+};
+
+const pendingInviteEmails = computed<readonly string[]>(
+  () => list.value?.pendingInviteEmails ?? [],
+);
+
+// State for the "this email isn't registered" confirmation modal.
+const pendingShareEmail = ref<string | null>(null);
+
+const { shareApp } = useShareApp();
+const safeBack = useSafeBack();
+const handleBack = (): void => safeBack({ name: 'list-detail', params: { id: listId.value } });
+
+const onCollaboratorPending = (email: string): void => {
+  // Surface a confirmation: the invite is queued, ask whether to share the
+  // app link with the invitee via the native share sheet.
+  pendingShareEmail.value = email;
+};
+
+const confirmShareForPending = async (): Promise<void> => {
+  await shareApp();
+  pendingShareEmail.value = null;
+};
+
+const dismissPendingShare = (): void => {
+  pendingShareEmail.value = null;
+};
+
+const handleCancelPending = async (email: string): Promise<void> => {
+  actionError.value = null;
+  try {
+    await cancelPendingInvite(listId.value, email);
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : String(err);
+  }
 };
 
 const handleRemove = async (uid: string) => {
@@ -148,10 +189,23 @@ const handleRemove = async (uid: string) => {
   }
 };
 
+// Clear the default-list pref if it points to the list we're about to walk
+// away from. Errors are non-fatal — the lazy cleanup in ListsView will retry.
+const clearDefaultIfMatches = async (): Promise<void> => {
+  if (authStore.profile?.defaultListId === listId.value) {
+    try {
+      await authStore.setDefaultListId(null);
+    } catch (err) {
+      console.warn('[ListSettingsView] clearDefaultIfMatches failed:', err);
+    }
+  }
+};
+
 const handleLeave = async () => {
   actionError.value = null;
   try {
     await leaveList(listId.value, selfUid.value);
+    await clearDefaultIfMatches();
     await router.push({ name: 'lists' });
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : String(err);
@@ -163,6 +217,7 @@ const handleDelete = async () => {
   actionError.value = null;
   try {
     await deleteList(listId.value);
+    await clearDefaultIfMatches();
     await router.push({ name: 'lists' });
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : String(err);
@@ -171,12 +226,12 @@ const handleDelete = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream pb-6 flex flex-col">
+  <main class="min-h-screen min-h-dvh bg-cream pb-6 flex flex-col">
     <header class="px-5 pt-12 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
-        @click="router.back()"
+        @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
       </button>
@@ -206,7 +261,7 @@ const handleDelete = async () => {
             data-testid="rename-save"
             type="button"
             :disabled="renaming || !nameDraft.trim() || nameDraft.trim() === list.name"
-            class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
+            class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
             @click="handleRename"
           >
             <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
@@ -256,7 +311,40 @@ const handleDelete = async () => {
           @remove="handleRemove"
           @leave="handleLeave"
         />
-        <AddCollaboratorForm v-if="isOwner" :submit-fn="handleAddCollaborator" />
+        <AddCollaboratorForm
+          v-if="isOwner"
+          :submit-fn="handleAddCollaborator"
+          @pending="onCollaboratorPending"
+        />
+
+        <!-- Pending email invites (queued until invitee signs up). Only the
+             owner sees these and can revoke a queued invite. -->
+        <ul
+          v-if="isOwner && pendingInviteEmails.length > 0"
+          data-testid="pending-invites"
+          class="flex flex-wrap gap-2"
+        >
+          <li
+            v-for="pe in pendingInviteEmails"
+            :key="pe"
+            :data-testid="`pending-${pe}`"
+            class="inline-flex items-center gap-2 rounded-full bg-cream-soft px-3 py-1.5 text-sm text-muted-gray border border-cream-soft"
+          >
+            <span class="font-medium">{{ pe }}</span>
+            <span class="rounded-full bg-charcoal/10 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+              {{ t('collaborators.pendingBadge') }}
+            </span>
+            <button
+              type="button"
+              :data-testid="`cancel-pending-${pe}`"
+              :aria-label="`${t('collaborators.remove')} ${pe}`"
+              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
+              @click="handleCancelPending(pe)"
+            >
+              ×
+            </button>
+          </li>
+        </ul>
         <p v-if="actionError" class="text-red-500 text-xs">{{ actionError }}</p>
       </section>
 
@@ -265,7 +353,7 @@ const handleDelete = async () => {
           v-if="!isOwner"
           data-testid="leave-list-bottom"
           type="button"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
           @click="handleLeave"
         >
           <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
@@ -275,7 +363,7 @@ const handleDelete = async () => {
           v-if="isOwner"
           data-testid="delete-list"
           type="button"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
           @click="deleteOpen = true"
         >
           <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
@@ -293,6 +381,18 @@ const handleDelete = async () => {
         destructive
         @confirm="handleDelete"
         @cancel="deleteOpen = false"
+      />
+
+      <ConfirmModal
+        v-if="pendingShareEmail"
+        data-testid="pending-share-modal"
+        :open="pendingShareEmail !== null"
+        :title="t('collaborators.pendingShareTitle')"
+        :message="t('collaborators.pendingShareMessage', { email: pendingShareEmail })"
+        :confirm-label="t('collaborators.pendingShareConfirm')"
+        :cancel-label="t('collaborators.pendingShareCancel')"
+        @confirm="confirmShareForPending"
+        @cancel="dismissPendingShare"
       />
     </div>
   </main>

@@ -120,18 +120,100 @@ export const subscribeUserLists = (
   );
 };
 
+export interface AddCollaboratorResult {
+  /** Registered user that was matched, if any. */
+  profile: UserProfile | null;
+  /** Whether the invite is queued because the email isn't registered yet. */
+  pending: boolean;
+  /** Normalized (trimmed + lowercased) email used for the invite. */
+  email: string;
+}
+
+const normalizeEmail = (raw: string): string => raw.trim().toLowerCase();
+
 export const addCollaborator = async (
   listId: string,
   email: string,
-): Promise<UserProfile> => {
-  const profile = await findUserByEmail(email);
-  if (!profile) throw new UserNotFoundError(email);
+): Promise<AddCollaboratorResult> => {
+  const normalized = normalizeEmail(email);
+  const profile = await findUserByEmail(normalized);
 
+  if (profile) {
+    // Registered: add the uid directly. Also remove any prior pending entry
+    // for the same email (rare, but possible if the user just signed up).
+    await updateDoc(doc(db, 'lists', listId), {
+      collaboratorUids: arrayUnion(profile.uid),
+      pendingInviteEmails: arrayRemove(normalized),
+      updatedAt: Date.now(),
+    });
+    return { profile, pending: false, email: normalized };
+  }
+
+  // Not registered yet — queue the invite. The auth-side claim step will
+  // promote this to a real collaboratorUid when the user signs up.
   await updateDoc(doc(db, 'lists', listId), {
-    collaboratorUids: arrayUnion(profile.uid),
+    pendingInviteEmails: arrayUnion(normalized),
     updatedAt: Date.now(),
   });
-  return profile;
+  return { profile: null, pending: true, email: normalized };
+};
+
+/**
+ * Migrate pending email invites into real collaborator entries.
+ *
+ * Called after sign-in: looks up every list where the user's email is in
+ * `pendingInviteEmails`, swaps it for their uid in `collaboratorUids`, and
+ * removes the email from the pending array.
+ *
+ * Failures are logged but never thrown — the user can still use the app
+ * without their pending lists, and the claim retries on the next sign-in.
+ */
+export const claimPendingInvites = async (
+  uid: string,
+  email: string,
+): Promise<number> => {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return 0;
+
+  try {
+    const q = query(
+      collection(db, 'lists'),
+      where('pendingInviteEmails', 'array-contains', normalized),
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return 0;
+
+    let claimed = 0;
+    await Promise.all(
+      snap.docs.map(async (d) => {
+        try {
+          await updateDoc(doc(db, 'lists', d.id), {
+            collaboratorUids: arrayUnion(uid),
+            pendingInviteEmails: arrayRemove(normalized),
+            updatedAt: Date.now(),
+          });
+          claimed += 1;
+        } catch (err) {
+          console.warn(`[claimPendingInvites] failed for ${d.id}:`, err);
+        }
+      }),
+    );
+    return claimed;
+  } catch (err) {
+    console.warn('[claimPendingInvites] query failed:', err);
+    return 0;
+  }
+};
+
+export const cancelPendingInvite = async (
+  listId: string,
+  email: string,
+): Promise<void> => {
+  const normalized = normalizeEmail(email);
+  await updateDoc(doc(db, 'lists', listId), {
+    pendingInviteEmails: arrayRemove(normalized),
+    updatedAt: Date.now(),
+  });
 };
 
 const loadListOwner = async (listId: string): Promise<string> => {

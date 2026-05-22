@@ -5,8 +5,6 @@ import { Trash2 } from '@lucide/vue';
 import { iconForName } from '@/domain/public-catalog';
 import type { CatalogEntry } from '@/domain/types';
 
-const LONG_PRESS_MS = 500;
-
 const props = defineProps<{
   entry: CatalogEntry;
   isTop: boolean;
@@ -15,53 +13,22 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   add: [CatalogEntry];
-  'long-press': [CatalogEntry];
+  /** Trash button — request to hide this entry from future suggestions. */
+  exclude: [CatalogEntry];
 }>();
 
 const { t, locale } = useI18n();
 
 const itemIcon = computed(() => iconForName(props.entry.name, locale.value));
 
-let pressTimer: ReturnType<typeof setTimeout> | null = null;
-let longPressed = false;
-
-const clearTimer = (): void => {
-  if (pressTimer) {
-    clearTimeout(pressTimer);
-    pressTimer = null;
-  }
-};
-
-const onPointerDown = (e: PointerEvent): void => {
-  if (e.button && e.button !== 0) return;
-  longPressed = false;
-  clearTimer();
-  pressTimer = setTimeout(() => {
-    longPressed = true;
-    emit('long-press', props.entry);
-  }, LONG_PRESS_MS);
-};
-
-const onPointerUp = (): void => clearTimer();
-const onPointerCancel = (): void => {
-  clearTimer();
-  longPressed = false;
-};
-
-const onClick = () => {
-  if (longPressed) {
-    longPressed = false;
-    return;
-  }
+const onClick = (): void => {
   if (props.isInList) return;
   emit('add', props.entry);
 };
 
-const onRemoveClick = (e: MouseEvent) => {
+const onRemoveClick = (e: MouseEvent | KeyboardEvent): void => {
   e.stopPropagation();
-  clearTimer();
-  longPressed = true;
-  emit('long-press', props.entry);
+  emit('exclude', props.entry);
 };
 
 const labelClasses = computed(() => [
@@ -70,7 +37,7 @@ const labelClasses = computed(() => [
 ]);
 
 const buttonClasses = computed(() => [
-  'group relative flex items-center gap-2 w-full pl-3 pr-8 py-2 rounded-md border border-cream-soft bg-white text-left transition-colors select-none',
+  'group relative flex items-center gap-2 w-full pl-3 pr-8 py-2 rounded-md border border-cream-soft bg-offwhite text-left transition-colors select-none',
   props.isInList
     ? 'line-through opacity-50 cursor-not-allowed'
     : 'hover:bg-cream active:bg-cream-soft cursor-pointer',
@@ -91,9 +58,6 @@ const titleAttr = computed(() => (props.isInList ? t('shelf.alreadyInList') : un
     :title="titleAttr"
     :class="buttonClasses"
     @click="onClick"
-    @pointerdown="onPointerDown"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerCancel"
   >
     <span
       aria-hidden="true"
@@ -112,8 +76,8 @@ const titleAttr = computed(() => (props.isInList ? t('shelf.alreadyInList') : un
       class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:bg-red-100 active:bg-red-200 transition-colors cursor-pointer"
       @click="onRemoveClick"
       @pointerdown.stop
-      @keydown.enter="onRemoveClick($event as unknown as MouseEvent)"
-      @keydown.space.prevent="onRemoveClick($event as unknown as MouseEvent)"
+      @keydown.enter="onRemoveClick($event)"
+      @keydown.space.prevent="onRemoveClick($event)"
     >
       <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
     </span>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
@@ -9,11 +9,15 @@ import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
+import Toast from '@/components/ui/Toast.vue';
 import { DuplicateListNameError } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
 import type { UserProfile } from '@/domain/types';
+
+// Explicit component name so <KeepAlive include="ListsView"> matches.
+defineOptions({ name: 'ListsView' });
 
 const logoMotion = useLogoMotion();
 
@@ -62,8 +66,26 @@ const profilesFor = (uids: readonly string[]): UserProfile[] =>
     .filter((p): p is UserProfile => Boolean(p));
 
 onMounted(async () => {
+  // Run profile + lists init concurrently — neither blocks the other.
+  void authStore.ensureProfile();
   await listsStore.loadLastSeen();
   unsubscribe = listsStore.subscribe();
+});
+
+// Re-mount the Lottie player every time we come back to the view.
+// DotLottieVue measures its container once at mount; when the view is cached
+// by <KeepAlive> the canvas keeps stale dimensions and resizes badly on
+// re-entry (e.g. after deleting a list and returning to the empty state).
+// Bumping this key forces a clean mount and a fresh layout calc.
+const emptyLottieKey = ref(0);
+onActivated(() => {
+  emptyLottieKey.value += 1;
+});
+
+// Kept alive across navigations: fire markSeen when user leaves the view
+// (mirrors the old onUnmounted behaviour) without tearing down the subscription.
+onDeactivated(() => {
+  void listsStore.markSeen();
 });
 
 onUnmounted(() => {
@@ -104,10 +126,71 @@ const submitCreate = async () => {
 const openList = (id: string) => {
   router.push({ name: 'list-detail', params: { id } });
 };
+
+const defaultListId = computed(() => authStore.profile?.defaultListId ?? null);
+
+// Explainer toast — fires when the star toggles so the user understands what
+// "default list" means the first time they tap it (and on every subsequent
+// flip for symmetry / discoverability).
+const toastOpen = ref(false);
+const toastMessage = ref('');
+
+const showDefaultToast = (message: string): void => {
+  toastMessage.value = message;
+  // Force the Toast watcher to re-run even when message is identical: closing
+  // first guarantees the open→true transition restarts the auto-close timer.
+  toastOpen.value = false;
+  void Promise.resolve().then(() => {
+    toastOpen.value = true;
+  });
+};
+
+// Star-toggle: pressing on the currently default list clears it; any other
+// list becomes the new default (replacing the previous one).
+const handleToggleDefault = async (id: string): Promise<void> => {
+  const wasDefault = defaultListId.value === id;
+  const next = wasDefault ? null : id;
+  try {
+    await authStore.setDefaultListId(next);
+    showDefaultToast(
+      wasDefault ? t('list.defaultClearedToast') : t('list.defaultSetToast'),
+    );
+  } catch (err) {
+    console.warn('[ListsView] setDefaultListId failed:', err);
+  }
+};
+
+// Lazy cleanup: once the lists subscription has delivered data and the
+// profile is loaded, drop a stale defaultListId that no longer points to a
+// list the user can access (deleted, or revoked-by-owner, etc.).
+// Gating on `!loading` avoids clearing during the initial empty-state window.
+watch(
+  [
+    () => listsStore.initialized,
+    () => listsStore.lists,
+    () => authStore.profile,
+  ],
+  ([initialized, lists, profile]) => {
+    // Wait until the Firestore subscription has delivered at least once —
+    // otherwise `lists=[]` at first paint would look like "default deleted"
+    // and we'd wipe the pref the user just set.
+    if (!initialized) return;
+    const def = profile?.defaultListId;
+    if (!def) return;
+    const stillExists = lists.some((l) => l.id === def);
+    if (!stillExists) {
+      void authStore.setDefaultListId(null).catch((err) => {
+        console.warn('[ListsView] auto-clear stale defaultListId failed:', err);
+      });
+    }
+  },
+  { immediate: true },
+);
+
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream flex flex-col">
+  <main class="min-h-screen min-h-dvh bg-cream flex flex-col">
     <!-- Top bar with stats + settings buttons (split 50/50 full width). -->
     <header class="px-5 pt-12 pb-2 flex items-center gap-2">
       <button
@@ -132,17 +215,17 @@ const openList = (id: string) => {
     <!-- Hero brand block -->
     <section class="px-5 pt-2 pb-6 text-center">
       <picture>
-        <source
-          srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"
-          type="image/avif"
-        />
+        <!-- Use the original-res asset for every density so the browser
+             always downscales (crisp) instead of upscaling the 540px variant
+             on retina/3x displays. -->
+        <source srcset="/branding/logo-original.avif" type="image/avif" />
         <img
           v-motion="logoMotion"
           src="/branding/logo-original.png"
           :alt="t('app.name')"
           data-testid="lists-logo"
-          width="540"
-          height="399"
+          width="1316"
+          height="974"
           fetchpriority="high"
           decoding="async"
           class="mx-auto h-50 w-auto select-none"
@@ -168,7 +251,7 @@ const openList = (id: string) => {
       <div class="flex gap-2">
         <button
           :disabled="creating || !newListName.trim()"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-offwhite text-sm font-medium rounded-xl
+          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl
                  hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="submitCreate"
         >
@@ -202,6 +285,7 @@ const openList = (id: string) => {
           class="text-center pt-16 space-y-3"
         >
           <DotLottieVue
+            :key="`empty-lottie-${emptyLottieKey}`"
             data-testid="lists-empty-lottie"
             aria-hidden="true"
             class="mx-auto h-40 w-40"
@@ -219,8 +303,10 @@ const openList = (id: string) => {
             :key="list.id"
             :list="list"
             :is-new="authStore.user ? listsStore.isNewForUser(list, authStore.user.uid) : false"
+            :is-default="defaultListId === list.id"
             :members="profilesFor(list.collaboratorUids)"
             @open="openList"
+            @toggle-default="handleToggleDefault"
           />
         </TransitionGroup>
       </Transition>
@@ -228,6 +314,13 @@ const openList = (id: string) => {
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
+
+    <Toast
+      :open="toastOpen"
+      :message="toastMessage"
+      :duration-ms="3500"
+      @close="toastOpen = false"
+    />
   </main>
 </template>
 

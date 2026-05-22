@@ -25,7 +25,11 @@
     "noLists": "No lists yet",
     "noListsHint": "Tap + to create your first list",
     "duplicateName": "You already have a list with this name.",
-    "itemCount": "no items | 1 item | {n} items"
+    "itemCount": "no items | 1 item | {n} items",
+    "setDefault": "Set as default list",
+    "unsetDefault": "Unset default list",
+    "defaultSetToast": "Default list: it will open automatically when you launch the app!",
+    "defaultClearedToast": "Default list cleared. You'll see the lists overview on launch!"
   },
   "item": {
     "addPlaceholder": "Add an item",
@@ -35,6 +39,7 @@
     "removeFromSuggestionsHint": "This item will no longer be suggested when adding items.",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
+    "firstCheckTutorialToast": "Item marked as bought!",
     "addCustom": "Add \"{name}\" as a custom item",
     "quantity": "Quantity",
     "note": "Note",
@@ -87,7 +92,12 @@
     "leaveConfirmMessage": "You will no longer have access to \"{name}\".",
     "confirm": "Leave",
     "cancel": "Cancel",
-    "owner": "Admin"
+    "owner": "Admin",
+    "pendingBadge": "Pending",
+    "pendingShareTitle": "Invite {email} to the app",
+    "pendingShareMessage": "{email} doesn't have an account yet. When they sign up they'll see this list automatically. Want to share the app link to invite them?",
+    "pendingShareConfirm": "Share link",
+    "pendingShareCancel": "No, thanks"
   },
   "listSettings": {
     "title": "List settings",
@@ -103,7 +113,8 @@
     "stats": {
       "items": "Items",
       "bought": "Bought",
-      "users": "Users"
+      "users": "Users",
+      "updated": "Last modified"
     },
     "deleteConfirmTitle": "Delete list permanently?",
     "deleteConfirmMessage": "This will permanently delete \"{name}\" and all its items.\nThis action cannot be undone.",
@@ -114,6 +125,22 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "share": "Recommend to a friend",
+    "shareMessage": "Buy The Way — Your Smart Shopping List",
+    "shareCopied": "Link copied to clipboard",
+    "feedback": "Send feedback",
+    "feedbackTitle": "Send feedback",
+    "feedbackHint": "Bug, idea, frustration — tell me anything.",
+    "feedbackPlaceholder": "Type your message here…",
+    "feedbackSubmit": "Send",
+    "feedbackCancel": "Cancel",
+    "feedbackSending": "Sending…",
+    "feedbackThanks": "Thanks! Feedback received.",
+    "feedbackError": "Send failed. Please try again soon.",
     "account": "Account",
     "signOut": "Sign out",
     "deleteAccount": "Delete account",
@@ -168,16 +195,46 @@
     ],
     "faqTitle": "Frequently asked questions",
     "faq": [
-      { "q": "What does Buy The Way do?", "a": "A real-time shared shopping list app. Add items, check them off, sync instantly with anyone you share a list with." },
-      { "q": "Does it work offline?", "a": "Yes. Lists and items are cached locally; any change you make offline syncs as soon as you reconnect." },
-      { "q": "Can I share a list?", "a": "Yes. From list settings, add a collaborator by their Google email. They see updates in real time." },
-      { "q": "Is my data safe?", "a": "Lists are stored in Google Firestore with strict per-user access rules. Only you and your collaborators can read or write your lists." },
-      { "q": "How much does it cost?", "a": "Free. No paid tier, no ads, no analytics." },
-      { "q": "Is there a native app?", "a": "It is a PWA — install it from your browser to your home screen and it behaves like a native app." },
-      { "q": "Can I delete my account?", "a": "Yes. From Settings → Delete account: wipes your lists, profile, catalog and revokes sign-in access in one operation." },
-      { "q": "Which sign-in methods are supported?", "a": "Google sign-in only." },
-      { "q": "Are my lists encrypted?", "a": "Data is encrypted in transit (HTTPS) and at rest on Google infrastructure. End-to-end encryption is not used so collaborators can read items." },
-      { "q": "Which languages are supported?", "a": "Italian and English. The interface switches based on your preference in Settings." }
+      {
+        "q": "What does Buy The Way do?",
+        "a": "A real-time shared shopping list app. Add items, check them off, sync instantly with anyone you share a list with."
+      },
+      {
+        "q": "Does it work offline?",
+        "a": "Yes. Lists and items are cached locally; any change you make offline syncs as soon as you reconnect."
+      },
+      {
+        "q": "Can I share a list?",
+        "a": "Yes. From list settings, add a collaborator by their Google email. They see updates in real time."
+      },
+      {
+        "q": "Is my data safe?",
+        "a": "Lists are stored in Google Firestore with strict per-user access rules. Only you and your collaborators can read or write your lists."
+      },
+      {
+        "q": "How much does it cost?",
+        "a": "Free. No paid tier, no ads, no analytics."
+      },
+      {
+        "q": "Is there a native app?",
+        "a": "It is a PWA — install it from your browser to your home screen and it behaves like a native app."
+      },
+      {
+        "q": "Can I delete my account?",
+        "a": "Yes. From Settings → Delete account: wipes your lists, profile, catalog and revokes sign-in access in one operation."
+      },
+      {
+        "q": "Which sign-in methods are supported?",
+        "a": "Google sign-in only."
+      },
+      {
+        "q": "Are my lists encrypted?",
+        "a": "Data is encrypted in transit (HTTPS) and at rest on Google infrastructure. End-to-end encryption is not used so collaborators can read items."
+      },
+      {
+        "q": "Which languages are supported?",
+        "a": "Italian and English. The interface switches based on your preference in Settings."
+      }
     ]
   },
   "seo": {

@@ -26,7 +26,7 @@ const onConfirm = () => {
       data-testid="empty-list-button"
       type="button"
       :aria-label="t('emptyList.button')"
-      class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-offwhite hover:bg-red-700 active:bg-red-800 transition-colors"
+      class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
       @click="modalOpen = true"
     >
       <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />

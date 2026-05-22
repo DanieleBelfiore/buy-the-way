@@ -25,7 +25,11 @@
     "noLists": "Nessuna lista",
     "noListsHint": "Tocca + per creare la tua prima lista",
     "duplicateName": "Hai già una lista con questo nome.",
-    "itemCount": "no articles | 1 articolo | {n} articoli"
+    "itemCount": "no articles | 1 articolo | {n} articoli",
+    "setDefault": "Imposta come lista predefinita",
+    "unsetDefault": "Rimuovi lista predefinita",
+    "defaultSetToast": "Lista predefinita: si aprirà automaticamente all'avvio dell'app!",
+    "defaultClearedToast": "Lista predefinita rimossa. All'avvio vedrai l'elenco delle liste!"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
@@ -35,6 +39,7 @@
     "removeFromSuggestionsHint": "Questo articolo non sarà più suggerito quando aggiungi articoli.",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
+    "firstCheckTutorialToast": "Articolo segnato come acquistato!",
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
     "quantity": "Quantità",
     "note": "Nota",
@@ -87,7 +92,12 @@
     "leaveConfirmMessage": "Non avrai più accesso a \"{name}\".",
     "confirm": "Lascia",
     "cancel": "Annulla",
-    "owner": "Amministratore"
+    "owner": "Amministratore",
+    "pendingBadge": "In attesa",
+    "pendingShareTitle": "Invita {email} all'app",
+    "pendingShareMessage": "{email} non ha ancora un account. Quando si iscriverà vedrà automaticamente la lista. Vuoi condividere il link dell'app per invitarlo?",
+    "pendingShareConfirm": "Condividi link",
+    "pendingShareCancel": "No, grazie"
   },
   "listSettings": {
     "title": "Impostazioni lista",
@@ -103,7 +113,8 @@
     "stats": {
       "items": "Articoli",
       "bought": "Comprati",
-      "users": "Utenti"
+      "users": "Utenti",
+      "updated": "Ultima modifica"
     },
     "deleteConfirmTitle": "Eliminare la lista definitivamente?",
     "deleteConfirmMessage": "Questa azione eliminerà definitivamente \"{name}\" e tutti i suoi articoli.\nL'operazione è irreversibile.",
@@ -114,6 +125,22 @@
   "settings": {
     "title": "Impostazioni",
     "language": "Lingua",
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "share": "Consiglia a un amico",
+    "shareMessage": "Buy The Way — La Tua Lista Della Spesa Intelligente",
+    "shareCopied": "Link copiato negli appunti",
+    "feedback": "Invia feedback",
+    "feedbackTitle": "Manda un feedback",
+    "feedbackHint": "Bug, idea, frustrazione: dimmi tutto.",
+    "feedbackPlaceholder": "Scrivi qui il tuo messaggio…",
+    "feedbackSubmit": "Invia",
+    "feedbackCancel": "Annulla",
+    "feedbackSending": "Invio…",
+    "feedbackThanks": "Grazie! Feedback ricevuto.",
+    "feedbackError": "Invio non riuscito. Riprova tra poco.",
     "account": "Account",
     "signOut": "Esci",
     "deleteAccount": "Elimina account",
@@ -168,16 +195,46 @@
     ],
     "faqTitle": "Domande frequenti",
     "faq": [
-      { "q": "Cosa fa Buy The Way?", "a": "Un'app di liste della spesa condivise in tempo reale. Aggiungi articoli, spuntali, sincronizzazione istantanea con chiunque condivida la lista." },
-      { "q": "Funziona offline?", "a": "Sì. Liste e articoli sono memorizzati localmente; ogni modifica offline si sincronizza non appena torni online." },
-      { "q": "Posso condividere una lista?", "a": "Sì. Dalle impostazioni della lista, aggiungi un collaboratore tramite la sua email Google. Vedrà gli aggiornamenti in tempo reale." },
-      { "q": "I miei dati sono al sicuro?", "a": "Le liste sono memorizzate su Google Firestore con regole di accesso strette per utente. Solo tu e i tuoi collaboratori potete leggere o scrivere le vostre liste." },
-      { "q": "Quanto costa?", "a": "Gratuita. Nessun piano a pagamento, nessuna pubblicità, nessuna analytics." },
-      { "q": "Esiste un'app nativa?", "a": "È una PWA — installala dal browser alla schermata home e si comporta come un'app nativa." },
-      { "q": "Posso eliminare il mio account?", "a": "Sì. Dalle Impostazioni → Elimina account: cancella le tue liste, il profilo, il catalogo e revoca l'accesso in un'unica operazione." },
-      { "q": "Quali metodi di accesso sono supportati?", "a": "Solo accesso con Google." },
-      { "q": "Le mie liste sono criptate?", "a": "I dati sono criptati in transito (HTTPS) e a riposo sull'infrastruttura Google. La crittografia end-to-end non è usata per permettere ai collaboratori di leggere gli articoli." },
-      { "q": "Quali lingue sono supportate?", "a": "Italiano e inglese. L'interfaccia cambia in base alla preferenza nelle Impostazioni." }
+      {
+        "q": "Cosa fa Buy The Way?",
+        "a": "Un'app di liste della spesa condivise in tempo reale. Aggiungi articoli, spuntali, sincronizzazione istantanea con chiunque condivida la lista."
+      },
+      {
+        "q": "Funziona offline?",
+        "a": "Sì. Liste e articoli sono memorizzati localmente; ogni modifica offline si sincronizza non appena torni online."
+      },
+      {
+        "q": "Posso condividere una lista?",
+        "a": "Sì. Dalle impostazioni della lista, aggiungi un collaboratore tramite la sua email Google. Vedrà gli aggiornamenti in tempo reale."
+      },
+      {
+        "q": "I miei dati sono al sicuro?",
+        "a": "Le liste sono memorizzate su Google Firestore con regole di accesso strette per utente. Solo tu e i tuoi collaboratori potete leggere o scrivere le vostre liste."
+      },
+      {
+        "q": "Quanto costa?",
+        "a": "Gratuita. Nessun piano a pagamento, nessuna pubblicità, nessuna analytics."
+      },
+      {
+        "q": "Esiste un'app nativa?",
+        "a": "È una PWA — installala dal browser alla schermata home e si comporta come un'app nativa."
+      },
+      {
+        "q": "Posso eliminare il mio account?",
+        "a": "Sì. Dalle Impostazioni → Elimina account: cancella le tue liste, il profilo, il catalogo e revoca l'accesso in un'unica operazione."
+      },
+      {
+        "q": "Quali metodi di accesso sono supportati?",
+        "a": "Solo accesso con Google."
+      },
+      {
+        "q": "Le mie liste sono criptate?",
+        "a": "I dati sono criptati in transito (HTTPS) e a riposo sull'infrastruttura Google. La crittografia end-to-end non è usata per permettere ai collaboratori di leggere gli articoli."
+      },
+      {
+        "q": "Quali lingue sono supportate?",
+        "a": "Italiano e inglese. L'interfaccia cambia in base alla preferenza nelle Impostazioni."
+      }
     ]
   },
   "seo": {

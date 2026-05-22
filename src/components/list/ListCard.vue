@@ -1,19 +1,31 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Star } from '@lucide/vue';
 import { wallpaperUrl } from '@/domain/wallpapers';
+import { useThemeStore } from '@/stores/theme';
 import type { List, UserProfile } from '@/domain/types';
 
 const props = withDefaults(
   defineProps<{
     list: List;
     isNew?: boolean;
+    isDefault?: boolean;
     members?: readonly UserProfile[];
   }>(),
-  { isNew: false, members: () => [] },
+  { isNew: false, isDefault: false, members: () => [] },
 );
-const emit = defineEmits<{ (e: 'open', id: string): void }>();
+const emit = defineEmits<{
+  (e: 'open', id: string): void;
+  (e: 'toggle-default', id: string): void;
+}>();
 const { t, locale } = useI18n();
+
+const handleStarClick = (ev: MouseEvent): void => {
+  // Tapping the star must not also open the list.
+  ev.stopPropagation();
+  emit('toggle-default', props.list.id);
+};
 
 const itemCount = computed(() => props.list.itemCount ?? 0);
 const itemCountLabel = computed(() => t('list.itemCount', itemCount.value, { n: itemCount.value }));
@@ -24,15 +36,17 @@ const initialFor = (m: UserProfile): string => {
 };
 
 const colorFor = (uid: string): string => {
+  // Light: pastel chip with dark ink. Dark: deep chip with pastel ink — both
+  // hit WCAG AA contrast (4.5:1) for the single initial letter inside.
   const palette = [
-    'bg-rose-200 text-rose-900',
-    'bg-amber-200 text-amber-900',
-    'bg-emerald-200 text-emerald-900',
-    'bg-sky-200 text-sky-900',
-    'bg-violet-200 text-violet-900',
-    'bg-pink-200 text-pink-900',
-    'bg-lime-200 text-lime-900',
-    'bg-cyan-200 text-cyan-900',
+    'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-100',
+    'bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100',
+    'bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100',
+    'bg-sky-200 text-sky-900 dark:bg-sky-900 dark:text-sky-100',
+    'bg-violet-200 text-violet-900 dark:bg-violet-900 dark:text-violet-100',
+    'bg-pink-200 text-pink-900 dark:bg-pink-900 dark:text-pink-100',
+    'bg-lime-200 text-lime-900 dark:bg-lime-900 dark:text-lime-100',
+    'bg-cyan-200 text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100',
   ];
   let hash = 0;
   for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) | 0;
@@ -45,15 +59,19 @@ const overflowCount = computed(() => Math.max(0, props.members.length - MAX_AVAT
 
 const hasWallpaper = computed(() => Boolean(props.list.wallpaper));
 
-const cardStyle = computed(() =>
-  props.list.wallpaper
-    ? {
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('${wallpaperUrl(props.list.wallpaper)}')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : {},
-);
+const themeStore = useThemeStore();
+
+const cardStyle = computed(() => {
+  if (!props.list.wallpaper) return {};
+  // Dark theme: darker overlay so the wallpaper recedes and text stays
+  // readable against the surrounding dark surfaces.
+  const overlay = themeStore.resolved === 'dark' ? '0.6' : '0.45';
+  return {
+    backgroundImage: `linear-gradient(rgba(0,0,0,${overlay}), rgba(0,0,0,${overlay})), url('${wallpaperUrl(props.list.wallpaper)}')`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
+});
 
 const dateFormatter = computed(
   () =>
@@ -72,17 +90,21 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
 </script>
 
 <template>
-  <button
+  <div
     data-testid="list-card"
+    role="button"
+    tabindex="0"
     :class="[
-      'w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3',
+      'w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3 cursor-pointer',
       hasWallpaper
-        ? 'text-offwhite border-transparent shadow-sm'
+        ? 'text-white border-transparent shadow-sm'
         : 'bg-offwhite text-charcoal border-cream-soft',
     ]"
     :style="cardStyle"
     :aria-label="props.list.name"
     @click="emit('open', props.list.id)"
+    @keydown.enter.prevent="emit('open', props.list.id)"
+    @keydown.space.prevent="emit('open', props.list.id)"
   >
     <!-- Avatar cluster -->
     <div v-if="visibleMembers.length > 0" class="flex -space-x-1.5 shrink-0">
@@ -120,7 +142,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     <!-- Title + meta -->
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 min-w-0">
-        <span :class="['font-medium truncate', hasWallpaper ? 'text-offwhite' : 'text-charcoal']">{{ props.list.name }}</span>
+        <span :class="['font-medium truncate', hasWallpaper ? 'text-white' : 'text-charcoal']">{{ props.list.name }}</span>
         <span
           v-if="props.isNew"
           data-testid="new-badge"
@@ -129,15 +151,44 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
           {{ t('badge.new') }}
         </span>
       </div>
-      <div :class="['flex items-center gap-1.5 text-xs mt-0.5', hasWallpaper ? 'text-offwhite/85' : 'text-muted-gray']">
+      <div :class="['flex items-center gap-1.5 text-xs mt-0.5', hasWallpaper ? 'text-white/85' : 'text-muted-gray']">
         <span v-if="itemCount > 0" data-testid="item-count">{{ itemCountLabel }}</span>
         <span v-if="itemCount > 0" aria-hidden="true">·</span>
         <span data-testid="updated-at">{{ updatedLabel }}</span>
       </div>
     </div>
 
+    <button
+      type="button"
+      :data-testid="`star-${props.list.id}`"
+      :aria-pressed="props.isDefault"
+      :aria-label="props.isDefault ? t('list.unsetDefault') : t('list.setDefault')"
+      :title="props.isDefault ? t('list.unsetDefault') : t('list.setDefault')"
+      :class="[
+        'shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
+        hasWallpaper
+          ? 'hover:bg-white/15 active:bg-white/25'
+          : 'hover:bg-black/5 active:bg-black/10',
+      ]"
+      @click="handleStarClick"
+    >
+      <Star
+        :size="18"
+        :stroke-width="2"
+        :class="
+          props.isDefault
+            ? 'text-amber-400'
+            : hasWallpaper
+              ? 'text-white/80'
+              : 'text-muted-gray'
+        "
+        :fill="props.isDefault ? 'currentColor' : 'none'"
+        aria-hidden="true"
+      />
+    </button>
+
     <svg
-      :class="['shrink-0', hasWallpaper ? 'text-offwhite' : 'text-muted-gray']"
+      :class="['shrink-0', hasWallpaper ? 'text-white' : 'text-muted-gray']"
       width="16"
       height="16"
       viewBox="0 0 16 16"
@@ -148,5 +199,5 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     >
       <path d="M6 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
-  </button>
+  </div>
 </template>

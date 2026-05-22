@@ -29,7 +29,6 @@ import {
   renameList,
   deleteList,
   transferListOwnership,
-  UserNotFoundError,
   CannotRemoveOwnerError,
 } from '@/services/lists.service';
 import {
@@ -50,12 +49,16 @@ describe('lists.service collaborator ops', () => {
   });
 
   describe('addCollaborator', () => {
-    it('throws UserNotFoundError when email not registered', async () => {
+    it('queues a pending invite when the email is not yet registered', async () => {
       vi.mocked(findUserByEmail).mockResolvedValue(null);
-      await expect(addCollaborator('list-1', 'nobody@x.com')).rejects.toBeInstanceOf(
-        UserNotFoundError,
-      );
-      expect(updateDoc).not.toHaveBeenCalled();
+      const result = await addCollaborator('list-1', 'nobody@x.com');
+      expect(result).toEqual({ profile: null, pending: true, email: 'nobody@x.com' });
+      expect(arrayUnion).toHaveBeenCalledWith('nobody@x.com');
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({
+        pendingInviteEmails: { __op: 'arrayUnion', args: ['nobody@x.com'] },
+      });
     });
 
     it('adds uid via arrayUnion and bumps updatedAt on success', async () => {
@@ -67,7 +70,8 @@ describe('lists.service collaborator ops', () => {
       });
 
       const result = await addCollaborator('list-1', 'a@b.com');
-      expect(result).toEqual({ uid: 'uid-2', email: 'a@b.com', displayName: 'A', lastLoginAt: 0 });
+      expect(result.profile).toEqual({ uid: 'uid-2', email: 'a@b.com', displayName: 'A', lastLoginAt: 0 });
+      expect(result.pending).toBe(false);
       expect(arrayUnion).toHaveBeenCalledWith('uid-2');
       expect(updateDoc).toHaveBeenCalledOnce();
       const [, payload] = vi.mocked(updateDoc).mock.calls[0];
@@ -77,7 +81,7 @@ describe('lists.service collaborator ops', () => {
       expect(typeof (payload as any).updatedAt).toBe('number');
     });
 
-    it('normalizes email lookup (handled by findUserByEmail)', async () => {
+    it('normalizes email lookup (lower + trim before findUserByEmail)', async () => {
       vi.mocked(findUserByEmail).mockResolvedValue({
         uid: 'uid-3',
         email: 'foo@bar.com',
@@ -85,7 +89,78 @@ describe('lists.service collaborator ops', () => {
         lastLoginAt: 0,
       });
       await addCollaborator('list-1', '  FOO@BAR.COM  ');
-      expect(findUserByEmail).toHaveBeenCalledWith('  FOO@BAR.COM  ');
+      expect(findUserByEmail).toHaveBeenCalledWith('foo@bar.com');
+    });
+
+    it('removes any pre-existing pending invite for the email on registered add', async () => {
+      vi.mocked(findUserByEmail).mockResolvedValue({
+        uid: 'uid-2',
+        email: 'a@b.com',
+        displayName: 'A',
+        lastLoginAt: 0,
+      });
+      await addCollaborator('list-1', 'a@b.com');
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({
+        pendingInviteEmails: { __op: 'arrayRemove', args: ['a@b.com'] },
+      });
+    });
+  });
+
+  describe('claimPendingInvites', () => {
+    it('returns 0 with no matches', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      const { claimPendingInvites } = await import('@/services/lists.service');
+      const n = await claimPendingInvites('uid-new', 'a@b.com');
+      expect(n).toBe(0);
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('promotes the user into collaboratorUids on each matching list', async () => {
+      vi.mocked(getDocs).mockResolvedValue({
+        empty: false,
+        docs: [
+          { id: 'list-a' },
+          { id: 'list-b' },
+        ],
+      } as any);
+      const { claimPendingInvites } = await import('@/services/lists.service');
+      const n = await claimPendingInvites('uid-new', 'A@B.com');
+      expect(n).toBe(2);
+      expect(updateDoc).toHaveBeenCalledTimes(2);
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({
+        collaboratorUids: { __op: 'arrayUnion', args: ['uid-new'] },
+        pendingInviteEmails: { __op: 'arrayRemove', args: ['a@b.com'] },
+      });
+    });
+
+    it('returns 0 and swallows errors when query fails', async () => {
+      vi.mocked(getDocs).mockRejectedValue(new Error('rules denied'));
+      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { claimPendingInvites } = await import('@/services/lists.service');
+      const n = await claimPendingInvites('uid-new', 'a@b.com');
+      expect(n).toBe(0);
+      consoleWarn.mockRestore();
+    });
+
+    it('returns 0 for empty email without hitting Firestore', async () => {
+      const { claimPendingInvites } = await import('@/services/lists.service');
+      const n = await claimPendingInvites('uid-new', '   ');
+      expect(n).toBe(0);
+      expect(getDocs).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cancelPendingInvite', () => {
+    it('arrayRemoves the normalized email and bumps updatedAt', async () => {
+      const { cancelPendingInvite } = await import('@/services/lists.service');
+      await cancelPendingInvite('list-1', '  X@Y.COM ');
+      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(payload).toMatchObject({
+        pendingInviteEmails: { __op: 'arrayRemove', args: ['x@y.com'] },
+      });
+      expect(typeof (payload as any).updatedAt).toBe('number');
     });
   });
 

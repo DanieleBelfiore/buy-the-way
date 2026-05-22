@@ -5,11 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Buy The Way — liste della spesa condivise in tempo reale. Aggiungi, spunta, sincronizza con la famiglia. Mobile-first, installabile, offline-ready."
+      content="Aggiungi, spunta, sincronizza con la famiglia. Mobile-first, installabile, offline-ready."
     />
-    <meta name="theme-color" content="#1c1c1c" />
+    <!-- Static fallback for browsers that read theme-color before our JS runs.
+         The theme store overwrites this at runtime to match the resolved mode. -->
+    <meta name="theme-color" content="#f7f4ed" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15151a" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Open Graph (WhatsApp, Facebook, LinkedIn, Telegram, Slack) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Buy The Way" />
+    <meta property="og:title" content="Buy The Way — La Tua Lista Della Spesa Intelligente" />
+    <meta
+      property="og:description"
+      content="Aggiungi, spunta, sincronizza con la famiglia. Mobile-first, installabile, offline-ready."
+    />
+    <meta property="og:url" content="https://buy-the-way.danielebelfiore.dev" />
+    <meta property="og:locale" content="it_IT" />
+    <meta
+      property="og:image"
+      content="https://buy-the-way.danielebelfiore.dev/branding/logo-original.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1316" />
+    <meta property="og:image:height" content="974" />
+    <meta property="og:image:alt" content="Buy The Way logo" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Buy The Way — La Tua Lista Della Spesa Intelligente" />
+    <meta
+      name="twitter:description"
+      content="Aggiungi, spunta, sincronizza con la famiglia."
+    />
+    <meta
+      name="twitter:image"
+      content="https://buy-the-way.danielebelfiore.dev/branding/logo-original.png"
+    />
 
     <!-- Preconnect to third-party origins used early in load (Firebase Auth + Google sign-in). -->
     <link rel="preconnect" href="https://apis.google.com" crossorigin />
@@ -30,7 +64,41 @@
     <title>Buy The Way</title>
   </head>
   <body>
+    <!--
+      Inline theme hydration. Runs before Vue mounts so the first paint already
+      carries the right data-theme attribute and we never flash light-on-dark
+      (or vice versa) at reload. Kept tiny + dependency-free on purpose.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('btw:themeMode');
+          // Default is light; legacy 'system' values fall through to light.
+          var resolved = stored === 'dark' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', resolved);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+
     <div id="app"></div>
+
+    <!--
+      Static Netlify Forms detector. Netlify scans the built HTML at deploy
+      time, sees `data-netlify="true"`, and provisions a form endpoint that
+      our SPA POSTs to (see FeedbackModal). The visually-hidden inputs declare
+      every field name Netlify should accept. Do not remove.
+    -->
+    <form name="feedback" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="text" name="bot-field" />
+      <input type="text" name="email" />
+      <input type="text" name="uid" />
+      <input type="text" name="userAgent" />
+      <input type="text" name="appVersion" />
+      <textarea name="message"></textarea>
+    </form>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

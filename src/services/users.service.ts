@@ -34,6 +34,7 @@ export const findUserByEmail = async (email: string): Promise<UserProfile | null
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
     ...(data.photoURL && { photoURL: data.photoURL }),
+    ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
   };
 };
 
@@ -48,6 +49,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
     ...(data.photoURL && { photoURL: data.photoURL }),
+    ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
   };
 };
 
@@ -56,6 +58,17 @@ export const touchLastSeenLists = async (
   timestamp: number = Date.now(),
 ): Promise<void> => {
   await setDoc(doc(db, 'users', uid), { lastSeenLists: timestamp }, { merge: true });
+};
+
+/**
+ * Set the user's default list. Pass `null` to clear (no auto-redirect at boot).
+ * Merges with the existing user document so other profile fields stay intact.
+ */
+export const setUserDefaultList = async (
+  uid: string,
+  listId: string | null,
+): Promise<void> => {
+  await setDoc(doc(db, 'users', uid), { defaultListId: listId }, { merge: true });
 };
 
 export const getUsersByUids = async (

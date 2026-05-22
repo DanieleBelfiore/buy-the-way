@@ -102,12 +102,19 @@ const mountView = async () => {
 
 const mockSubscribe = vi.fn();
 
-const setupStores = (list: typeof ownerList | null, selfUid: string) => {
+const mockSetDefaultListId = vi.fn().mockResolvedValue(undefined);
+
+const setupStores = (
+  list: typeof ownerList | null,
+  selfUid: string,
+  profile: { uid: string; defaultListId?: string | null } | null = null,
+) => {
   vi.mocked(useListsStore).mockReturnValue({
     lists: list ? [list] : [],
     loading: false,
     error: null,
     lastSeenLists: 0,
+    initialized: true,
     subscribe: mockSubscribe,
     createList: vi.fn(),
     loadLastSeen: vi.fn().mockResolvedValue(undefined),
@@ -116,6 +123,9 @@ const setupStores = (list: typeof ownerList | null, selfUid: string) => {
   } as any);
   vi.mocked(useAuthStore).mockReturnValue({
     user: { uid: selfUid, email: 's@x.com', displayName: 'S' },
+    profile,
+    ensureProfile: vi.fn().mockResolvedValue(undefined),
+    setDefaultListId: mockSetDefaultListId,
   } as any);
 };
 
@@ -266,6 +276,52 @@ describe('ListSettingsView', () => {
     await flushPromises();
     expect(leaveList).toHaveBeenCalledWith('list-1', 'uid-me');
     expect(router.currentRoute.value.name).toBe('lists');
+  });
+
+  describe('default-list cleanup on remove/leave', () => {
+    it('clears defaultListId after delete when this list was the default', async () => {
+      setupStores(ownerList, 'uid-me', { uid: 'uid-me', defaultListId: 'list-1' });
+      vi.mocked(deleteList).mockResolvedValue(undefined);
+      const wrapper = await mountView();
+      await flushPromises();
+      await wrapper.get('[data-testid="delete-list"]').trigger('click');
+      await wrapper.get('[data-testid="confirm-modal-confirm"]').trigger('click');
+      await flushPromises();
+      expect(mockSetDefaultListId).toHaveBeenCalledWith(null);
+    });
+
+    it('does NOT touch defaultListId on delete when this list was not the default', async () => {
+      setupStores(ownerList, 'uid-me', { uid: 'uid-me', defaultListId: 'list-other' });
+      vi.mocked(deleteList).mockResolvedValue(undefined);
+      const wrapper = await mountView();
+      await flushPromises();
+      await wrapper.get('[data-testid="delete-list"]').trigger('click');
+      await wrapper.get('[data-testid="confirm-modal-confirm"]').trigger('click');
+      await flushPromises();
+      expect(mockSetDefaultListId).not.toHaveBeenCalled();
+    });
+
+    it('clears defaultListId after leave when this list was the default', async () => {
+      setupStores(guestList, 'uid-me', { uid: 'uid-me', defaultListId: 'list-1' });
+      vi.mocked(leaveList).mockResolvedValue(undefined);
+      const wrapper = await mountView();
+      await flushPromises();
+      await wrapper.get('[data-testid="leave-list-bottom"]').trigger('click');
+      await flushPromises();
+      expect(mockSetDefaultListId).toHaveBeenCalledWith(null);
+    });
+
+    it('still navigates to /lists even if clearing default fails', async () => {
+      setupStores(ownerList, 'uid-me', { uid: 'uid-me', defaultListId: 'list-1' });
+      vi.mocked(deleteList).mockResolvedValue(undefined);
+      mockSetDefaultListId.mockRejectedValueOnce(new Error('write failed'));
+      const wrapper = await mountView();
+      await flushPromises();
+      await wrapper.get('[data-testid="delete-list"]').trigger('click');
+      await wrapper.get('[data-testid="confirm-modal-confirm"]').trigger('click');
+      await flushPromises();
+      expect(router.currentRoute.value.name).toBe('lists');
+    });
   });
 
   it('add collaborator form calls addCollaborator and emits added', async () => {

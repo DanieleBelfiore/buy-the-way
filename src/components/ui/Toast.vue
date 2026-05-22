@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, type Component } from 'vue';
+import { Info } from '@lucide/vue';
 
 const props = withDefaults(
   defineProps<{
@@ -53,14 +54,22 @@ const onAction = (): void => {
       data-testid="toast"
       :class="[
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
-        'w-[calc(100vw-2rem)] max-w-md',
+        // Hug the content's intrinsic width; only wrap when the message
+        // would otherwise overflow the viewport (minus a 1rem gutter).
+        'w-fit max-w-[calc(100vw-2rem)]',
         'flex items-center justify-between gap-3',
-        'text-offwhite shadow-xl bg-primary',
+        'text-white shadow-xl bg-primary',
         props.actionLabel
           ? 'rounded-2xl px-4 py-3'
           : 'rounded-full px-4 py-2',
       ]"
     >
+      <Info
+        :size="18"
+        :stroke-width="2.25"
+        class="shrink-0"
+        aria-hidden="true"
+      />
       <span class="text-sm font-medium leading-snug min-w-0 flex-1">{{ props.message }}</span>
       <button
         v-if="props.actionLabel"

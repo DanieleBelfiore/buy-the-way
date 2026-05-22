@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import { useI18n } from 'vue-i18n';
 import { CATEGORIES } from '@/domain/categories';
+import { useThemeStore } from '@/stores/theme';
 import type { CategoryBreakdownSlice } from '@/domain/stats';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -16,15 +17,22 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const props = defineProps<{ slices: readonly CategoryBreakdownSlice[] }>();
 
 const { t } = useI18n();
+const themeStore = useThemeStore();
 
-const readCssVar = (cssVarExpr: string): string => {
+// Tap themeStore.resolved inside computed so chart re-renders on theme flip.
+const readCssVar = (cssVarExpr: string, fallback = '#5f5f5d'): string => {
+  // touch the ref so this becomes a reactive dep of our computeds
+  void themeStore.resolved;
   const match = cssVarExpr.match(/var\((--[^)]+)\)/);
-  if (!match) return '#5f5f5d';
+  if (!match) return fallback;
   const name = match[1]!;
-  if (typeof window === 'undefined') return '#5f5f5d';
+  if (typeof window === 'undefined') return fallback;
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || '#5f5f5d';
+  return value || fallback;
 };
+
+// Legend / tooltip text color follows the resolved theme so labels stay legible.
+const inkColor = computed(() => readCssVar('var(--charcoal)', '#1c1c1c'));
 
 const chartData = computed(() => ({
   labels: props.slices.map(
@@ -51,6 +59,7 @@ const chartOptions = computed(() => ({
       labels: {
         boxWidth: 12,
         padding: 12,
+        color: inkColor.value,
         generateLabels: (chart: {
           data: { labels?: string[]; datasets: { data: number[]; backgroundColor: string[] }[] };
         }) => {
@@ -63,6 +72,10 @@ const chartOptions = computed(() => ({
             const pct = total === 0 ? 0 : Math.round((value / total) * 100);
             return {
               text: `${label} — ${pct}%`,
+              // Per-item fontColor overrides labels.color in Chart.js v4 — set
+              // it so the legend text follows the theme even when we hand-roll
+              // entries via generateLabels.
+              fontColor: inkColor.value,
               fillStyle: ds.backgroundColor[i] ?? '#5f5f5d',
               strokeStyle: ds.backgroundColor[i] ?? '#5f5f5d',
               lineWidth: 0,
@@ -90,6 +103,8 @@ const chartOptions = computed(() => ({
 
 <template>
   <div data-testid="category-donut" class="w-full" style="height: 280px">
-    <Doughnut :data="chartData" :options="chartOptions" />
+    <!-- :key forces Chart.js to rebuild the canvas when the theme flips so
+         legend text + tooltips pick up the new ink color on first paint. -->
+    <Doughnut :key="`donut-${themeStore.resolved}`" :data="chartData" :options="chartOptions" />
   </div>
 </template>

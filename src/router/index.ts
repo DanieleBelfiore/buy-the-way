@@ -1,13 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import { useAuthStore } from '@/stores/auth';
 import { PUBLIC_ROUTE_NAMES } from '@/router/meta';
-import type { RouteLocationNormalized } from 'vue-router';
+import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
+
+// One-shot flag so the default-list boot redirect only fires on the very
+// first navigation of a session, not every time the user returns to /lists.
+let defaultListRedirectArmed = true;
+
+/** Test-only escape hatch — re-arms the boot redirect between tests. */
+export const __resetDefaultListRedirect = (): void => {
+  defaultListRedirectArmed = true;
+};
 
 export const authGuard = async (
   to: RouteLocationNormalized,
-  _from: RouteLocationNormalized,
-): Promise<{ name: string } | undefined> => {
+  from: RouteLocationNormalized,
+): Promise<RouteLocationRaw | undefined> => {
   const { user, ready } = useAuth();
 
   if (!ready.value) {
@@ -31,6 +41,28 @@ export const authGuard = async (
 
   if (isAuthenticated && isLoginRoute) {
     return { name: 'lists' };
+  }
+
+  // Boot-only default-list redirect: when the app first loads and the user
+  // lands on /lists, jump straight into their default list if one is set.
+  // Skipped on subsequent navigations (back from detail, etc.) to avoid loops.
+  if (
+    defaultListRedirectArmed &&
+    isAuthenticated &&
+    from.name === undefined &&
+    to.name === 'lists'
+  ) {
+    defaultListRedirectArmed = false;
+    const authStore = useAuthStore();
+    try {
+      await authStore.ensureProfile();
+    } catch {
+      // Profile fetch failed — fall through to /lists silently.
+    }
+    const defaultId = authStore.profile?.defaultListId;
+    if (defaultId) {
+      return { name: 'list-detail', params: { id: defaultId } };
+    }
   }
 
   return undefined;

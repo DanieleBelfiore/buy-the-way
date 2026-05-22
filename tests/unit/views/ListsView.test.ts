@@ -24,6 +24,8 @@ const i18n = createI18n({
         cancel: 'Cancel',
         noLists: 'No lists yet',
         noListsHint: 'Tap + to create your first list',
+        setDefault: 'Set as default list',
+        unsetDefault: 'Unset default list',
       },
       badge: { new: 'New' },
       settings: { title: 'Settings' },
@@ -65,6 +67,7 @@ describe('ListsView', () => {
       loading: false,
       error: null,
       lastSeenLists: 0,
+      initialized: true,
       subscribe: mockSubscribe,
       createList: mockCreateList,
       loadLastSeen: mockLoadLastSeen,
@@ -73,6 +76,9 @@ describe('ListsView', () => {
     } as any);
     vi.mocked(useAuthStore).mockReturnValue({
       user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+      profile: null,
+      ensureProfile: vi.fn().mockResolvedValue(undefined),
+      setDefaultListId: vi.fn().mockResolvedValue(undefined),
     } as any);
   });
 
@@ -136,6 +142,7 @@ describe('ListsView', () => {
       loading: false,
       error: null,
       lastSeenLists: 0,
+      initialized: true,
       subscribe: mockSubscribe,
       createList: mockCreateList,
       loadLastSeen: mockLoadLastSeen,
@@ -154,6 +161,7 @@ describe('ListsView', () => {
       loading: true,
       error: null,
       lastSeenLists: 0,
+      initialized: false,
       subscribe: mockSubscribe,
       createList: mockCreateList,
       loadLastSeen: mockLoadLastSeen,
@@ -194,6 +202,7 @@ describe('ListsView', () => {
       loading: false,
       error: null,
       lastSeenLists: 0,
+      initialized: true,
       subscribe: mockSubscribe,
       createList: mockCreateList,
       loadLastSeen: mockLoadLastSeen,
@@ -231,6 +240,7 @@ describe('ListsView', () => {
       loading: false,
       error: null,
       lastSeenLists: 70,
+      initialized: true,
       subscribe: mockSubscribe,
       createList: mockCreateList,
       loadLastSeen: mockLoadLastSeen,
@@ -242,5 +252,165 @@ describe('ListsView', () => {
     await flushPromises();
     const badges = wrapper.findAll('[data-testid="new-badge"]');
     expect(badges).toHaveLength(1);
+  });
+
+  describe('default-list star', () => {
+    const seedLists = () => {
+      vi.mocked(useListsStore).mockReturnValue({
+        lists: [
+          { id: '01A', name: 'Spesa', ownerUid: 'uid-me', collaboratorUids: ['uid-me'], createdAt: 1, updatedAt: 2 },
+          { id: '01B', name: 'Pasta', ownerUid: 'uid-me', collaboratorUids: ['uid-me'], createdAt: 1, updatedAt: 3 },
+        ],
+        loading: false,
+        error: null,
+        lastSeenLists: 0,
+        subscribe: mockSubscribe,
+        createList: mockCreateList,
+        loadLastSeen: mockLoadLastSeen,
+        markSeen: mockMarkSeen,
+        isNewForUser: mockIsNewForUser,
+      } as any);
+    };
+
+    it('calls ensureProfile on mount so the star reflects persisted state', async () => {
+      const ensureProfile = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: null,
+        ensureProfile,
+        setDefaultListId: vi.fn().mockResolvedValue(undefined),
+      } as any);
+      mountView();
+      await flushPromises();
+      expect(ensureProfile).toHaveBeenCalled();
+    });
+
+    it('clicking star on a non-default list sets it as default', async () => {
+      seedLists();
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: null },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      const wrapper = mountView();
+      await flushPromises();
+      await wrapper.find('[data-testid="star-01A"]').trigger('click');
+      expect(setDefaultListId).toHaveBeenCalledWith('01A');
+    });
+
+    it('clicking star on the current default list clears it (null)', async () => {
+      seedLists();
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01A' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      const wrapper = mountView();
+      await flushPromises();
+      await wrapper.find('[data-testid="star-01A"]').trigger('click');
+      expect(setDefaultListId).toHaveBeenCalledWith(null);
+    });
+
+    it('clicking star on a different list replaces the current default', async () => {
+      seedLists();
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01A' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      const wrapper = mountView();
+      await flushPromises();
+      await wrapper.find('[data-testid="star-01B"]').trigger('click');
+      expect(setDefaultListId).toHaveBeenCalledWith('01B');
+    });
+
+    it('auto-clears defaultListId when target list is no longer in the user\'s lists', async () => {
+      vi.mocked(useListsStore).mockReturnValue({
+        // 01STALE is the default but not present in the subscribed lists.
+        lists: [
+          { id: '01A', name: 'Spesa', ownerUid: 'uid-me', collaboratorUids: ['uid-me'], createdAt: 1, updatedAt: 2 },
+        ],
+        loading: false,
+        error: null,
+        lastSeenLists: 0,
+        initialized: true,
+        subscribe: mockSubscribe,
+        createList: mockCreateList,
+        loadLastSeen: mockLoadLastSeen,
+        markSeen: mockMarkSeen,
+        isNewForUser: mockIsNewForUser,
+      } as any);
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01STALE' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      mountView();
+      await flushPromises();
+      expect(setDefaultListId).toHaveBeenCalledWith(null);
+    });
+
+    it('does NOT clear defaultListId before the first snapshot has arrived', async () => {
+      vi.mocked(useListsStore).mockReturnValue({
+        lists: [],
+        loading: false,
+        error: null,
+        lastSeenLists: 0,
+        // Subscription has not delivered yet — clearing now would be a
+        // spurious clear of the user's freshly-set default.
+        initialized: false,
+        subscribe: mockSubscribe,
+        createList: mockCreateList,
+        loadLastSeen: mockLoadLastSeen,
+        markSeen: mockMarkSeen,
+        isNewForUser: mockIsNewForUser,
+      } as any);
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01STALE' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      mountView();
+      await flushPromises();
+      expect(setDefaultListId).not.toHaveBeenCalled();
+    });
+
+    it('does NOT clear defaultListId when the target list is still present', async () => {
+      seedLists();
+      const setDefaultListId = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01A' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId,
+      } as any);
+      mountView();
+      await flushPromises();
+      expect(setDefaultListId).not.toHaveBeenCalled();
+    });
+
+    it('star on default list reports aria-pressed=true', async () => {
+      seedLists();
+      vi.mocked(useAuthStore).mockReturnValue({
+        user: { uid: 'uid-me', email: 'me@x.com', displayName: 'Me' },
+        profile: { uid: 'uid-me', defaultListId: '01B' },
+        ensureProfile: vi.fn().mockResolvedValue(undefined),
+        setDefaultListId: vi.fn().mockResolvedValue(undefined),
+      } as any);
+      const wrapper = mountView();
+      await flushPromises();
+      expect(wrapper.find('[data-testid="star-01A"]').attributes('aria-pressed')).toBe('false');
+      expect(wrapper.find('[data-testid="star-01B"]').attributes('aria-pressed')).toBe('true');
+    });
   });
 });

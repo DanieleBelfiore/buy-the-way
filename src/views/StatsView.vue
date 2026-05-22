@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from '@lucide/vue';
 import { useAuthStore } from '@/stores/auth';
 import { useListsStore } from '@/stores/lists';
 import { useCatalogStore } from '@/stores/catalog';
+import { useSafeBack } from '@/composables/useSafeBack';
 import { FAVORITES_MIN_USES } from '@/domain/ranking';
 import {
   topUsedItems,
@@ -15,11 +15,12 @@ import {
 import TopItemsChart from '@/components/stats/TopItemsChart.vue';
 import CategoryDonut from '@/components/stats/CategoryDonut.vue';
 
-const router = useRouter();
 const { t } = useI18n();
 const authStore = useAuthStore();
 const listsStore = useListsStore();
 const catalogStore = useCatalogStore();
+const safeBack = useSafeBack();
+const handleBack = (): void => safeBack({ name: 'lists' });
 
 const entries = computed(() => catalogStore.entries);
 const lists = computed(() => listsStore.lists);
@@ -73,12 +74,12 @@ const totalCards = computed(() => [
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream flex flex-col pb-8">
+  <main class="min-h-screen min-h-dvh bg-cream flex flex-col pb-8">
     <header class="px-5 pt-12 pb-4 flex items-center gap-3">
       <button
         :aria-label="t('stats.title')"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
-        @click="router.back()"
+        @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
       </button>
@@ -108,7 +109,7 @@ const totalCards = computed(() => [
           v-for="card in totalCards"
           :key="card.key"
           :data-testid="`stats-total-${card.key}`"
-          class="bg-white rounded-xl border border-cream-soft px-4 py-3"
+          class="bg-offwhite rounded-xl border border-cream-soft px-4 py-3"
         >
           <div class="text-2xl font-semibold text-charcoal tabular-nums">
             {{ card.value }}
@@ -124,7 +125,7 @@ const totalCards = computed(() => [
           </h2>
           <p class="text-xs text-muted-gray">{{ t('stats.topItems.subtitle') }}</p>
         </header>
-        <div class="bg-white rounded-xl border border-cream-soft p-4">
+        <div class="bg-offwhite rounded-xl border border-cream-soft p-4">
           <TopItemsChart :items="top" />
         </div>
       </section>
@@ -136,7 +137,7 @@ const totalCards = computed(() => [
           </h2>
           <p class="text-xs text-muted-gray">{{ t('stats.categories.subtitle') }}</p>
         </header>
-        <div class="bg-white rounded-xl border border-cream-soft p-4">
+        <div class="bg-offwhite rounded-xl border border-cream-soft p-4">
           <CategoryDonut :slices="slices" />
         </div>
       </section>

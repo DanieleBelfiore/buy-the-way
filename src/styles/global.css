@@ -3,6 +3,10 @@
 @import 'tailwindcss';
 @config '../../tailwind.config.ts';
 
+/* Bind Tailwind's `dark:` variant to our explicit data-theme attribute so the
+   theme store (not just the OS pref) controls every dark-mode utility class. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 *,
 *::before,
 *::after {
@@ -11,6 +15,10 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Bump root font-size from the browser default (16px) by ~1pt so every
+     rem-based size scales up proportionally. Keep this here (not in tailwind
+     config) so it applies to every utility class without rebuilding tokens. */
+  font-size: 17px;
 }
 
 body {

@@ -47,7 +47,7 @@ const handleSignIn = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream flex flex-col items-center px-6">
+  <main class="min-h-screen min-h-dvh bg-cream flex flex-col items-center px-6">
     <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center">
       <!-- Logo + Wordmark -->
       <div class="text-center space-y-3">
@@ -77,7 +77,7 @@ const handleSignIn = async () => {
         <button
           data-testid="sign-in-btn"
           :disabled="loading || undefined"
-          class="w-full h-12 px-5 bg-primary text-offwhite text-base font-medium rounded-full
+          class="w-full h-12 px-5 bg-primary text-white text-base font-medium rounded-full
                  hover:bg-primary-hover active:bg-primary-active
                  flex items-center justify-center gap-3
                  disabled:opacity-50 disabled:cursor-not-allowed"

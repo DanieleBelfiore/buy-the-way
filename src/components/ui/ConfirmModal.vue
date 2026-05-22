@@ -20,8 +20,8 @@ const titleId = useId();
 
 const confirmClasses = computed(() =>
   props.destructive
-    ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
-    : 'bg-primary text-offwhite hover:bg-primary-hover active:bg-primary-active',
+    ? 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900'
+    : 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
 );
 </script>
 

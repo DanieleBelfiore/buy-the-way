@@ -20,9 +20,13 @@ const isE2E = import.meta.env['VITE_E2E'] === 'true';
   <OfflineBanner />
   <router-view v-slot="{ Component }">
     <Transition v-if="!isE2E" name="view-fade" mode="out-in">
-      <component :is="Component" />
+      <KeepAlive :include="['ListsView']">
+        <component :is="Component" />
+      </KeepAlive>
     </Transition>
-    <component v-else :is="Component" />
+    <KeepAlive v-else :include="['ListsView']">
+      <component :is="Component" />
+    </KeepAlive>
   </router-view>
   <UpdatePrompt />
 </template>

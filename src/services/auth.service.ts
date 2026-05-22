@@ -16,7 +16,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase';
-import { deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
+import { claimPendingInvites, deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
 import type { AuthUser } from '@/composables/useAuth';
 import type { UserProfile } from '@/domain/types';
 
@@ -169,10 +169,17 @@ export const onAuthChanged = (
         // but auth state is still valid and the guard must resolve.
         console.warn('[auth] Failed to upsert user profile:', err);
       }
+      // Claim any lists where this user was invited by email before they
+      // had an account. Failures are logged inside the service; don't block
+      // sign-in if the claim can't proceed.
+      if (profile.email) {
+        void claimPendingInvites(firebaseUser.uid, profile.email);
+      }
       callback({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
+        ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
       });
     } else {
       callback(null);

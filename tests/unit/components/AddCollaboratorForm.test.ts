@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import AddCollaboratorForm from '@/components/collaborators/AddCollaboratorForm.vue';
-import { UserNotFoundError } from '@/services/lists.service';
 
 const i18n = createI18n({
   legacy: false,
@@ -63,9 +62,9 @@ describe('AddCollaboratorForm', () => {
     wrapper.unmount();
   });
 
-  it('emits added with profile on success and clears input', async () => {
+  it('emits added with profile on registered-email success and clears input', async () => {
     const profile = { uid: 'uid-2', email: 'a@b.com', displayName: 'A', lastLoginAt: 0 };
-    const submitFn = vi.fn().mockResolvedValue(profile);
+    const submitFn = vi.fn().mockResolvedValue({ profile, pending: false, email: 'a@b.com' });
     const wrapper = mountForm(submitFn);
     await wrapper.find('input').setValue('a@b.com');
     await wrapper.find('form').trigger('submit.prevent');
@@ -76,26 +75,18 @@ describe('AddCollaboratorForm', () => {
     wrapper.unmount();
   });
 
-  it('shows not-found inline error when service throws UserNotFoundError', async () => {
-    const submitFn = vi.fn().mockRejectedValue(new UserNotFoundError('nobody@x.com'));
+  it('emits pending(email) when invitee email is not registered', async () => {
+    const submitFn = vi
+      .fn()
+      .mockResolvedValue({ profile: null, pending: true, email: 'nobody@x.com' });
     const wrapper = mountForm(submitFn);
     await wrapper.find('input').setValue('nobody@x.com');
     await wrapper.find('form').trigger('submit.prevent');
     await flushPromises();
-    expect(wrapper.text()).toContain('No registered user with that email.');
+    expect(wrapper.emitted('pending')).toBeTruthy();
+    expect(wrapper.emitted('pending')![0][0]).toBe('nobody@x.com');
     expect(wrapper.emitted('added')).toBeFalsy();
-    wrapper.unmount();
-  });
-
-  it('clears not-found error when user edits input again', async () => {
-    const submitFn = vi.fn().mockRejectedValue(new UserNotFoundError('nobody@x.com'));
-    const wrapper = mountForm(submitFn);
-    await wrapper.find('input').setValue('nobody@x.com');
-    await wrapper.find('form').trigger('submit.prevent');
-    await flushPromises();
-    expect(wrapper.text()).toContain('No registered user');
-    await wrapper.find('input').setValue('nobody@x.co');
-    expect(wrapper.text()).not.toContain('No registered user');
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('');
     wrapper.unmount();
   });
 
@@ -108,7 +99,7 @@ describe('AddCollaboratorForm', () => {
     await wrapper.find('input').setValue('a@b.com');
     await wrapper.find('form').trigger('submit.prevent');
     expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined();
-    resolve({ uid: 'u', email: 'a@b.com', displayName: '', lastLoginAt: 0 });
+    resolve({ profile: { uid: 'u', email: 'a@b.com', displayName: '', lastLoginAt: 0 }, pending: false, email: 'a@b.com' });
     await flushPromises();
     wrapper.unmount();
   });
@@ -121,7 +112,7 @@ describe('AddCollaboratorForm', () => {
     wrapper.unmount();
   });
 
-  it('shows generic error on non-UserNotFoundError', async () => {
+  it('shows generic error on non-pending failure', async () => {
     const submitFn = vi.fn().mockRejectedValue(new Error('boom'));
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     const wrapper = mountForm(submitFn);

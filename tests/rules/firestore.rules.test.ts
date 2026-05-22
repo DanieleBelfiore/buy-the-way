@@ -424,6 +424,92 @@ describe('firestore.rules — owner-transfer', () => {
   });
 });
 
+describe('firestore.rules — pending email invites', () => {
+  const CARL_EMAIL = 'carl@example.com';
+  const carlInvitedCtx = (): RulesTestContext =>
+    env.authenticatedContext(CARL, { email: CARL_EMAIL }).firestore() as unknown as RulesTestContext;
+
+  it('allows owner to add an email to pendingInviteEmails', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      pendingInviteEmails: [CARL_EMAIL],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('allows an invited user (email match) to read the list before claim', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertSucceeds(getDoc(doc(carlInvitedCtx() as any, 'lists', 'L1')));
+  });
+
+  it('denies a non-invited unauthenticated user from reading the list', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(getDoc(doc(anonCtx() as any, 'lists', 'L1')));
+  });
+
+  it('denies a non-invited authenticated user from reading the list', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(getDoc(doc(bobCtx() as any, 'lists', 'L1')));
+  });
+
+  it('allows the invited user to self-claim (add own uid, remove own email)', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertSucceeds(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a self-claim that also removes an existing collaborator', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      // Carl tries to drop Bob while claiming — forbidden.
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a self-claim that drops another pending invitee', async () => {
+    const OTHER = 'other@example.com';
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL, OTHER] });
+    await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a self-claim that injects another arbitrary uid', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL, 'attacker-uid'],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a self-claim that touches name, wallpaper, or other fields', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      name: 'Renamed',
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a user with non-matching email from claiming', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: ['someone-else@example.com'] });
+    await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+});
+
 describe('firestore.rules — owner update field whitelist', () => {
   it('denies owner from writing an arbitrary unknown field', async () => {
     await seedList('L1', ALICE, [ALICE]);

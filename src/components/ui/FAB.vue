@@ -8,7 +8,7 @@ const emit = defineEmits<{ (e: 'click'): void }>();
 
 <template>
   <button
-    class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-offwhite
+    class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white
            rounded-full shadow-lg hover:bg-primary-hover active:bg-primary-active
            flex items-center justify-center
            active:scale-90 transition-transform"

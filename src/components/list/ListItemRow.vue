@@ -5,8 +5,6 @@ import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Settings, Star, Tras
 import { iconForName, isCustomItemName } from '@/domain/public-catalog';
 import type { Item, ItemPriority } from '@/domain/types';
 
-const LONG_PRESS_MS = 500;
-
 const { t, locale } = useI18n();
 const props = withDefaults(
   defineProps<{
@@ -21,47 +19,14 @@ const isCustom = computed(() => isCustomItemName(props.item.name, locale.value))
 const emit = defineEmits<{
   'toggle-checked': [boolean];
   remove: [];
-  'long-press': [Item];
+  /** Open the item edit sheet — fired by the per-row Settings icon. */
+  'open-edit': [Item];
   'request-priority': [Item];
   'move-copy': [Item];
   'toggle-pinned': [Item];
 }>();
 
-let pressTimer: ReturnType<typeof setTimeout> | null = null;
-let longPressed = false;
-
-const clearTimer = (): void => {
-  if (pressTimer) {
-    clearTimeout(pressTimer);
-    pressTimer = null;
-  }
-};
-
-const onPointerDown = (e: PointerEvent): void => {
-  if (e.pointerType !== 'mouse' && e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-  if ((e as PointerEvent).button && (e as PointerEvent).button !== 0) return;
-  longPressed = false;
-  clearTimer();
-  pressTimer = setTimeout(() => {
-    longPressed = true;
-    emit('long-press', props.item);
-  }, LONG_PRESS_MS);
-};
-
-const onPointerUp = (): void => {
-  clearTimer();
-};
-
-const onPointerCancel = (): void => {
-  clearTimer();
-  longPressed = false;
-};
-
 const onClick = (): void => {
-  if (longPressed) {
-    longPressed = false;
-    return;
-  }
   emit('toggle-checked', !props.item.checked);
 };
 
@@ -72,7 +37,7 @@ const onRequestPriority = (e: MouseEvent): void => {
 
 const onOpenSettings = (e: MouseEvent): void => {
   e.stopPropagation();
-  emit('long-press', props.item);
+  emit('open-edit', props.item);
 };
 
 const onOpenMoveCopy = (e: MouseEvent): void => {
@@ -120,10 +85,6 @@ const nameClasses = computed(() => {
       class="flex-1 flex items-center gap-3 pl-10 pr-2 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerCancel"
-      @pointerleave="onPointerCancel"
     >
       <span
         aria-hidden="true"

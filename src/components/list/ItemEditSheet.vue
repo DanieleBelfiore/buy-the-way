@@ -181,7 +181,7 @@ const onSave = (): void => {
           data-testid="edit-save"
           type="button"
           :disabled="!nameRef.trim()"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-offwhite hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+          class="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="onSave"
         >
           <Check :size="16" :stroke-width="2.25" aria-hidden="true" />

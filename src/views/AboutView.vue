@@ -77,7 +77,7 @@ const goToLogin = (): void => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-cream text-charcoal">
+  <main class="min-h-screen min-h-dvh bg-cream text-charcoal">
     <section class="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center space-y-6">
       <picture>
         <source
@@ -101,7 +101,7 @@ const goToLogin = (): void => {
       <p class="text-lg text-muted-gray">{{ t('about.heroSubtitle') }}</p>
       <button
         type="button"
-        class="inline-flex items-center justify-center h-12 px-6 bg-primary text-offwhite text-base font-medium rounded-full hover:bg-primary-hover active:bg-primary-active"
+        class="inline-flex items-center justify-center h-12 px-6 bg-primary text-white text-base font-medium rounded-full hover:bg-primary-hover active:bg-primary-active"
         data-testid="about-cta"
         @click="goToLogin"
       >

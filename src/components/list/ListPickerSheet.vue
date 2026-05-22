@@ -100,7 +100,7 @@ const onMove = (id: ULID): void => emit('move', id);
             :data-testid="`list-picker-move-${l.id}`"
             type="button"
             :disabled="props.busy"
-            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-offwhite text-xs font-medium hover:bg-primary-hover disabled:opacity-40"
+            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-40"
             @click="onMove(l.id)"
           >
             <ArrowRightLeft :size="14" :stroke-width="2" aria-hidden="true" />

@@ -13,6 +13,14 @@ export const useListsStore = defineStore('lists', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const lastSeenLists = ref<number>(0);
+  /**
+   * True once the Firestore subscription has delivered at least one snapshot
+   * (success OR failure) in this session. Lets stale-default-list cleanup
+   * distinguish "no lists exist" (clear pref) from "we just haven't loaded
+   * yet" (do nothing) — without this, an immediate-mode watch would
+   * incorrectly clear the default on the first paint after a refresh.
+   */
+  const initialized = ref(false);
 
   const subscribe = (): (() => void) => {
     const auth = useAuthStore();
@@ -27,10 +35,12 @@ export const useListsStore = defineStore('lists', () => {
       (incoming) => {
         lists.value = incoming;
         loading.value = false;
+        initialized.value = true;
       },
       (err) => {
         error.value = err.message;
         loading.value = false;
+        initialized.value = true;
       },
     );
   };
@@ -70,6 +80,7 @@ export const useListsStore = defineStore('lists', () => {
     loading,
     error,
     lastSeenLists,
+    initialized,
     subscribe,
     loadLastSeen,
     markSeen,

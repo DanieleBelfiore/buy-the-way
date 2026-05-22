@@ -16,7 +16,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'add-from-shelf': [CatalogEntry];
-  'long-press-tile': [CatalogEntry];
+  'exclude-tile': [CatalogEntry];
 }>();
 
 const { t, locale } = useI18n();
@@ -28,7 +28,7 @@ const toggle = () => {
 };
 
 const onAdd = (entry: CatalogEntry) => emit('add-from-shelf', entry);
-const onLongPress = (entry: CatalogEntry) => emit('long-press-tile', entry);
+const onExclude = (entry: CatalogEntry) => emit('exclude-tile', entry);
 
 const stableEntries = ref<CatalogEntry[]>([...props.entries]);
 
@@ -164,7 +164,7 @@ const onLeave = (el: Element, done: () => void): void => {
               :is-top="topIds.has(entry.id)"
               :is-in-list="itemNamesInList.has(entry.name)"
               @add="onAdd"
-              @long-press="onLongPress"
+              @exclude="onExclude"
             />
           </TransitionGroup>
         </section>
