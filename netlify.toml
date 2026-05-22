@@ -14,10 +14,23 @@
   command = ""
 
 # Serverless functions live in netlify/functions; the modern esbuild bundler
-# handles the TS source + the firebase-admin / resend imports natively.
+# handles the TS source, but `resend` and `firebase-admin` ship as ESM with
+# package-export maps that esbuild silently externalises during bundling. The
+# result is a deployed .mjs with bare `import 'resend'` statements that Node
+# can't resolve at runtime (ERR_MODULE_NOT_FOUND). Declaring them as
+# external_node_modules tells the bundler to leave the imports alone but
+# include the matching `node_modules/` folders alongside the function so
+# Node's loader finds them at `/var/task/node_modules/...` in production.
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  external_node_modules = ["resend", "firebase-admin"]
+  included_files = [
+    "node_modules/resend/**",
+    "node_modules/firebase-admin/**",
+    "node_modules/@firebase/**",
+    "node_modules/firebase/**",
+  ]
 
 # SPA fallback — Vue Router uses HTML5 history; all unmatched paths serve index.html.
 [[redirects]]
