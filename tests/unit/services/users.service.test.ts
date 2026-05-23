@@ -16,6 +16,7 @@ import {
   findUserByEmail,
   getUserProfile,
   touchLastSeenLists,
+  touchLastSeenList,
   getUsersByUids,
 } from '@/services/users.service';
 import { getDoc, getDocs, query, where, limit, setDoc } from 'firebase/firestore';
@@ -175,6 +176,59 @@ describe('users.service', () => {
       const [, data] = vi.mocked(setDoc).mock.calls[0];
       expect((data as any).lastSeenLists).toBeGreaterThanOrEqual(before);
       expect((data as any).lastSeenLists).toBeLessThanOrEqual(after);
+    });
+  });
+
+  describe('touchLastSeenList (per-list)', () => {
+    it('writes lastSeenListMap entry under listId with merge', async () => {
+      await touchLastSeenList('uid-1', 'list-A', 1700000000);
+      expect(setDoc).toHaveBeenCalledOnce();
+      const [, data, opts] = vi.mocked(setDoc).mock.calls[0];
+      expect(data).toEqual({ lastSeenListMap: { 'list-A': 1700000000 } });
+      expect(opts).toMatchObject({ merge: true });
+    });
+
+    it('defaults to current time when no timestamp given', async () => {
+      const before = Date.now();
+      await touchLastSeenList('uid-1', 'list-A');
+      const after = Date.now();
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const ts = (data as any).lastSeenListMap['list-A'];
+      expect(ts).toBeGreaterThanOrEqual(before);
+      expect(ts).toBeLessThanOrEqual(after);
+    });
+  });
+
+  describe('getUserProfile (lastSeenListMap passthrough)', () => {
+    it('includes lastSeenListMap when present in the doc', async () => {
+      vi.mocked(getDoc).mockResolvedValue({
+        exists: () => true,
+        id: 'uid-1',
+        data: () => ({
+          uid: 'uid-1',
+          email: 'a@b.com',
+          displayName: 'A',
+          lastLoginAt: 50,
+          lastSeenListMap: { 'list-A': 1000, 'list-B': 2000 },
+        }),
+      } as any);
+      const out = await getUserProfile('uid-1');
+      expect(out?.lastSeenListMap).toEqual({ 'list-A': 1000, 'list-B': 2000 });
+    });
+
+    it('omits lastSeenListMap key entirely when absent', async () => {
+      vi.mocked(getDoc).mockResolvedValue({
+        exists: () => true,
+        id: 'uid-1',
+        data: () => ({
+          uid: 'uid-1',
+          email: 'a@b.com',
+          displayName: 'A',
+          lastLoginAt: 50,
+        }),
+      } as any);
+      const out = await getUserProfile('uid-1');
+      expect(out).not.toHaveProperty('lastSeenListMap');
     });
   });
 });

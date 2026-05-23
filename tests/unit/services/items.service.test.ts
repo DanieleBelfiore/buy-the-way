@@ -240,6 +240,18 @@ describe('items.service', () => {
       const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
       expect(payload.note).toBe('Manitoba');
     });
+
+    it('trims trailing/leading whitespace from name patch', async () => {
+      await updateItem(listId, itemId, { name: '  Pane integrale  ' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.name).toBe('Pane integrale');
+    });
+
+    it('trims trailing/leading whitespace from note patch', async () => {
+      await updateItem(listId, itemId, { note: '  biologico  ' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.note).toBe('Biologico');
+    });
   });
 
   describe('addItem capitalization', () => {
@@ -277,6 +289,24 @@ describe('items.service', () => {
       await addItem({ ...defaultAddParams, note: '' });
       const [, data] = vi.mocked(setDoc).mock.calls[0]!;
       expect((data as { note: string }).note).toBe('');
+    });
+
+    it('trims trailing/leading whitespace from name', async () => {
+      await addItem({ ...defaultAddParams, name: '  Mela rossa   ' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { name: string }).name).toBe('Mela rossa');
+    });
+
+    it('trims trailing/leading whitespace from note', async () => {
+      await addItem({ ...defaultAddParams, note: '   semola  ' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { note: string }).note).toBe('Semola');
+    });
+
+    it('forwards trimmed name to upsertCatalogEntry', async () => {
+      await addItem({ ...defaultAddParams, name: '  Mela  ' });
+      const args = vi.mocked(upsertCatalogEntry).mock.calls[0]!;
+      expect(args[1]).toBe('Mela');
     });
   });
 

@@ -20,11 +20,12 @@ import {
 } from '@/services/items.service';
 import {
   setCatalogExcluded,
-  setCatalogPinned,
+  setCatalogFavoriteState,
   findCatalogEntryByName,
 } from '@/services/catalog.service';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { CATEGORIES } from '@/domain/categories';
+import { isCustomItemName } from '@/domain/public-catalog';
 import { FAVORITES_MIN_USES } from '@/domain/ranking';
 import { sortCategoriesByLabel } from '@/domain/sort';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
@@ -202,6 +203,7 @@ const pinnedNames = computed<Set<string>>(() => {
   const names = new Set<string>();
   for (const entry of catalogStore.entries) {
     if (entry.excluded) continue;
+    if (entry.dismissedFavorite) continue;
     if (entry.pinned || entry.usageCount >= min) {
       names.add(entry.name);
     }
@@ -234,7 +236,8 @@ const handleTogglePinned = async (item: Item): Promise<void> => {
   try {
     const entry = await findCatalogEntryByName(authStore.user.uid, item.name);
     if (!entry) return;
-    await setCatalogPinned(authStore.user.uid, entry.id, !entry.pinned);
+    const currentlyFavorite = pinnedNames.value.has(item.name);
+    await setCatalogFavoriteState(authStore.user.uid, entry.id, !currentlyFavorite);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] togglePinned failed:', err);
@@ -324,8 +327,8 @@ const handleOpenItemEdit = async (item: Item): Promise<void> => {
       editingPinned.value = false;
       return;
     }
-    if (entry.excluded) {
-      editingPinned.value = false;
+    if (entry.excluded || entry.dismissedFavorite) {
+      editingPinned.value = Boolean(entry.pinned);
     } else {
       editingPinned.value = Boolean(entry.pinned) || entry.usageCount >= FAVORITES_MIN_USES;
     }
@@ -360,11 +363,7 @@ const handleEditSave = async (patch: {
     if (patch.pinned !== previousPinned) {
       const entry = await findCatalogEntryByName(authStore.user.uid, itemName);
       if (entry) {
-        if (patch.pinned) {
-          await setCatalogPinned(authStore.user.uid, entry.id, true);
-        } else {
-          await setCatalogExcluded(authStore.user.uid, entry.id, true);
-        }
+        await setCatalogFavoriteState(authStore.user.uid, entry.id, patch.pinned);
       }
     }
   } catch (err) {
@@ -477,6 +476,44 @@ const cancelRemove = (): void => {
   removeCandidate.value = null;
 };
 
+const dontSuggestToast = ref<{ name: string; entryId: ULID } | null>(null);
+let _dontSuggestTimer: ReturnType<typeof setTimeout> | null = null;
+
+const closeDontSuggestToast = (): void => {
+  dontSuggestToast.value = null;
+  if (_dontSuggestTimer) {
+    clearTimeout(_dontSuggestTimer);
+    _dontSuggestTimer = null;
+  }
+};
+
+const maybeOfferDontSuggest = async (removedName: string): Promise<void> => {
+  if (!authStore.user) return;
+  if (!isCustomItemName(removedName, locale.value)) return;
+  try {
+    const entry = await findCatalogEntryByName(authStore.user.uid, removedName);
+    if (!entry || entry.excluded) return;
+    closeDontSuggestToast();
+    dontSuggestToast.value = { name: removedName, entryId: entry.id };
+    _dontSuggestTimer = setTimeout(() => {
+      closeDontSuggestToast();
+    }, 6000);
+  } catch (err) {
+    console.warn('[ListDetailView] dont-suggest lookup failed:', err);
+  }
+};
+
+const handleDontSuggestAction = async (): Promise<void> => {
+  const target = dontSuggestToast.value;
+  closeDontSuggestToast();
+  if (!target || !authStore.user) return;
+  try {
+    await setCatalogExcluded(authStore.user.uid, target.entryId, true);
+  } catch (err) {
+    console.error('[ListDetailView] dont-suggest exclude failed:', err);
+  }
+};
+
 const confirmRemove = async (): Promise<void> => {
   const target = removeCandidate.value;
   removeCandidate.value = null;
@@ -484,6 +521,7 @@ const confirmRemove = async (): Promise<void> => {
   try {
     await removeItem(listId.value, target.id);
     pulse();
+    void maybeOfferDontSuggest(target.name);
   } catch (err) {
     console.error('[ListDetailView] removeItem failed:', err);
   }
@@ -509,11 +547,19 @@ onMounted(() => {
   // Ensure profile is loaded so the stale-default cleanup below can compare
   // listId.value to authStore.profile.defaultListId.
   void authStore.ensureProfile();
+  // Per-list NEW badge: load the user's per-list seen map, then mark THIS
+  // list as seen. Runs in the background — the badge clears as soon as the
+  // optimistic local update propagates to ListsView.
+  void (async () => {
+    await listsStore.loadLastSeen();
+    await listsStore.markSeen(listId.value);
+  })();
 });
 
 onUnmounted(() => {
   _listsUnsub?.();
   itemsStore.setCurrentList(null);
+  closeDontSuggestToast();
 });
 
 // Stale-default fallback: if the user is on the detail view for a list that
@@ -766,6 +812,14 @@ watch(
       :message="toggleToastMessage"
       :duration-ms="4500"
       @close="toggleToastOpen = false"
+    />
+
+    <Toast
+      :open="dontSuggestToast !== null"
+      :message="dontSuggestToast ? t('item.dontSuggestAgainMessage', { name: dontSuggestToast.name }) : ''"
+      :action-label="t('item.dontSuggestAgainAction')"
+      @action="handleDontSuggestAction"
+      @close="closeDontSuggestToast"
     />
   </main>
 </template>

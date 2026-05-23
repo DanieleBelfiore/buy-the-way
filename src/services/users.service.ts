@@ -33,6 +33,7 @@ export const findUserByEmail = async (email: string): Promise<UserProfile | null
     displayName: data.displayName ?? '',
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
+    ...(data.lastSeenListMap !== undefined && { lastSeenListMap: data.lastSeenListMap }),
     ...(data.photoURL && { photoURL: data.photoURL }),
     ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
   };
@@ -48,6 +49,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     displayName: data.displayName ?? '',
     lastLoginAt: data.lastLoginAt ?? 0,
     ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
+    ...(data.lastSeenListMap !== undefined && { lastSeenListMap: data.lastSeenListMap }),
     ...(data.photoURL && { photoURL: data.photoURL }),
     ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
   };
@@ -58,6 +60,23 @@ export const touchLastSeenLists = async (
   timestamp: number = Date.now(),
 ): Promise<void> => {
   await setDoc(doc(db, 'users', uid), { lastSeenLists: timestamp }, { merge: true });
+};
+
+/**
+ * Mark a single list as seen by the user at `timestamp` (defaults to now).
+ * Uses `setDoc({merge:true})` so the per-list map is deep-merged with any
+ * existing entries instead of being overwritten.
+ */
+export const touchLastSeenList = async (
+  uid: string,
+  listId: string,
+  timestamp: number = Date.now(),
+): Promise<void> => {
+  await setDoc(
+    doc(db, 'users', uid),
+    { lastSeenListMap: { [listId]: timestamp } },
+    { merge: true },
+  );
 };
 
 /**

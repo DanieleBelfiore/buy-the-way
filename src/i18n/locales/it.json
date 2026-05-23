@@ -35,6 +35,8 @@
     "addPlaceholder": "Aggiungi un articolo",
     "name": "Nome",
     "customBadge": "Articolo personalizzato",
+    "dontSuggestAgainMessage": "Non suggerire più \"{name}\"?",
+    "dontSuggestAgainAction": "Non suggerire",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
     "firstCheckTutorialToast": "Articolo segnato come acquistato!",

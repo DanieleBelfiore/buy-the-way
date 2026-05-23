@@ -23,7 +23,9 @@ const sortByScoreDesc = (a: CatalogEntry, b: CatalogEntry, now: number): number 
  * Rules:
  * - `excluded` entries never appear.
  * - `pinned` entries always appear, sorted by score among themselves, listed first.
- * - Remaining entries must have `usageCount >= FAVORITES_MIN_USES`; sorted by score.
+ *   Explicit pin overrides `dismissedFavorite` (re-pinning re-asserts the choice).
+ * - Remaining entries must have `usageCount >= FAVORITES_MIN_USES` AND must not
+ *   carry `dismissedFavorite` (sticky opt-out from auto-promotion).
  * - Combined output capped at FAVORITES_MAX (pinned entries are NOT counted against the cap
  *   so an aggressive pinner never loses them; non-pinned slots = max(0, cap - pinnedCount)).
  */
@@ -31,7 +33,7 @@ export const rankCatalog = (entries: readonly CatalogEntry[], now: number): Cata
   const visible = entries.filter((e) => !e.excluded);
   const pinned = visible.filter((e) => e.pinned).sort((a, b) => sortByScoreDesc(a, b, now));
   const candidates = visible
-    .filter((e) => !e.pinned && e.usageCount >= FAVORITES_MIN_USES)
+    .filter((e) => !e.pinned && !e.dismissedFavorite && e.usageCount >= FAVORITES_MIN_USES)
     .sort((a, b) => sortByScoreDesc(a, b, now));
 
   const slots = Math.max(0, FAVORITES_MAX - pinned.length);

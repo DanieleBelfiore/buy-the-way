@@ -14,7 +14,11 @@ vi.mock('firebase/firestore', () => ({
   increment: vi.fn((n: number) => ({ type: 'increment', value: n })),
 }));
 
-import { upsertCatalogEntry, subscribeCatalog } from '@/services/catalog.service';
+import {
+  upsertCatalogEntry,
+  subscribeCatalog,
+  setCatalogFavoriteState,
+} from '@/services/catalog.service';
 import { setDoc, updateDoc, getDocs, increment, onSnapshot } from 'firebase/firestore';
 import type { CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
@@ -150,6 +154,40 @@ describe('catalog.service', () => {
       const onError = vi.fn();
       subscribeCatalog('uid-1', vi.fn(), onError);
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  describe('setCatalogFavoriteState', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('marking as favorite sets pinned=true, dismissedFavorite=false, excluded=false', async () => {
+      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, true);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toEqual({
+        pinned: true,
+        dismissedFavorite: false,
+        excluded: false,
+      });
+    });
+
+    it('un-favoriting sets pinned=false, dismissedFavorite=true', async () => {
+      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, false);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toEqual({
+        pinned: false,
+        dismissedFavorite: true,
+      });
+    });
+
+    it('un-favoriting does not also exclude the entry from suggestions', async () => {
+      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, false);
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect((patch as Record<string, unknown>).excluded).toBeUndefined();
     });
   });
 });

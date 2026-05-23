@@ -80,6 +80,26 @@ export const setCatalogExcluded = async (
   await updateDoc(doc(entriesCol, entryId), patch);
 };
 
+/**
+ * Single-shot writer for the favorites-shelf state of a catalog entry.
+ *
+ * `wantFavorite = true`  → explicit pin, clear any dismissal/exclusion.
+ * `wantFavorite = false` → stop showing in the favorites shelf without
+ * suppressing the entry from autocomplete suggestions (uses the sticky
+ * `dismissedFavorite` flag so usage-count-based auto-promotion stays off).
+ */
+export const setCatalogFavoriteState = async (
+  ownerUid: string,
+  entryId: ULID,
+  wantFavorite: boolean,
+): Promise<void> => {
+  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
+  const patch: Record<string, unknown> = wantFavorite
+    ? { pinned: true, dismissedFavorite: false, excluded: false }
+    : { pinned: false, dismissedFavorite: true };
+  await updateDoc(doc(entriesCol, entryId), patch);
+};
+
 export const findCatalogEntryByName = async (
   ownerUid: string,
   name: string,

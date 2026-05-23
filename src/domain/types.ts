@@ -57,6 +57,13 @@ export interface CatalogEntry {
   lastUsedAt: number;
   pinned?: boolean;
   excluded?: boolean;
+  /**
+   * Sticky "do not auto-promote to favorites" flag. Independent of `excluded`:
+   * a dismissed entry still appears in autocomplete suggestions, but is hidden
+   * from the favorites shelf even if `usageCount` would otherwise qualify.
+   * Set when the user taps the star on an auto-favorite item.
+   */
+  dismissedFavorite?: boolean;
 }
 
 export interface UserProfile {
@@ -65,7 +72,14 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   lastLoginAt: number;
+  /** @deprecated kept as legacy fallback for the per-list lastSeenListMap migration. */
   lastSeenLists?: number;
+  /**
+   * Per-list "last seen" timestamps used to drive the per-list NEW badge.
+   * Key: list ID. Value: epoch ms of the most recent time the user opened
+   * that specific list. Missing key falls back to `lastSeenLists`.
+   */
+  lastSeenListMap?: Record<string, number>;
   /**
    * Optional list ID the user wants opened automatically when the app boots.
    * `null` (or absent) means no default — user lands on the lists overview.

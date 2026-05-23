@@ -4,7 +4,10 @@ import {
   createList as serviceCreateList,
   subscribeUserLists,
 } from '@/services/lists.service';
-import { getUserProfile, touchLastSeenLists } from '@/services/users.service';
+import {
+  getUserProfile,
+  touchLastSeenList,
+} from '@/services/users.service';
 import { useAuthStore } from '@/stores/auth';
 import type { List } from '@/domain/types';
 
@@ -12,7 +15,13 @@ export const useListsStore = defineStore('lists', () => {
   const lists = ref<List[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  /**
+   * Legacy global "all lists seen at" timestamp from earlier versions. Kept as
+   * a fallback for users whose profile still carries it; new writes go to
+   * `lastSeenListMap` (per-list).
+   */
   const lastSeenLists = ref<number>(0);
+  const lastSeenListMap = ref<Record<string, number>>({});
   /**
    * True once the Firestore subscription has delivered at least one snapshot
    * (success OR failure) in this session. Lets stale-default-list cleanup
@@ -50,22 +59,26 @@ export const useListsStore = defineStore('lists', () => {
     if (!auth.user) return;
     const profile = await getUserProfile(auth.user.uid);
     lastSeenLists.value = profile?.lastSeenLists ?? 0;
+    lastSeenListMap.value = { ...(profile?.lastSeenListMap ?? {}) };
   };
 
-  const markSeen = async (): Promise<void> => {
+  const markSeen = async (listId: string): Promise<void> => {
     const auth = useAuthStore();
     if (!auth.user) return;
     const now = Date.now();
+    lastSeenListMap.value = { ...lastSeenListMap.value, [listId]: now };
     try {
-      await touchLastSeenLists(auth.user.uid, now);
+      await touchLastSeenList(auth.user.uid, listId, now);
     } catch (err) {
-      console.warn('[lists] touchLastSeenLists failed:', err);
+      console.warn('[lists] touchLastSeenList failed:', err);
     }
   };
 
   const isNewForUser = (list: List, uid: string): boolean => {
     if (list.ownerUid === uid) return false;
-    return list.updatedAt > lastSeenLists.value;
+    const perList = lastSeenListMap.value[list.id];
+    const threshold = perList ?? lastSeenLists.value;
+    return list.updatedAt > threshold;
   };
 
   const createList = async (name: string): Promise<string> => {
@@ -80,6 +93,7 @@ export const useListsStore = defineStore('lists', () => {
     loading,
     error,
     lastSeenLists,
+    lastSeenListMap,
     initialized,
     subscribe,
     loadLastSeen,

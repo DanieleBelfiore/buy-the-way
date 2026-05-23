@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, onActivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
@@ -82,15 +82,11 @@ onActivated(() => {
   emptyLottieKey.value += 1;
 });
 
-// Kept alive across navigations: fire markSeen when user leaves the view
-// (mirrors the old onUnmounted behaviour) without tearing down the subscription.
-onDeactivated(() => {
-  void listsStore.markSeen();
-});
-
+// Per-list seen tracking happens on ListDetailView mount. The lists overview
+// itself no longer marks anything as seen, so the NEW badge persists until
+// the user actually opens the specific list.
 onUnmounted(() => {
   unsubscribe?.();
-  void listsStore.markSeen();
 });
 
 const openCreateInput = () => {

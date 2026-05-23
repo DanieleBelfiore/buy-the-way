@@ -35,6 +35,8 @@
     "addPlaceholder": "Add an item",
     "name": "Name",
     "customBadge": "Custom item",
+    "dontSuggestAgainMessage": "Don't suggest \"{name}\" again?",
+    "dontSuggestAgainAction": "Don't suggest",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
     "firstCheckTutorialToast": "Item marked as bought!",

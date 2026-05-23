@@ -32,7 +32,7 @@ onBeforeUnmount(() => {
       role="status"
       aria-live="polite"
       data-testid="offline-banner"
-      class="fixed inset-x-0 top-0 z-[150] bg-charcoal px-4 py-1.5 text-xs font-medium text-offwhite shadow-md flex items-center justify-center gap-1.5"
+      class="fixed inset-x-0 top-0 z-[150] bg-primary px-4 py-1.5 text-xs font-medium text-white shadow-md flex items-center justify-center gap-1.5"
     >
       <WifiOff
         data-testid="offline-icon"

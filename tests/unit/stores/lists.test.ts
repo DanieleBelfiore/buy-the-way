@@ -8,7 +8,7 @@ vi.mock('@/services/lists.service', () => ({
 
 vi.mock('@/services/users.service', () => ({
   getUserProfile: vi.fn(),
-  touchLastSeenLists: vi.fn(),
+  touchLastSeenList: vi.fn(),
 }));
 
 vi.mock('@/stores/auth', () => ({
@@ -17,7 +17,7 @@ vi.mock('@/stores/auth', () => ({
 
 import { useListsStore } from '@/stores/lists';
 import { createList, subscribeUserLists } from '@/services/lists.service';
-import { getUserProfile, touchLastSeenLists } from '@/services/users.service';
+import { getUserProfile, touchLastSeenList } from '@/services/users.service';
 import { useAuthStore } from '@/stores/auth';
 
 const mockUser = { uid: 'uid-1', email: 'a@b.com', displayName: 'A' };
@@ -108,7 +108,7 @@ describe('useListsStore', () => {
   });
 
   describe('loadLastSeen', () => {
-    it('reads profile.lastSeenLists into store', async () => {
+    it('reads profile.lastSeenLists (legacy fallback) into store', async () => {
       vi.mocked(getUserProfile).mockResolvedValue({
         uid: 'uid-1',
         email: 'a@b.com',
@@ -121,7 +121,20 @@ describe('useListsStore', () => {
       expect(store.lastSeenLists).toBe(12345);
     });
 
-    it('defaults to 0 when profile missing lastSeenLists', async () => {
+    it('reads profile.lastSeenListMap into store', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'uid-1',
+        email: 'a@b.com',
+        displayName: 'A',
+        lastLoginAt: 0,
+        lastSeenListMap: { 'list-A': 100, 'list-B': 200 },
+      });
+      const store = useListsStore();
+      await store.loadLastSeen();
+      expect(store.lastSeenListMap).toEqual({ 'list-A': 100, 'list-B': 200 });
+    });
+
+    it('defaults missing maps to empty object and lastSeenLists to 0', async () => {
       vi.mocked(getUserProfile).mockResolvedValue({
         uid: 'uid-1',
         email: 'a@b.com',
@@ -131,6 +144,7 @@ describe('useListsStore', () => {
       const store = useListsStore();
       await store.loadLastSeen();
       expect(store.lastSeenLists).toBe(0);
+      expect(store.lastSeenListMap).toEqual({});
     });
 
     it('no-op when no user signed in', async () => {
@@ -142,18 +156,33 @@ describe('useListsStore', () => {
   });
 
   describe('markSeen', () => {
-    it('calls touchLastSeenLists with current uid', async () => {
-      vi.mocked(touchLastSeenLists).mockResolvedValue(undefined);
+    it('calls touchLastSeenList with uid + listId + timestamp', async () => {
+      vi.mocked(touchLastSeenList).mockResolvedValue(undefined);
       const store = useListsStore();
-      await store.markSeen();
-      expect(touchLastSeenLists).toHaveBeenCalledWith('uid-1', expect.any(Number));
+      await store.markSeen('list-A');
+      expect(touchLastSeenList).toHaveBeenCalledWith('uid-1', 'list-A', expect.any(Number));
+    });
+
+    it('updates lastSeenListMap optimistically before the service resolves', async () => {
+      let resolveSvc: () => void = () => {};
+      vi.mocked(touchLastSeenList).mockImplementation(
+        () => new Promise<void>((r) => { resolveSvc = r; }),
+      );
+      const store = useListsStore();
+      const before = Date.now();
+      const p = store.markSeen('list-A');
+      const after = Date.now();
+      expect(store.lastSeenListMap['list-A']).toBeGreaterThanOrEqual(before);
+      expect(store.lastSeenListMap['list-A']).toBeLessThanOrEqual(after);
+      resolveSvc();
+      await p;
     });
 
     it('swallows errors with warning', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      vi.mocked(touchLastSeenLists).mockRejectedValue(new Error('offline'));
+      vi.mocked(touchLastSeenList).mockRejectedValue(new Error('offline'));
       const store = useListsStore();
-      await expect(store.markSeen()).resolves.toBeUndefined();
+      await expect(store.markSeen('list-A')).resolves.toBeUndefined();
       expect(warn).toHaveBeenCalled();
       warn.mockRestore();
     });
@@ -162,23 +191,49 @@ describe('useListsStore', () => {
   describe('isNewForUser', () => {
     it('returns false when uid is owner', () => {
       const store = useListsStore();
-      store.lastSeenLists = 0;
       const list = { id: '01A', name: 'X', ownerUid: 'uid-1', collaboratorUids: ['uid-1'], createdAt: 1, updatedAt: 999 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(false);
     });
 
-    it('returns true when not owner and updatedAt > lastSeenLists', () => {
+    it('returns true when updatedAt > per-list seen entry', () => {
       const store = useListsStore();
-      store.lastSeenLists = 100;
+      store.lastSeenListMap = { '01A': 100 };
       const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(true);
     });
 
-    it('returns false when not owner but updatedAt <= lastSeenLists', () => {
+    it('returns false when updatedAt <= per-list seen entry', () => {
       const store = useListsStore();
-      store.lastSeenLists = 300;
+      store.lastSeenListMap = { '01A': 300 };
       const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(false);
+    });
+
+    it('falls back to legacy lastSeenLists when no per-list entry', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 500;
+      store.lastSeenListMap = {};
+      const stale = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 400 } as any;
+      const fresh = { id: '01B', name: 'Y', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 600 } as any;
+      expect(store.isNewForUser(stale, 'uid-1')).toBe(false);
+      expect(store.isNewForUser(fresh, 'uid-1')).toBe(true);
+    });
+
+    it('per-list entry overrides the legacy global timestamp', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 1000;
+      store.lastSeenListMap = { '01A': 100 };
+      // updatedAt 500 < global 1000 but > per-list 100 → NEW because per-list wins
+      const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 500 } as any;
+      expect(store.isNewForUser(list, 'uid-1')).toBe(true);
+    });
+
+    it('per-list entry of 0 still overrides legacy global', () => {
+      const store = useListsStore();
+      store.lastSeenLists = 1000;
+      store.lastSeenListMap = { '01A': 0 };
+      const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 1 } as any;
+      expect(store.isNewForUser(list, 'uid-1')).toBe(true);
     });
   });
 });

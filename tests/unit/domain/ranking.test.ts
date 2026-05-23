@@ -121,6 +121,25 @@ describe('rankCatalog', () => {
     expect(result).toEqual([]);
   });
 
+  it('dismissedFavorite hides an auto-promoted (usage-based) entry from the shelf', () => {
+    const now = Date.now();
+    const dismissed = makeEntry({ usageCount: 50, dismissedFavorite: true });
+    const result = rankCatalog([dismissed], now);
+    expect(result).toEqual([]);
+  });
+
+  it('explicit pin overrides dismissedFavorite (pinned still shown)', () => {
+    const now = Date.now();
+    const reasserted = makeEntry({
+      usageCount: 5,
+      pinned: true,
+      dismissedFavorite: true,
+    });
+    const result = rankCatalog([reasserted], now);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe(reasserted.id);
+  });
+
   it('does not mutate the input array', () => {
     const entries = [
       makeEntry({ usageCount: 5 }),

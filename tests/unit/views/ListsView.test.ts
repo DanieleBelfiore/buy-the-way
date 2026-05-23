@@ -224,10 +224,10 @@ describe('ListsView', () => {
     expect(mockSubscribe).toHaveBeenCalledOnce();
   });
 
-  it('calls markSeen on unmount', () => {
+  it('does NOT call markSeen on unmount (per-list seen now happens on detail mount)', () => {
     const wrapper = mountView();
     wrapper.unmount();
-    expect(mockMarkSeen).toHaveBeenCalledOnce();
+    expect(mockMarkSeen).not.toHaveBeenCalled();
   });
 
   it('passes isNew=true to ListCard when isNewForUser returns true', async () => {
