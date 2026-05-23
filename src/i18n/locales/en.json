@@ -35,8 +35,6 @@
     "addPlaceholder": "Add an item",
     "name": "Name",
     "customBadge": "Custom item",
-    "removeFromSuggestions": "Remove from suggestions",
-    "removeFromSuggestionsHint": "This item will no longer be suggested when adding items.",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
     "firstCheckTutorialToast": "Item marked as bought!",

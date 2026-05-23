@@ -199,9 +199,9 @@ describe('items.service', () => {
     });
 
     it('accepts partial patches (note only)', async () => {
-      await updateItem(listId, itemId, { note: 'biologico' });
+      await updateItem(listId, itemId, { note: 'Biologico' });
       const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
-      expect(payload.note).toBe('biologico');
+      expect(payload.note).toBe('Biologico');
       expect(payload.name).toBeUndefined();
     });
 
@@ -228,6 +228,18 @@ describe('items.service', () => {
       const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
       expect(payload.name).toBeUndefined();
     });
+
+    it('capitalizes lowercase initial of note patch', async () => {
+      await updateItem(listId, itemId, { note: 'biologico' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.note).toBe('Biologico');
+    });
+
+    it('leaves already-capitalized note unchanged', async () => {
+      await updateItem(listId, itemId, { note: 'Manitoba' });
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.note).toBe('Manitoba');
+    });
   });
 
   describe('addItem capitalization', () => {
@@ -247,6 +259,24 @@ describe('items.service', () => {
       await addItem({ ...defaultAddParams, name: 'Pane' });
       const [, data] = vi.mocked(setDoc).mock.calls[0]!;
       expect((data as { name: string }).name).toBe('Pane');
+    });
+
+    it('capitalizes lowercase initial of note', async () => {
+      await addItem({ ...defaultAddParams, note: 'semola' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { note: string }).note).toBe('Semola');
+    });
+
+    it('leaves already-capitalized note unchanged', async () => {
+      await addItem({ ...defaultAddParams, note: 'Manitoba' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { note: string }).note).toBe('Manitoba');
+    });
+
+    it('keeps empty note empty', async () => {
+      await addItem({ ...defaultAddParams, note: '' });
+      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      expect((data as { note: string }).note).toBe('');
     });
   });
 
@@ -422,6 +452,17 @@ describe('items.service', () => {
       expect(batchUpdate).toHaveBeenCalledTimes(1);
       const [, payload] = batchUpdate.mock.calls[0]!;
       expect((payload as any).itemCount).toEqual({ __increment: 1 });
+    });
+
+    it('capitalizes note when copying', async () => {
+      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      await copyItem(
+        { ...sampleItem, note: 'biologico' },
+        '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID,
+        'uid-1',
+      );
+      const [, data] = batchSet.mock.calls[0]!;
+      expect((data as { note: string }).note).toBe('Biologico');
     });
   });
 

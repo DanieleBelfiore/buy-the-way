@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, type Component } from 'vue';
-import { Info } from '@lucide/vue';
+import { Info, Loader2 } from '@lucide/vue';
 
 const props = withDefaults(
   defineProps<{
@@ -9,8 +9,9 @@ const props = withDefaults(
     durationMs?: number;
     actionLabel?: string;
     actionIcon?: Component;
+    actionLoading?: boolean;
   }>(),
-  { durationMs: 2500 },
+  { durationMs: 2500, actionLoading: false },
 );
 
 const emit = defineEmits<{ close: []; action: [] }>();
@@ -41,6 +42,7 @@ watch(
 );
 
 const onAction = (): void => {
+  if (props.actionLoading) return;
   emit('action');
 };
 </script>
@@ -86,11 +88,26 @@ const onAction = (): void => {
         v-if="props.actionLabel"
         type="button"
         data-testid="toast-action"
-        class="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary hover:opacity-90 active:opacity-80 transition-opacity"
+        :disabled="props.actionLoading || undefined"
+        :aria-busy="props.actionLoading ? 'true' : undefined"
+        :class="[
+          'shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary transition-opacity',
+          props.actionLoading
+            ? 'opacity-80 cursor-wait'
+            : 'hover:opacity-90 active:opacity-80',
+        ]"
         @click="onAction"
       >
+        <Loader2
+          v-if="props.actionLoading"
+          data-testid="toast-action-spinner"
+          :size="16"
+          :stroke-width="2.5"
+          class="animate-spin"
+          aria-hidden="true"
+        />
         <component
-          v-if="props.actionIcon"
+          v-else-if="props.actionIcon"
           :is="props.actionIcon"
           :size="16"
           :stroke-width="2.5"

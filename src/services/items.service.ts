@@ -51,13 +51,14 @@ export const addItem = async (params: {
   const id = newId();
   const now = Date.now();
   const name = capitalizeInitial(params.name);
+  const note = capitalizeInitial(params.note);
   const item: Item = {
     id,
     listId: params.listId,
     name,
     quantity: params.quantity,
     category: params.category,
-    note: params.note,
+    note,
     checked: false,
     createdByUid: params.createdByUid,
     createdAt: now,
@@ -120,6 +121,9 @@ export const updateItem = async (
   if (patch.name !== undefined) {
     payload.name = capitalizeInitial(patch.name);
   }
+  if (patch.note !== undefined) {
+    payload.note = capitalizeInitial(patch.note);
+  }
   if (patch.priority === null) {
     payload.priority = deleteField();
   }
@@ -161,7 +165,7 @@ const buildCopiedItem = (
   name,
   quantity: src.quantity,
   category: src.category,
-  note: src.note,
+  note: capitalizeInitial(src.note),
   checked: false,
   createdByUid: byUid,
   createdAt: now,

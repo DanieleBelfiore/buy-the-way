@@ -61,6 +61,15 @@ describe('OfflineBanner', () => {
     expect(banner.attributes('aria-live')).toBe('polite');
   });
 
+  it('renders WifiOff icon to the left of the message', async () => {
+    const wrapper = mount(OfflineBanner, { global: { plugins: [i18n] } });
+    setOnline(false);
+    await nextTick();
+    const icon = wrapper.find('[data-testid="offline-icon"]');
+    expect(icon.exists()).toBe(true);
+    expect(icon.attributes('aria-hidden')).toBe('true');
+  });
+
   it('detaches listeners on unmount (no banner mutation after teardown)', async () => {
     const wrapper = mount(OfflineBanner, { global: { plugins: [i18n] } });
     const removeSpy = vi.spyOn(window, 'removeEventListener');

@@ -51,4 +51,19 @@ describe('UpdatePrompt', () => {
     await flushPromises();
     expect(updateServiceWorker).toHaveBeenCalledWith(true);
   });
+
+  it('shows spinner during pending updateServiceWorker call', async () => {
+    let resolveSW: () => void = () => {};
+    updateServiceWorker.mockImplementationOnce(
+      () => new Promise<void>((r) => { resolveSW = r; }),
+    );
+    const wrapper = mount(UpdatePrompt, { global: { plugins: [i18n] } });
+    needRefresh.value = true;
+    await nextTick();
+    await wrapper.find('[data-testid="toast-action"]').trigger('click');
+    await nextTick();
+    expect(wrapper.find('[data-testid="toast-action-spinner"]').exists()).toBe(true);
+    resolveSW();
+    await flushPromises();
+  });
 });

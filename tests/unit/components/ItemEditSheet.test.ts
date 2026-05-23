@@ -17,8 +17,6 @@ const i18n = createI18n({
         note: 'Note',
         pinFavorite: 'Pin to favorites',
         customBadge: 'Custom item',
-        removeFromSuggestions: 'Remove from suggestions',
-        removeFromSuggestionsHint: 'No longer suggested.',
       },
       shelf: { title: 'Favorites' },
       listSettings: { save: 'Save' },
@@ -149,26 +147,10 @@ describe('ItemEditSheet', () => {
     wrapper.unmount();
   });
 
-  it('does NOT show exclude-from-suggestions block for public-catalog item (Latte)', () => {
-    const wrapper = mountSheet(true, makeItem({ name: 'Latte' }));
-    expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(false);
-    wrapper.unmount();
-  });
-
-  it('SHOWS exclude-from-suggestions block for custom item name', () => {
+  it('never renders the exclude-from-suggestions block', () => {
     const wrapper = mountSheet(true, makeItem({ name: 'Babà' }));
-    expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(true);
-    expect(wrapper.get('[data-testid="edit-exclude-suggestions"]').text()).toContain(
-      'Remove from suggestions',
-    );
-    wrapper.unmount();
-  });
-
-  it('emits exclude-from-suggestions with item when button clicked', async () => {
-    const item = makeItem({ name: 'Babà' });
-    const wrapper = mountSheet(true, item);
-    await wrapper.get('[data-testid="edit-exclude-suggestions"]').trigger('click');
-    expect(wrapper.emitted('exclude-from-suggestions')?.[0]).toEqual([item]);
+    expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="edit-exclude-suggestions"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });

@@ -35,8 +35,6 @@
     "addPlaceholder": "Aggiungi un articolo",
     "name": "Nome",
     "customBadge": "Articolo personalizzato",
-    "removeFromSuggestions": "Rimuovi dai suggerimenti",
-    "removeFromSuggestionsHint": "Questo articolo non sarà più suggerito quando aggiungi articoli.",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
     "firstCheckTutorialToast": "Articolo segnato come acquistato!",

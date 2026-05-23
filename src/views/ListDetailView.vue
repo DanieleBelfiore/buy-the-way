@@ -338,21 +338,6 @@ const handleEditCancel = (): void => {
   editingItem.value = null;
 };
 
-const handleExcludeFromSuggestions = async (item: Item): Promise<void> => {
-  if (!authStore.user) return;
-  const uid = authStore.user.uid;
-  const name = item.name;
-  editingItem.value = null;
-  try {
-    const entry = await findCatalogEntryByName(uid, name);
-    if (entry) {
-      await setCatalogExcluded(uid, entry.id, true);
-    }
-  } catch (err) {
-    console.error('[ListDetailView] exclude from suggestions failed:', err);
-  }
-};
-
 const handleEditSave = async (patch: {
   name: string;
   quantity: string;
@@ -730,7 +715,6 @@ watch(
       :pinned="editingPinned"
       @save="handleEditSave"
       @cancel="handleEditCancel"
-      @exclude-from-suggestions="handleExcludeFromSuggestions"
     />
 
     <ConfirmModal

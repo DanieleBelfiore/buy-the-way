@@ -74,5 +74,44 @@ describe('Toast', () => {
       const wrapper = mount(Toast, { props: { open: true, message: 'Hi' } });
       expect(wrapper.find('[data-testid="toast-action"]').exists()).toBe(false);
     });
+
+    it('renders spinner instead of action icon when actionLoading is true', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Update',
+          actionLabel: 'Reload',
+          actionLoading: true,
+        },
+      });
+      expect(wrapper.find('[data-testid="toast-action-spinner"]').exists()).toBe(true);
+    });
+
+    it('disables action button while actionLoading is true', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Update',
+          actionLabel: 'Reload',
+          actionLoading: true,
+        },
+      });
+      const btn = wrapper.find('[data-testid="toast-action"]');
+      expect(btn.attributes('disabled')).toBeDefined();
+      expect(btn.attributes('aria-busy')).toBe('true');
+    });
+
+    it('does not emit action when clicked during actionLoading', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Update',
+          actionLabel: 'Reload',
+          actionLoading: true,
+        },
+      });
+      await wrapper.find('[data-testid="toast-action"]').trigger('click');
+      expect(wrapper.emitted('action')).toBeFalsy();
+    });
   });
 });

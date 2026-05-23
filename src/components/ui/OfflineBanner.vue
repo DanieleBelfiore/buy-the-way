@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { WifiOff } from '@lucide/vue';
 
 const { t } = useI18n();
 
@@ -31,9 +32,16 @@ onBeforeUnmount(() => {
       role="status"
       aria-live="polite"
       data-testid="offline-banner"
-      class="fixed inset-x-0 top-0 z-[150] bg-charcoal px-4 py-2 text-center text-sm font-medium text-offwhite shadow-md"
+      class="fixed inset-x-0 top-0 z-[150] bg-charcoal px-4 py-1.5 text-xs font-medium text-offwhite shadow-md flex items-center justify-center gap-1.5"
     >
-      {{ t('offline.banner') }}
+      <WifiOff
+        data-testid="offline-icon"
+        :size="13"
+        :stroke-width="2.25"
+        class="shrink-0"
+        aria-hidden="true"
+      />
+      <span>{{ t('offline.banner') }}</span>
     </div>
   </Transition>
 </template>
