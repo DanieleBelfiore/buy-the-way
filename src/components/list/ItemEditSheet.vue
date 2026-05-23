@@ -142,7 +142,7 @@ const onSave = (): void => {
         <button
           data-testid="edit-cancel"
           type="button"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10"
           @click="emit('cancel')"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
@@ -152,7 +152,7 @@ const onSave = (): void => {
           data-testid="edit-save"
           type="button"
           :disabled="!nameRef.trim()"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="onSave"
         >
           <Check :size="16" :stroke-width="2.25" aria-hidden="true" />

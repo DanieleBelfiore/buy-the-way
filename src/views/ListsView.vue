@@ -188,9 +188,6 @@ watch(
 
 <template>
   <main class="min-h-dvh bg-cream flex flex-col relative">
-    <div class="absolute top-4 right-4 z-10">
-      <LocaleSwitcher />
-    </div>
     <!-- Top bar with stats + settings buttons (split 50/50 full width). -->
     <header class="px-5 pt-6 pb-2 flex items-center gap-2">
       <button
@@ -210,6 +207,7 @@ watch(
         <SettingsIcon :size="20" :stroke-width="2" aria-hidden="true" />
         <span class="text-sm font-medium">{{ t('settings.title') }}</span>
       </button>
+      <LocaleSwitcher />
     </header>
 
     <!-- Hero brand block -->

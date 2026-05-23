@@ -63,30 +63,24 @@ const onAction = (): void => {
       data-testid="toast"
       :class="[
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
-        // Hug the content's natural width up to a viewport-capped maximum.
-        // Critically: no `flex-1` / `min-w-0` on the message span. With
-        // `w-fit`, a `flex-1` child with `basis: 0` would contribute zero
-        // to the container's intrinsic width — the container would shrink
-        // to icon+button width, then the flex-grow distributes 0px, and
-        // the message wraps to a tiny vertical strip. Dropping flex-1
-        // makes the container measure the message's natural single-line
-        // width, so short/medium messages stay on one line and only
-        // genuinely long ones wrap when the max-w cap kicks in.
-        'w-fit max-w-[calc(100vw-0.5rem)]',
-        'flex items-center gap-3',
+        'w-[calc(100vw-2rem)] sm:w-max sm:max-w-md',
+        'flex gap-3',
+        props.actionLabel ? 'flex-col' : 'items-center',
         'text-white shadow-xl bg-primary',
         props.actionLabel
           ? 'rounded-2xl px-4 py-3'
           : 'rounded-full px-4 py-2',
       ]"
     >
-      <Info
-        :size="18"
-        :stroke-width="2.25"
-        class="shrink-0"
-        aria-hidden="true"
-      />
-      <span class="text-sm font-medium leading-snug">{{ props.message }}</span>
+      <div class="flex items-center gap-3 w-full">
+        <Info
+          :size="18"
+          :stroke-width="2.25"
+          class="shrink-0"
+          aria-hidden="true"
+        />
+        <span class="text-sm font-medium leading-snug flex-1">{{ props.message }}</span>
+      </div>
       <button
         v-if="props.actionLabel"
         type="button"
@@ -94,22 +88,26 @@ const onAction = (): void => {
         :disabled="props.actionLoading || undefined"
         :aria-busy="props.actionLoading ? 'true' : undefined"
         :class="[
-          'shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary transition-opacity',
+          'self-end shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary transition-opacity',
           props.actionLoading
             ? 'opacity-80 cursor-wait'
             : 'hover:opacity-90 active:opacity-80',
         ]"
         @click="onAction"
       >
-        <component
+        <span
           v-if="props.actionIcon"
-          :is="props.actionIcon"
-          data-testid="toast-action-icon"
-          :size="16"
-          :stroke-width="2.5"
-          :class="props.actionLoading ? 'animate-spin' : ''"
-          aria-hidden="true"
-        />
+          data-testid="toast-action-icon-wrapper"
+          :class="['inline-flex shrink-0', props.actionLoading ? 'animate-spin' : '']"
+        >
+          <component
+            :is="props.actionIcon"
+            data-testid="toast-action-icon"
+            :size="16"
+            :stroke-width="2.5"
+            aria-hidden="true"
+          />
+        </span>
         {{ props.actionLabel }}
       </button>
     </div>

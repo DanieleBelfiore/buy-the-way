@@ -474,8 +474,14 @@ const handleDontSuggestConfirm = async (): Promise<void> => {
   if (!target || !authStore.user) return;
   try {
     // Delete the per-user catalog entry so the item is no longer suggested in
-    // autocomplete across any list. Per-list shelf state is independent.
+    // autocomplete across any list.
     await deleteCatalogEntry(authStore.user.uid, target.entryId);
+
+    // Also remove from this list's favorites if present.
+    const fav = await findListFavoriteByName(listId.value, target.name);
+    if (fav) {
+      await setListFavoriteState(listId.value, fav.slug, false);
+    }
   } catch (err) {
     console.error('[ListDetailView] dont-suggest delete failed:', err);
   }
@@ -800,11 +806,10 @@ watch(
       :open="dontSuggestCandidate !== null"
       :title="t('item.dontSuggestAgainTitle')"
       :message="t('item.dontSuggestAgainMessage', { name: dontSuggestCandidate.name })"
-      :confirm-label="t('item.dontSuggestAgainAction')"
-      :cancel-label="t('item.keepSuggesting')"
-      destructive
-      @confirm="handleDontSuggestConfirm"
-      @cancel="closeDontSuggest"
+      :confirm-label="t('item.keepSuggesting')"
+      :cancel-label="t('item.dontSuggestAgainAction')"
+      @confirm="closeDontSuggest"
+      @cancel="handleDontSuggestConfirm"
     />
   </main>
 </template>

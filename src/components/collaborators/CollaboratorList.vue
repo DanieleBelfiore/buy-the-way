@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { LogOut, ShieldCheck, ShieldOff, X } from '@lucide/vue';
+import { LogOut, ShieldCheck, ShieldOff, Trash2, X } from '@lucide/vue';
 import type { UserProfile } from '@/domain/types';
 
 const props = withDefaults(
@@ -98,26 +98,24 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`promote-${m.uid}`"
           :aria-label="`${t('collaborators.promote')} ${labelFor(m)}`"
-          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-950 dark:active:bg-emerald-900"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-primary hover:bg-primary/10 active:bg-primary/20 dark:hover:bg-primary/20 dark:active:bg-primary/30"
           @click="emit('promote', m.uid)"
         >
-          <ShieldCheck :size="12" :stroke-width="2.25" aria-hidden="true" />
-          {{ t('collaborators.promote') }}
+          <ShieldCheck :size="14" :stroke-width="2.25" aria-hidden="true" />
         </button>
 
         <!-- Demote: visible to any admin, on any other admin (including the
              creator). Self-demote is permitted only when other admins remain;
              the service layer enforces the LastAdminError guard. -->
         <button
-          v-if="isSelfAdmin && isAdmin(m.uid)"
+          v-if="isSelfAdmin && isAdmin(m.uid) && props.admins.length > 1"
           type="button"
           :data-testid="`demote-${m.uid}`"
           :aria-label="`${t('collaborators.demote')} ${labelFor(m)}`"
-          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-amber-700 hover:bg-amber-50 active:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-950 dark:active:bg-amber-900"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
           @click="emit('demote', m.uid)"
         >
-          <ShieldOff :size="12" :stroke-width="2.25" aria-hidden="true" />
-          {{ t('collaborators.demote') }}
+          <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
         </button>
 
         <button
@@ -125,11 +123,10 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"
-          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
           @click="emit('remove', m.uid)"
         >
-          <X :size="12" :stroke-width="2.25" aria-hidden="true" />
-          {{ t('collaborators.remove') }}
+          <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
         </button>
       </li>
     </ul>

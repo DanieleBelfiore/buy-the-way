@@ -62,9 +62,9 @@ describe('UpdatePrompt', () => {
     await nextTick();
     await wrapper.find('[data-testid="toast-action"]').trigger('click');
     await nextTick();
-    const icon = wrapper.find('[data-testid="toast-action-icon"]');
-    expect(icon.exists()).toBe(true);
-    expect(icon.classes()).toContain('animate-spin');
+    const iconWrapper = wrapper.find('[data-testid="toast-action-icon-wrapper"]');
+    expect(iconWrapper.exists()).toBe(true);
+    expect(iconWrapper.classes()).toContain('animate-spin');
     resolveSW();
     await flushPromises();
   });

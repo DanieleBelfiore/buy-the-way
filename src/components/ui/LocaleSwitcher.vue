@@ -28,9 +28,9 @@ const choose = (next: Locale): void => {
       :aria-label="t('settings.language') + ': Italiano'"
       data-testid="locale-switcher-it"
       :class="[
-        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all',
+        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
         current === 'it'
-          ? 'ring-2 ring-primary scale-110'
+          ? 'scale-110 opacity-100'
           : 'opacity-60 hover:opacity-100 active:opacity-100',
       ]"
       @click="choose('it')"
@@ -44,9 +44,9 @@ const choose = (next: Locale): void => {
       :aria-label="t('settings.language') + ': English'"
       data-testid="locale-switcher-en"
       :class="[
-        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all',
+        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
         current === 'en'
-          ? 'ring-2 ring-primary scale-110'
+          ? 'scale-110 opacity-100'
           : 'opacity-60 hover:opacity-100 active:opacity-100',
       ]"
       @click="choose('en')"

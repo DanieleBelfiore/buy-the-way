@@ -89,9 +89,9 @@ describe('Toast', () => {
           actionLoading: true,
         },
       });
-      const icon = wrapper.find('[data-testid="toast-action-icon"]');
-      expect(icon.exists()).toBe(true);
-      expect(icon.classes()).toContain('animate-spin');
+      const iconWrapper = wrapper.find('[data-testid="toast-action-icon-wrapper"]');
+      expect(iconWrapper.exists()).toBe(true);
+      expect(iconWrapper.classes()).toContain('animate-spin');
     });
 
     it('omits animate-spin class on the action icon when actionLoading is false', async () => {
@@ -105,9 +105,9 @@ describe('Toast', () => {
           actionLoading: false,
         },
       });
-      const icon = wrapper.find('[data-testid="toast-action-icon"]');
-      expect(icon.exists()).toBe(true);
-      expect(icon.classes()).not.toContain('animate-spin');
+      const iconWrapper = wrapper.find('[data-testid="toast-action-icon-wrapper"]');
+      expect(iconWrapper.exists()).toBe(true);
+      expect(iconWrapper.classes()).not.toContain('animate-spin');
     });
 
     it('disables action button while actionLoading is true', async () => {
