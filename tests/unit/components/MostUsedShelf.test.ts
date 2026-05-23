@@ -16,7 +16,6 @@ const i18n = createI18n({
         empty: 'Add items to populate your shelf',
         collapse: 'Collapse shelf',
         expand: 'Expand shelf',
-        alreadyInList: 'Already in list',
       },
       category: {
         fruit_vegetables: 'Fruit & Veg',
@@ -48,13 +47,11 @@ describe('ShelfTile', () => {
   const mount_ = (props: {
     entry: CatalogEntry;
     isTop?: boolean;
-    isInList?: boolean;
   }) =>
     mount(ShelfTile, {
       props: {
         entry: props.entry,
         isTop: props.isTop ?? false,
-        isInList: props.isInList ?? false,
       },
       global: { plugins: [i18n] },
     });
@@ -64,17 +61,19 @@ describe('ShelfTile', () => {
     expect(wrapper.text()).toContain('Latte');
   });
 
-  it('emits add with entry on click when not in list', async () => {
+  it('emits add with entry on click (duplicates allowed)', async () => {
     const entry = makeEntry();
     const wrapper = mount_({ entry });
     await wrapper.find('button').trigger('click');
     expect(wrapper.emitted('add')?.[0]).toEqual([entry]);
   });
 
-  it('does not emit add when entry already in list', async () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
+  it('always emits add even when re-clicked rapidly (no in-list gate)', async () => {
+    const entry = makeEntry();
+    const wrapper = mount_({ entry });
     await wrapper.find('button').trigger('click');
-    expect(wrapper.emitted('add')).toBeUndefined();
+    await wrapper.find('button').trigger('click');
+    expect(wrapper.emitted('add')).toHaveLength(2);
   });
 
   it('does not render shelf-tile-top accent bar', () => {
@@ -85,40 +84,21 @@ describe('ShelfTile', () => {
   });
 
   it('does not render shelf-tile-check element', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
+    const wrapper = mount_({ entry: makeEntry() });
     expect(wrapper.find('[data-testid="shelf-tile-check"]').exists()).toBe(false);
   });
 
-  it('applies dimmed style when in list', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
+  it('always renders as clickable (no aria-disabled, no line-through)', () => {
+    const wrapper = mount_({ entry: makeEntry() });
     const btn = wrapper.find('button');
-    expect(btn.classes().join(' ')).toMatch(/line-through|opacity/);
+    expect(btn.attributes('aria-disabled')).toBeUndefined();
+    expect(btn.classes().join(' ')).not.toMatch(/line-through|cursor-not-allowed/);
+    expect(btn.classes()).toContain('cursor-pointer');
   });
 
-  it('button is aria-disabled when in list', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
-    expect(wrapper.find('button').attributes('aria-disabled')).toBe('true');
-  });
-
-  it('applies cursor-not-allowed when in list', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
-    expect(wrapper.find('button').classes()).toContain('cursor-not-allowed');
-  });
-
-  it('applies cursor-pointer when not in list', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: false });
-    expect(wrapper.find('button').classes()).toContain('cursor-pointer');
-  });
-
-  it('sets title attribute with alreadyInList message when in list', () => {
-    const wrapper = mount_({ entry: makeEntry(), isInList: true });
-    expect(wrapper.find('button').attributes('title')).toBe('Already in list');
-  });
-
-  it('aria-label includes alreadyInList suffix when in list', () => {
-    const wrapper = mount_({ entry: makeEntry({ name: 'Latte' }), isInList: true });
-    expect(wrapper.find('button').attributes('aria-label')).toContain('Latte');
-    expect(wrapper.find('button').attributes('aria-label')).toContain('Already in list');
+  it('aria-label is just the entry name (no in-list suffix)', () => {
+    const wrapper = mount_({ entry: makeEntry({ name: 'Latte' }) });
+    expect(wrapper.find('button').attributes('aria-label')).toBe('Latte');
   });
 });
 
@@ -127,13 +107,11 @@ describe('MostUsedShelf', () => {
   const mount_ = (props: {
     entries: CatalogEntry[];
     topIds?: Set<ULID>;
-    itemNamesInList?: Set<string>;
   }) =>
     mount(MostUsedShelf, {
       props: {
         entries: props.entries,
         topIds: props.topIds ?? new Set<ULID>(),
-        itemNamesInList: props.itemNamesInList ?? new Set<string>(),
       },
       global: { plugins: [i18n] },
     });
@@ -192,17 +170,17 @@ describe('MostUsedShelf', () => {
     expect(tiles[1].props('isTop')).toBe(false);
   });
 
-  it('passes isInList to tile when entry name is in itemNamesInList (expanded)', async () => {
+  it('does not accept or propagate any isInList prop (duplicates allowed)', async () => {
     const entries = [
       makeEntry({ id: '01A' as ULID, name: 'Latte' }),
       makeEntry({ id: '01B' as ULID, name: 'Pane' }),
     ];
-    const itemNamesInList = new Set(['Latte']);
-    const wrapper = mount_({ entries, itemNamesInList });
+    const wrapper = mount_({ entries });
     await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     const tiles = wrapper.findAllComponents(ShelfTile);
-    expect(tiles[0].props('isInList')).toBe(true);
-    expect(tiles[1].props('isInList')).toBe(false);
+    for (const tile of tiles) {
+      expect((tile.props() as Record<string, unknown>).isInList).toBeUndefined();
+    }
   });
 
   it('re-emits add-from-shelf when tile emits add', async () => {

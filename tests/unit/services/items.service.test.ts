@@ -42,9 +42,8 @@ import {
   setItemPriority,
   copyItem,
   moveItem,
-  DuplicateInDestinationError,
 } from '@/services/items.service';
-import { setDoc, updateDoc, deleteDoc, getDocs, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
 import type { Item } from '@/domain/types';
 import type { ULID } from '@/domain/id';
@@ -441,7 +440,6 @@ describe('items.service', () => {
 
   describe('copyItem', () => {
     it('writes a new item in the destination list via batch', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
       await copyItem(sampleItem, dst, 'uid-1');
       expect(batchSet).toHaveBeenCalledOnce();
@@ -451,33 +449,26 @@ describe('items.service', () => {
     });
 
     it('preserves priority when copying', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem({ ...sampleItem, priority: 'urgent' }, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
       const [, data] = batchSet.mock.calls[0]!;
       expect((data as any).priority).toBe('urgent');
     });
 
-    it('throws DuplicateInDestinationError when destination already has the name', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        empty: false,
-        docs: [{ data: () => ({ name: 'Latte' }) }],
-      } as any);
-      await expect(
-        copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
-      ).rejects.toBeInstanceOf(DuplicateInDestinationError);
-      expect(batchSet).not.toHaveBeenCalled();
-      expect(batchCommit).not.toHaveBeenCalled();
+    it('copies even when an item with the same name already exists in destination (duplicates allowed)', async () => {
+      // No duplicate-check query is performed anymore — the call must succeed
+      // regardless of pre-existing items with the same name.
+      await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(batchSet).toHaveBeenCalledOnce();
+      expect(batchCommit).toHaveBeenCalledOnce();
     });
 
     it('does not delete the source item', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
       expect(batchDelete).not.toHaveBeenCalled();
       expect(deleteDoc).not.toHaveBeenCalled();
     });
 
     it('increments destination itemCount in same batch', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
       expect(batchUpdate).toHaveBeenCalledTimes(1);
       const [, payload] = batchUpdate.mock.calls[0]!;
@@ -485,7 +476,6 @@ describe('items.service', () => {
     });
 
     it('capitalizes note when copying', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await copyItem(
         { ...sampleItem, note: 'biologico' },
         '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID,
@@ -498,7 +488,6 @@ describe('items.service', () => {
 
   describe('moveItem', () => {
     it('writes destination and deletes source in a single batch', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
       await moveItem(listId, sampleItem, dst, 'uid-1');
       expect(writeBatchMock).toHaveBeenCalledOnce();
@@ -508,7 +497,6 @@ describe('items.service', () => {
     });
 
     it('updates both source and destination itemCount counters in the batch', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
       await moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
       expect(batchUpdate).toHaveBeenCalledTimes(2);
       const increments = batchUpdate.mock.calls.map((c) => (c[1] as any).itemCount);
@@ -517,16 +505,11 @@ describe('items.service', () => {
       );
     });
 
-    it('throws and does not delete source when destination has duplicate', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        empty: false,
-        docs: [{ data: () => ({ name: 'Latte' }) }],
-      } as any);
-      await expect(
-        moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1'),
-      ).rejects.toBeInstanceOf(DuplicateInDestinationError);
-      expect(batchDelete).not.toHaveBeenCalled();
-      expect(batchCommit).not.toHaveBeenCalled();
+    it('moves even when an item with the same name already exists in destination (duplicates allowed)', async () => {
+      await moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      expect(batchSet).toHaveBeenCalledOnce();
+      expect(batchDelete).toHaveBeenCalledOnce();
+      expect(batchCommit).toHaveBeenCalledOnce();
     });
   });
 });

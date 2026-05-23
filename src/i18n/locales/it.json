@@ -59,8 +59,7 @@
     "moveOrCopy": "Sposta o copia",
     "copy": "Copia",
     "move": "Sposta",
-    "noOtherLists": "Nessun'altra lista disponibile",
-    "duplicateInDestination": "Un articolo con questo nome esiste già nella lista di destinazione"
+    "noOtherLists": "Nessun'altra lista disponibile"
   },
   "emptyList": {
     "button": "Svuota lista",
@@ -74,7 +73,6 @@
     "empty": "Aggiungi articoli per popolare lo scaffale",
     "collapse": "Comprimi scaffale",
     "expand": "Espandi scaffale",
-    "alreadyInList": "Già nella lista",
     "excludeTitle": "Rimuovere dai preferiti?",
     "excludeMessage": "\"{name}\" non comparirà più nei preferiti, anche se lo aggiungi a nuove liste.\nPuoi sempre riattivarlo dalla modifica articolo.",
     "excludeConfirm": "Rimuovi",

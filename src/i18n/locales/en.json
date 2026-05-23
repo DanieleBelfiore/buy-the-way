@@ -59,8 +59,7 @@
     "moveOrCopy": "Move or copy",
     "copy": "Copy",
     "move": "Move",
-    "noOtherLists": "No other lists available",
-    "duplicateInDestination": "An item with this name already exists in the destination list"
+    "noOtherLists": "No other lists available"
   },
   "emptyList": {
     "button": "Empty list",
@@ -74,7 +73,6 @@
     "empty": "Add items to populate your shelf",
     "collapse": "Collapse shelf",
     "expand": "Expand shelf",
-    "alreadyInList": "Already in list",
     "excludeTitle": "Remove from favorites?",
     "excludeMessage": "\"{name}\" won't appear in favorites anymore, even if added to new lists.\nYou can re-enable it from item edit.",
     "excludeConfirm": "Remove",

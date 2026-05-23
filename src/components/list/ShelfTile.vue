@@ -8,7 +8,6 @@ import type { CatalogEntry } from '@/domain/types';
 const props = defineProps<{
   entry: CatalogEntry;
   isTop: boolean;
-  isInList: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -22,7 +21,6 @@ const { t, locale } = useI18n();
 const itemIcon = computed(() => iconForName(props.entry.name, locale.value));
 
 const onClick = (): void => {
-  if (props.isInList) return;
   emit('add', props.entry);
 };
 
@@ -36,26 +34,14 @@ const labelClasses = computed(() => [
   props.isTop ? 'font-semibold text-charcoal' : 'font-normal text-charcoal',
 ]);
 
-const buttonClasses = computed(() => [
-  'group relative flex items-center gap-2 w-full pl-3 pr-8 py-2 rounded-md border border-cream-soft bg-offwhite text-left transition-colors select-none',
-  props.isInList
-    ? 'line-through opacity-50 cursor-not-allowed'
-    : 'hover:bg-cream active:bg-cream-soft cursor-pointer',
-]);
-
-const ariaLabel = computed(() =>
-  props.isInList ? `${props.entry.name} — ${t('shelf.alreadyInList')}` : props.entry.name,
-);
-
-const titleAttr = computed(() => (props.isInList ? t('shelf.alreadyInList') : undefined));
+const buttonClasses =
+  'group relative flex items-center gap-2 w-full pl-3 pr-8 py-2 rounded-md border border-cream-soft bg-offwhite text-left transition-colors select-none hover:bg-cream active:bg-cream-soft cursor-pointer';
 </script>
 
 <template>
   <button
     type="button"
-    :aria-disabled="isInList ? 'true' : undefined"
-    :aria-label="ariaLabel"
-    :title="titleAttr"
+    :aria-label="entry.name"
     :class="buttonClasses"
     @click="onClick"
   >

@@ -9,11 +9,6 @@ import type { Category } from '@/domain/types';
 const { t, locale } = useI18n();
 const catalog = useCatalogStore();
 
-const props = withDefaults(
-  defineProps<{ excludeNames?: Set<string> }>(),
-  { excludeNames: () => new Set<string>() },
-);
-
 const emit = defineEmits<{
   'add-item': [{ name: string; category: Category; quantity: string; note: string }];
   'active-change': [boolean];
@@ -24,22 +19,15 @@ const isOpen = ref(false);
 const highlightIndex = ref(-1);
 
 const suggestions = computed<Suggestion[]>(() =>
-  catalog
-    .suggestionsFor(query.value, locale.value)
-    .filter((s) => !props.excludeNames.has(s.name.toLowerCase())),
+  catalog.suggestionsFor(query.value, locale.value),
 );
 const hasText = computed(() => rawQuery.value.trim().length > 0);
-const typedNameInList = computed(
-  () => hasText.value && props.excludeNames.has(rawQuery.value.trim().toLowerCase()),
-);
 const typedMatchesSuggestion = computed(() => {
   if (!hasText.value) return false;
   const norm = normalizeName(rawQuery.value);
   return suggestions.value.some((s) => normalizeName(s.name) === norm);
 });
-const showCustom = computed(
-  () => hasText.value && !typedNameInList.value && !typedMatchesSuggestion.value,
-);
+const showCustom = computed(() => hasText.value && !typedMatchesSuggestion.value);
 
 const totalOptions = computed(() => suggestions.value.length + (showCustom.value ? 1 : 0));
 
@@ -57,7 +45,6 @@ const commit = (entry: Suggestion | null) => {
   const name = entry ? entry.name : rawQuery.value.trim();
   const category: Category = entry ? entry.category : 'other';
   if (!name) return;
-  if (props.excludeNames.has(name.toLowerCase())) return;
   emit('add-item', { name, category, quantity: '', note: '' });
   rawQuery.value = '';
   isOpen.value = false;

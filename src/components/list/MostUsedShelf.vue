@@ -11,7 +11,6 @@ import type { ULID } from '@/domain/id';
 const props = defineProps<{
   entries: CatalogEntry[];
   topIds: Set<ULID>;
-  itemNamesInList: Set<string>;
 }>();
 
 const emit = defineEmits<{
@@ -162,7 +161,6 @@ const onLeave = (el: Element, done: () => void): void => {
               :key="entry.id"
               :entry="entry"
               :is-top="topIds.has(entry.id)"
-              :is-in-list="itemNamesInList.has(entry.name)"
               @add="onAdd"
               @exclude="onExclude"
             />

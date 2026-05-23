@@ -5,12 +5,9 @@ import {
   updateDoc,
   deleteDoc,
   deleteField,
-  getDocs,
   onSnapshot,
   query,
   orderBy,
-  where,
-  limit,
   writeBatch,
   increment,
 } from 'firebase/firestore';
@@ -139,20 +136,6 @@ export const setItemPriority = async (
   await updateItem(listId, itemId, { priority });
 };
 
-export class DuplicateInDestinationError extends Error {
-  constructor(name: string) {
-    super(`An item named "${name}" already exists in the destination list`);
-    this.name = 'DuplicateInDestinationError';
-  }
-}
-
-const hasDuplicateName = async (dstListId: ULID, name: string): Promise<boolean> => {
-  const itemsCol = collection(db, 'lists', dstListId, 'items');
-  const q = query(itemsCol, where('name', '==', name), limit(1));
-  const snap = await getDocs(q);
-  return !snap.empty;
-};
-
 const buildCopiedItem = (
   src: Item,
   dstListId: ULID,
@@ -179,9 +162,6 @@ export const copyItem = async (
   byUid: string,
 ): Promise<ULID> => {
   const name = capitalizeInitial(item.name);
-  if (await hasDuplicateName(dstListId, name)) {
-    throw new DuplicateInDestinationError(name);
-  }
   const now = Date.now();
   const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
   const dstItemsCol = collection(db, 'lists', dstListId, 'items');
@@ -205,9 +185,6 @@ export const moveItem = async (
   byUid: string,
 ): Promise<ULID> => {
   const name = capitalizeInitial(item.name);
-  if (await hasDuplicateName(dstListId, name)) {
-    throw new DuplicateInDestinationError(name);
-  }
   const now = Date.now();
   const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
   const srcItemsCol = collection(db, 'lists', srcListId, 'items');

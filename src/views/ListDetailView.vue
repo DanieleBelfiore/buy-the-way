@@ -16,7 +16,6 @@ import {
   setItemPriority,
   copyItem,
   moveItem,
-  DuplicateInDestinationError,
 } from '@/services/items.service';
 import {
   setCatalogExcluded,
@@ -66,10 +65,6 @@ const itemsByCategory = computed<[Category, Item[]][]>(() => {
 const hasItems = computed(() => itemsStore.items.length > 0);
 const shelfEntries = computed(() => catalogStore.rankedEntries);
 const shelfTopIds = computed(() => catalogStore.topIds);
-const itemNamesInList = computed(() => new Set(itemsStore.items.map((i) => i.name)));
-const itemNamesLowerInList = computed(
-  () => new Set(itemsStore.items.map((i) => i.name.toLowerCase())),
-);
 const itemCount = computed(() => itemsStore.items.length);
 const boughtCount = computed(() => itemsStore.items.filter((i) => i.checked).length);
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
@@ -264,12 +259,7 @@ const handlePickerCopy = async (dstListId: ULID): Promise<void> => {
     pickerItem.value = null;
     pulse();
   } catch (err) {
-    pickerError.value =
-      err instanceof DuplicateInDestinationError
-        ? t('item.duplicateInDestination')
-        : err instanceof Error
-          ? err.message
-          : String(err);
+    pickerError.value = err instanceof Error ? err.message : String(err);
   } finally {
     pickerBusy.value = false;
   }
@@ -285,12 +275,7 @@ const handlePickerMove = async (dstListId: ULID): Promise<void> => {
     pickerItem.value = null;
     pulse();
   } catch (err) {
-    pickerError.value =
-      err instanceof DuplicateInDestinationError
-        ? t('item.duplicateInDestination')
-        : err instanceof Error
-          ? err.message
-          : String(err);
+    pickerError.value = err instanceof Error ? err.message : String(err);
   } finally {
     pickerBusy.value = false;
   }
@@ -690,7 +675,6 @@ watch(
 
     <div class="px-0">
       <ItemAutocomplete
-        :exclude-names="itemNamesLowerInList"
         @add-item="handleAddItem"
         @active-change="(v) => (autocompleteActive = v)"
       />
@@ -700,7 +684,6 @@ watch(
       v-if="list?.showFavorites !== false"
       :entries="shelfEntries"
       :top-ids="shelfTopIds"
-      :item-names-in-list="itemNamesInList"
       @add-from-shelf="handleShelfAdd"
       @exclude-tile="handleShelfExclude"
     />
