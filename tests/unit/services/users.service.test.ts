@@ -12,6 +12,15 @@ vi.mock('firebase/firestore', () => ({
   serverTimestamp: vi.fn().mockReturnValue({ __t: 'server' }),
 }));
 
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn().mockReturnValue({ 
+    currentUser: { 
+      uid: 'mock-uid',
+      getIdToken: vi.fn().mockResolvedValue('mock-token')
+    } 
+  }),
+}));
+
 import {
   findUserByEmail,
   getUserProfile,
@@ -27,47 +36,62 @@ describe('users.service', () => {
   });
 
   describe('findUserByEmail', () => {
+    let originalFetch: typeof global.fetch;
+
+    beforeEach(() => {
+      originalFetch = global.fetch;
+      global.fetch = vi.fn();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
     it('returns null on empty input', async () => {
       const out = await findUserByEmail('');
       expect(out).toBeNull();
-      expect(getDocs).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('returns null on whitespace-only input', async () => {
       const out = await findUserByEmail('   ');
       expect(out).toBeNull();
-      expect(getDocs).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('normalizes input (trim + lowercase) before query', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      vi.mocked(global.fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ profile: null }),
+      } as any);
+
       await findUserByEmail('  TEST@Example.COM  ');
-      expect(where).toHaveBeenCalledWith('email', '==', 'test@example.com');
-      expect(limit).toHaveBeenCalledWith(1);
-      expect(query).toHaveBeenCalledOnce();
-      expect(getDocs).toHaveBeenCalledOnce();
+      
+      expect(global.fetch).toHaveBeenCalledOnce();
+      expect(vi.mocked(global.fetch).mock.calls[0][0]).toContain('email=test%40example.com');
     });
 
     it('returns null when no match found', async () => {
-      vi.mocked(getDocs).mockResolvedValue({ empty: true, docs: [] } as any);
+      vi.mocked(global.fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({ profile: null }),
+      } as any);
+
       const out = await findUserByEmail('nobody@example.com');
       expect(out).toBeNull();
     });
 
     it('returns UserProfile when match found', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        empty: false,
-        docs: [
-          {
-            id: 'uid-1',
-            data: () => ({
-              uid: 'uid-1',
-              email: 'a@b.com',
-              displayName: 'A',
-              lastLoginAt: 123,
-            }),
+      vi.mocked(global.fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          profile: {
+            uid: 'uid-1',
+            email: 'a@b.com',
+            displayName: 'A',
+            lastLoginAt: 123,
           },
-        ],
+        }),
       } as any);
 
       const out = await findUserByEmail('a@b.com');
@@ -80,23 +104,20 @@ describe('users.service', () => {
     });
 
     it('matches case-insensitively (uppercase input)', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        empty: false,
-        docs: [
-          {
-            id: 'uid-2',
-            data: () => ({
-              uid: 'uid-2',
-              email: 'foo@bar.com',
-              displayName: 'Foo',
-              lastLoginAt: 99,
-            }),
+      vi.mocked(global.fetch).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          profile: {
+            uid: 'uid-2',
+            email: 'foo@bar.com',
+            displayName: 'Foo',
+            lastLoginAt: 99,
           },
-        ],
+        }),
       } as any);
 
       const out = await findUserByEmail('FOO@BAR.COM');
-      expect(where).toHaveBeenCalledWith('email', '==', 'foo@bar.com');
+      expect(vi.mocked(global.fetch).mock.calls[0][0]).toContain('email=foo%40bar.com');
       expect(out?.uid).toBe('uid-2');
     });
   });

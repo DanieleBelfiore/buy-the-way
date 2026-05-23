@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, onActivated } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
@@ -66,11 +66,24 @@ const profilesFor = (uids: readonly string[]): UserProfile[] =>
     .map((u) => profileMap.value.get(u))
     .filter((p): p is UserProfile => Boolean(p));
 
+const startSub = () => {
+  if (!unsubscribe) {
+    unsubscribe = listsStore.subscribe();
+  }
+};
+
+const stopSub = () => {
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = undefined;
+  }
+};
+
 onMounted(async () => {
   // Run profile + lists init concurrently — neither blocks the other.
   void authStore.ensureProfile();
   await listsStore.loadLastSeen();
-  unsubscribe = listsStore.subscribe();
+  startSub();
 });
 
 // Re-mount the Lottie player every time we come back to the view.
@@ -81,13 +94,18 @@ onMounted(async () => {
 const emptyLottieKey = ref(0);
 onActivated(() => {
   emptyLottieKey.value += 1;
+  startSub();
 });
 
 // Per-list seen tracking happens on ListDetailView mount. The lists overview
 // itself no longer marks anything as seen, so the NEW badge persists until
 // the user actually opens the specific list.
+onDeactivated(() => {
+  stopSub();
+});
+
 onUnmounted(() => {
-  unsubscribe?.();
+  stopSub();
 });
 
 const openCreateInput = () => {
@@ -248,6 +266,13 @@ watch(
       />
       <div class="flex gap-2">
         <button
+          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 text-muted-gray text-sm rounded-xl hover:bg-black/5"
+          @click="cancelCreate"
+        >
+          <X :size="16" :stroke-width="2" aria-hidden="true" />
+          {{ t('list.cancel') }}
+        </button>
+        <button
           :disabled="creating || !newListName.trim()"
           class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl
                  hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
@@ -255,13 +280,6 @@ watch(
         >
           <Plus :size="16" :stroke-width="2.5" aria-hidden="true" />
           {{ t('list.create') }}
-        </button>
-        <button
-          class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 text-muted-gray text-sm rounded-xl hover:bg-black/5"
-          @click="cancelCreate"
-        >
-          <X :size="16" :stroke-width="2" aria-hidden="true" />
-          {{ t('list.cancel') }}
         </button>
       </div>
     </div>

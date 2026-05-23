@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, useId, watch } from 'vue';
+import { ref, useId, watch, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Send, X } from '@lucide/vue';
+import { useModalBack } from '@/composables/useModalBack';
 import pkg from '../../../package.json';
 
 const props = defineProps<{ open: boolean }>();
@@ -37,6 +38,9 @@ const cancel = (): void => {
   if (sending.value) return;
   emit('close');
 };
+
+const openRef = toRef(props, 'open');
+useModalBack(openRef, cancel);
 
 const submit = async (): Promise<void> => {
   const text = message.value.trim();
@@ -119,12 +123,12 @@ const submit = async (): Promise<void> => {
         {{ t('settings.feedbackError') }}
       </p>
 
-      <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div class="mt-5 flex flex-row items-center gap-2">
         <button
           data-testid="feedback-cancel"
           type="button"
           :disabled="sending"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal bg-black/5 hover:bg-black/10 active:bg-black/15 transition-colors disabled:opacity-40"
           @click="cancel"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
@@ -134,7 +138,7 @@ const submit = async (): Promise<void> => {
           data-testid="feedback-submit"
           type="button"
           :disabled="sending || !message.trim()"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors disabled:opacity-40"
           @click="submit"
         >
           <Send :size="16" :stroke-width="2.25" aria-hidden="true" />

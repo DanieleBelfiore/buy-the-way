@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, useId } from 'vue';
+import { ref, watch, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check, X } from '@lucide/vue';
+import { useModalBack } from '@/composables/useModalBack';
 import { CATEGORY_ORDER, CATEGORIES } from '@/domain/categories';
 import type { Item, Category } from '@/domain/types';
 
@@ -51,6 +52,9 @@ watch(
 
 const titleId = useId();
 
+const openRef = toRef(props, 'open');
+useModalBack(openRef, () => emit('cancel'));
+
 const onSave = (): void => {
   const trimmed = nameRef.value.trim();
   if (!trimmed) return;
@@ -67,7 +71,7 @@ const onSave = (): void => {
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+    class="fixed inset-0 z-[100] flex items-center justify-center"
   >
     <div
       data-testid="item-edit-backdrop"
@@ -78,12 +82,11 @@ const onSave = (): void => {
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      tabindex="-1"
-      class="relative z-10 w-full sm:max-w-md mx-0 sm:mx-5 rounded-t-2xl sm:rounded-2xl bg-cream p-5 shadow-xl"
+      class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl"
       @keydown.esc="emit('cancel')"
     >
       <h2 :id="titleId" class="text-base font-semibold text-charcoal mb-4">
-        {{ props.item?.name ?? '' }}
+        {{ t('item.options') }}
       </h2>
 
       <div class="space-y-3">
@@ -96,6 +99,21 @@ const onSave = (): void => {
             data-testid="edit-name"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           />
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+            {{ t('category.label') }}
+          </label>
+          <select
+            v-model="categoryRef"
+            data-testid="edit-category"
+            class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
+          >
+            <option v-for="c in CATEGORY_ORDER" :key="c" :value="c">
+              {{ t(CATEGORIES[c].labelKey) }}
+            </option>
+          </select>
         </div>
 
         <div>
@@ -119,21 +137,6 @@ const onSave = (): void => {
             rows="2"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           />
-        </div>
-
-        <div>
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
-            {{ t('category.label') }}
-          </label>
-          <select
-            v-model="categoryRef"
-            data-testid="edit-category"
-            class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
-          >
-            <option v-for="c in CATEGORY_ORDER" :key="c" :value="c">
-              {{ t(CATEGORIES[c].labelKey) }}
-            </option>
-          </select>
         </div>
 
       </div>

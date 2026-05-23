@@ -88,6 +88,15 @@ export const useListsStore = defineStore('lists', () => {
     return serviceCreateList(name, auth.user.uid, existing);
   };
 
+  const clear = (): void => {
+    lists.value = [];
+    loading.value = false;
+    error.value = null;
+    initialized.value = false;
+    lastSeenLists.value = 0;
+    lastSeenListMap.value = {};
+  };
+
   return {
     lists,
     loading,
@@ -100,5 +109,6 @@ export const useListsStore = defineStore('lists', () => {
     markSeen,
     isNewForUser,
     createList,
+    clear,
   };
 });

@@ -25,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!authUser || authUser.uid !== user.value?.uid) {
         profile.value = null;
         profileLoadPromise = null;
+        import('@/stores/lists').then((m) => m.useListsStore().clear());
       }
       user.value = authUser;
       ready.value = true;

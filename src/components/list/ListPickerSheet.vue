@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useId } from 'vue';
+import { useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ArrowRightLeft, Copy, X } from '@lucide/vue';
+import { useModalBack } from '@/composables/useModalBack';
 import type { List } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -24,12 +25,15 @@ const titleId = useId();
 
 const onCopy = (id: ULID): void => emit('copy', id);
 const onMove = (id: ULID): void => emit('move', id);
+
+const openRef = toRef(props, 'open');
+useModalBack(openRef, () => emit('cancel'));
 </script>
 
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+    class="fixed inset-0 z-[100] flex items-center justify-center"
   >
     <div
       data-testid="list-picker-backdrop"
@@ -40,7 +44,7 @@ const onMove = (id: ULID): void => emit('move', id);
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative z-10 w-full sm:max-w-md mx-0 sm:mx-5 rounded-t-2xl sm:rounded-2xl bg-cream p-5 shadow-xl max-h-[80vh] overflow-y-auto"
+      class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl max-h-[80vh] overflow-y-auto"
       @keydown.esc="emit('cancel')"
     >
       <div class="flex items-center justify-between mb-3">

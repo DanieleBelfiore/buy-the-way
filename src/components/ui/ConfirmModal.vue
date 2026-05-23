@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue';
+import { computed, useId, toRef } from 'vue';
 import { Check, Trash2, X } from '@lucide/vue';
+import { useModalBack } from '@/composables/useModalBack';
 
 const props = withDefaults(
   defineProps<{
@@ -23,6 +24,9 @@ const confirmClasses = computed(() =>
     ? 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900'
     : 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
 );
+
+const openRef = toRef(props, 'open');
+useModalBack(openRef, () => emit('cancel'));
 </script>
 
 <template>
@@ -42,11 +46,11 @@ const confirmClasses = computed(() =>
     >
       <h2 :id="titleId" class="text-lg font-semibold text-charcoal">{{ props.title }}</h2>
       <p class="mt-2 text-sm text-muted-gray whitespace-pre-line">{{ props.message }}</p>
-      <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div class="mt-5 flex flex-row items-center gap-2 w-full">
         <button
           data-testid="confirm-modal-cancel"
           type="button"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10"
           @click="emit('cancel')"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
@@ -56,7 +60,7 @@ const confirmClasses = computed(() =>
           data-testid="confirm-modal-confirm"
           type="button"
           :class="[
-            'inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            'flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
             confirmClasses,
           ]"
           @click="emit('confirm')"

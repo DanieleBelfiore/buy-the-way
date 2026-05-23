@@ -22,7 +22,7 @@ const isCustom = computed(() => isCustomItemName(props.item.name, locale.value))
 // the item's name or note changes — `toRef` keeps the watch source live.
 const nameContainerRef = ref<HTMLElement | null>(null);
 const nameInnerRef = ref<HTMLElement | null>(null);
-const nameSignature = computed(() => `${props.item.name}|${props.item.note}`);
+const nameSignature = computed(() => `${props.item.name}|${props.item.quantity}|${props.item.note}`);
 useFitText(nameInnerRef, nameContainerRef, toRef(nameSignature));
 const emit = defineEmits<{
   'toggle-checked': [boolean];
@@ -77,7 +77,7 @@ const priorityBtnClasses = computed(() => {
 });
 
 const nameStateClasses = computed(() => {
-  if (props.item.checked) return 'line-through text-ink-40';
+  if (props.item.checked) return 'text-ink-40';
   if (props.item.priority === 'urgent') return 'text-red-700 font-semibold';
   if (props.item.priority === 'optional') return 'text-muted-gray';
   return 'text-charcoal';
@@ -111,7 +111,14 @@ const nameStateClasses = computed(() => {
           data-testid="row-name-inner"
           class="inline-flex items-center gap-1.5 whitespace-nowrap"
         >
-          <span class="font-medium">{{ props.item.name }}</span>
+          <span :class="['font-medium', { 'line-through': props.item.checked }]">{{ props.item.name }}</span>
+          <span
+            v-if="props.item.quantity"
+            data-testid="row-quantity"
+            class="text-sm text-charcoal/70"
+          >
+            ({{ props.item.quantity }})
+          </span>
           <UserPlus
             v-if="isCustom"
             data-testid="row-custom-badge"

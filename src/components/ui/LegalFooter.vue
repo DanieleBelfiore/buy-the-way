@@ -14,18 +14,18 @@ const { t } = useI18n();
     ]"
     :style="{
       paddingBottom: dense
-        ? 'max(0.25rem, env(safe-area-inset-bottom))'
+        ? '0px'
         : 'max(2.5rem, env(safe-area-inset-bottom))',
     }"
   >
-    <nav aria-label="Legal" class="flex flex-wrap justify-center gap-2">
-      <router-link to="/about" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
+    <nav aria-label="Legal" class="flex flex-wrap justify-center gap-x-2 gap-y-1">
+      <router-link to="/about" class="underline inline-flex items-center px-2 py-1">
         {{ t('legal.footer.about') }}
       </router-link>
-      <router-link to="/privacy" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
+      <router-link to="/privacy" class="underline inline-flex items-center px-2 py-1">
         {{ t('legal.footer.privacy') }}
       </router-link>
-      <router-link to="/terms" class="underline inline-flex items-center min-h-[44px] px-3 py-2">
+      <router-link to="/terms" class="underline inline-flex items-center px-2 py-1">
         {{ t('legal.footer.terms') }}
       </router-link>
     </nav>

@@ -79,7 +79,9 @@ const onAction = (): void => {
           class="shrink-0"
           aria-hidden="true"
         />
-        <span class="text-sm font-medium leading-snug flex-1">{{ props.message }}</span>
+        <span class="font-medium leading-snug flex-1 min-w-0 whitespace-nowrap truncate text-[clamp(11px,3.5vw,14px)]">
+          {{ props.message }}
+        </span>
       </div>
       <button
         v-if="props.actionLabel"
@@ -88,7 +90,7 @@ const onAction = (): void => {
         :disabled="props.actionLoading || undefined"
         :aria-busy="props.actionLoading ? 'true' : undefined"
         :class="[
-          'self-end shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary transition-opacity',
+          'self-center shrink-0 inline-flex items-center gap-1.5 rounded-full bg-offwhite px-4 py-2 text-sm font-semibold text-primary transition-opacity',
           props.actionLoading
             ? 'opacity-80 cursor-wait'
             : 'hover:opacity-90 active:opacity-80',

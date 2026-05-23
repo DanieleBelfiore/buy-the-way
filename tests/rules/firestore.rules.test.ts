@@ -138,35 +138,35 @@ describe('firestore.rules — lists/{id} create', () => {
   it('allows owner-uid creator who is in collaboratorUids and admins=[self]', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
-      createdAt: 1, updatedAt: 1,
+      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins is missing', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE],
-      createdAt: 1, updatedAt: 1,
+      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins includes someone other than the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE, BOB], admins: [ALICE, BOB],
-      createdAt: 1, updatedAt: 1,
+      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when ownerUid is not the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: BOB, collaboratorUids: [BOB], admins: [BOB],
-      createdAt: 1, updatedAt: 1,
+      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when caller is not in collaboratorUids', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [BOB], admins: [ALICE],
-      createdAt: 1, updatedAt: 1,
+      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 });
@@ -373,7 +373,7 @@ describe('firestore.rules — favoriteState subcollection', () => {
 describe('firestore.rules — catalog/{uid}/entries', () => {
   it('allows owner to read/write their catalog', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'catalog', ALICE, 'entries', 'milk'), {
-      name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+      id: 'milk', ownerUid: ALICE, name: 'Milk', category: 'dairy', usageCount: 1, lastUsedAt: 1,
     }));
     await assertSucceeds(getDoc(doc(aliceCtx() as any, 'catalog', ALICE, 'entries', 'milk')));
   });
@@ -381,7 +381,7 @@ describe('firestore.rules — catalog/{uid}/entries', () => {
   it('denies another user from reading the catalog', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'catalog', ALICE, 'entries', 'milk'), {
-        name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+        id: 'milk', ownerUid: ALICE, name: 'Milk', category: 'dairy', usageCount: 1, lastUsedAt: 1,
       });
     });
     await assertFails(getDoc(doc(bobCtx() as any, 'catalog', ALICE, 'entries', 'milk')));
@@ -389,7 +389,7 @@ describe('firestore.rules — catalog/{uid}/entries', () => {
 
   it('denies another user from writing the catalog', async () => {
     await assertFails(setDoc(doc(bobCtx() as any, 'catalog', ALICE, 'entries', 'milk'), {
-      name: 'Milk', category: 'dairy', useCount: 1, lastUsedAt: 1,
+      id: 'milk', ownerUid: ALICE, name: 'Milk', category: 'dairy', usageCount: 1, lastUsedAt: 1,
     }));
   });
 });

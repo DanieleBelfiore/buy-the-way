@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useId } from 'vue';
+import { useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AlertTriangle, CircleDashed, Flag, X } from '@lucide/vue';
+import { useModalBack } from '@/composables/useModalBack';
 import type { Item, ItemPriority } from '@/domain/types';
 
 const props = defineProps<{
@@ -20,12 +21,15 @@ const titleId = useId();
 const currentPriority = (): ItemPriority | null => props.item?.priority ?? null;
 
 const onSelect = (p: ItemPriority | null): void => emit('select', p);
+
+const openRef = toRef(props, 'open');
+useModalBack(openRef, () => emit('cancel'));
 </script>
 
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+    class="fixed inset-0 z-[100] flex items-center justify-center"
   >
     <div
       data-testid="priority-picker-backdrop"
@@ -36,43 +40,32 @@ const onSelect = (p: ItemPriority | null): void => emit('select', p);
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative z-10 w-full sm:max-w-md mx-0 sm:mx-5 rounded-t-2xl sm:rounded-2xl bg-cream p-5 shadow-xl"
+      class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl"
       @keydown.esc="emit('cancel')"
     >
-      <div class="flex items-center justify-between mb-3">
-        <h2 :id="titleId" class="inline-flex items-center gap-2 text-base font-semibold text-charcoal">
+      <div class="mb-3 text-center">
+        <h2 :id="titleId" class="inline-flex items-center justify-center gap-2 text-base font-semibold text-charcoal">
           <Flag :size="18" :stroke-width="2" aria-hidden="true" />
           {{ t('item.priority') }}
         </h2>
-        <button
-          data-testid="priority-picker-cancel"
-          type="button"
-          :aria-label="t('list.cancel')"
-          class="inline-flex items-center justify-center w-9 h-9 rounded-full text-muted-gray hover:bg-black/5"
-          @click="emit('cancel')"
-        >
-          <X :size="18" :stroke-width="2" aria-hidden="true" />
-        </button>
       </div>
 
-      <p v-if="props.item" class="text-xs text-muted-gray mb-3">{{ props.item.name }}</p>
-
-      <div role="radiogroup" :aria-label="t('item.priority')" class="space-y-2">
+      <div role="radiogroup" :aria-label="t('item.priority')" class="flex flex-row items-stretch gap-2">
         <button
           type="button"
           role="radio"
-          data-testid="priority-picker-urgent"
-          :aria-checked="currentPriority() === 'urgent'"
+          data-testid="priority-picker-optional"
+          :aria-checked="currentPriority() === 'optional'"
           :class="[
-            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left text-red-700',
-            currentPriority() === 'urgent'
-              ? 'border-red-600 bg-red-50'
-              : 'border-cream-soft bg-offwhite hover:bg-red-50/60',
+            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-muted-gray',
+            currentPriority() === 'optional'
+              ? 'border-muted-gray bg-cream'
+              : 'border-cream-soft bg-offwhite hover:bg-cream',
           ]"
-          @click="onSelect('urgent')"
+          @click="onSelect('optional')"
         >
-          <AlertTriangle :size="18" :stroke-width="2" aria-hidden="true" />
-          {{ t('item.priorityUrgent') }}
+          <CircleDashed :size="20" :stroke-width="2" aria-hidden="true" />
+          <span>{{ t('item.priorityOptional') }}</span>
         </button>
         <button
           type="button"
@@ -80,31 +73,31 @@ const onSelect = (p: ItemPriority | null): void => emit('select', p);
           data-testid="priority-picker-none"
           :aria-checked="currentPriority() === null"
           :class="[
-            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left',
+            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center',
             currentPriority() === null
               ? 'border-charcoal bg-charcoal/5 text-charcoal'
               : 'border-cream-soft bg-offwhite text-charcoal hover:bg-cream',
           ]"
           @click="onSelect(null)"
         >
-          <Flag :size="18" :stroke-width="2" aria-hidden="true" />
-          {{ t('item.priorityNone') }}
+          <Flag :size="20" :stroke-width="2" aria-hidden="true" />
+          <span>{{ t('item.priorityNone') }}</span>
         </button>
         <button
           type="button"
           role="radio"
-          data-testid="priority-picker-optional"
-          :aria-checked="currentPriority() === 'optional'"
+          data-testid="priority-picker-urgent"
+          :aria-checked="currentPriority() === 'urgent'"
           :class="[
-            'w-full inline-flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors text-left text-muted-gray',
-            currentPriority() === 'optional'
-              ? 'border-muted-gray bg-cream'
-              : 'border-cream-soft bg-offwhite hover:bg-cream',
+            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-red-700',
+            currentPriority() === 'urgent'
+              ? 'border-red-600 bg-red-50'
+              : 'border-cream-soft bg-offwhite hover:bg-red-50/60',
           ]"
-          @click="onSelect('optional')"
+          @click="onSelect('urgent')"
         >
-          <CircleDashed :size="18" :stroke-width="2" aria-hidden="true" />
-          {{ t('item.priorityOptional') }}
+          <AlertTriangle :size="20" :stroke-width="2" aria-hidden="true" />
+          <span>{{ t('item.priorityUrgent') }}</span>
         </button>
       </div>
     </div>

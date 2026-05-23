@@ -29,7 +29,12 @@
     "setDefault": "Set as default list",
     "unsetDefault": "Unset default list",
     "defaultSetToast": "Default list: it will open automatically when you launch the app!",
-    "defaultClearedToast": "Default list cleared. You'll see the lists overview on launch!"
+    "defaultClearedToast": "Default list cleared. You'll see all lists on next launch!",
+    "share": "Share list",
+    "shareCopied": "List copied to clipboard!",
+    "shareError": "Error sharing list.",
+    "shareTitle": "🛒 List: {name}",
+    "shareFooter": "Buy The Way — Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev"
   },
   "item": {
     "addPlaceholder": "Add an item",
@@ -57,6 +62,8 @@
     "priorityUrgent": "Urgent",
     "priorityOptional": "Optional",
     "priorityNone": "Normal",
+    "options": "Options",
+    "renameHint": "Rename to group related items together",
     "openSettings": "Edit item",
     "moveOrCopy": "Move or copy",
     "copy": "Copy",
@@ -113,7 +120,7 @@
     "leaveList": "Leave list",
     "deleteList": "Delete list",
     "showFavorites": "Show favorites",
-    "showFavoritesHint": "Show the favorites section at the top of the list (if available)",
+    "showFavoritesHint": "Show the favorites section at the top of the list",
     "wallpaper": "Wallpaper",
     "wallpaperOptionAria": "Select wallpaper {name}",
     "stats": {

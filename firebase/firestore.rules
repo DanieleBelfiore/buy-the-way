@@ -39,9 +39,10 @@ service cloud.firestore {
         && request.auth.token.email in listData.pendingInviteEmails;
     }
 
-    // User profiles — any authenticated user can read (email lookup); write only self.
+    // User profiles — any authenticated user can get (email lookup via function); write only self.
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if false;
       allow write: if isSignedIn() && uid() == userId;
     }
 
@@ -57,7 +58,15 @@ service cloud.firestore {
         && request.resource.data.ownerUid == uid()
         && uid() in request.resource.data.collaboratorUids
         // Creator must seed admins=[self]. Bare-string in-list check via toSet.
-        && request.resource.data.admins.toSet() == [uid()].toSet();
+        && request.resource.data.admins.toSet() == [uid()].toSet()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.itemCount == 0
+        && request.resource.data.wallpaper is string
+        && request.resource.data.createdAt is number
+        && request.resource.data.updatedAt is number
+        && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'showFavorites']);
 
       allow update: if isSignedIn() && (
         // Admin update: may touch any of the privileged fields. createdAt is
@@ -123,20 +132,59 @@ service cloud.firestore {
 
       // Items — any collaborator on the parent list.
       match /items/{itemId} {
-        allow read, write: if isListCollaborator(listId);
+        allow read, delete: if isListCollaborator(listId);
+        allow create: if isListCollaborator(listId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 200
+          && request.resource.data.quantity is string
+          && request.resource.data.quantity.size() <= 100
+          && request.resource.data.category is string
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 1000
+          && request.resource.data.checked is bool
+          && request.resource.data.createdByUid == uid()
+          && request.resource.data.createdAt is number
+          && request.resource.data.updatedAt is number
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'createdByUid', 'createdAt', 'updatedAt']);
+        allow update: if isListCollaborator(listId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 200
+          && request.resource.data.quantity is string
+          && request.resource.data.quantity.size() <= 100
+          && request.resource.data.category is string
+          && request.resource.data.note is string
+          && request.resource.data.note.size() <= 1000
+          && request.resource.data.checked is bool
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdByUid == resource.data.createdByUid
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'createdByUid', 'createdAt', 'updatedAt']);
       }
 
       // Per-list favorite shelf state — any collaborator on the parent list.
       // Holds usage counts + pinned/excluded/dismissedFavorite flags scoped
       // to this list only (no cross-list bleed).
       match /favoriteState/{slug} {
-        allow read, write: if isListCollaborator(listId);
+        allow read, delete: if isListCollaborator(listId);
+        allow create, update: if isListCollaborator(listId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 200
+          && request.resource.data.category is string
+          && request.resource.data.usageCount is number
+          && request.resource.data.lastUsedAt is number
+          && request.resource.data.keys().hasOnly(['slug', 'name', 'category', 'usageCount', 'lastUsedAt', 'pinned', 'excluded', 'dismissedFavorite']);
       }
     }
 
     // Per-user catalog — owner only.
     match /catalog/{userId}/entries/{entryId} {
-      allow read, write: if isSignedIn() && uid() == userId;
+      allow read, delete: if isSignedIn() && uid() == userId;
+      allow create, update: if isSignedIn() && uid() == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.category is string
+        && request.resource.data.usageCount is number
+        && request.resource.data.lastUsedAt is number
+        && request.resource.data.keys().hasOnly(['id', 'ownerUid', 'name', 'category', 'usageCount', 'lastUsedAt']);
     }
   }
 }

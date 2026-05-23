@@ -29,7 +29,7 @@ import { CATEGORIES } from '@/domain/categories';
 import { isCustomItemName } from '@/domain/public-catalog';
 import { sortCategoriesByLabel } from '@/domain/sort';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
-import { ArrowLeft, Settings as SettingsIcon } from '@lucide/vue';
+import { ArrowLeft, Settings as SettingsIcon, Share2 } from '@lucide/vue';
 import { getUsersByUids } from '@/services/users.service';
 import { useSafeBack } from '@/composables/useSafeBack';
 import type { UserProfile } from '@/domain/types';
@@ -156,6 +156,62 @@ const autocompleteActive = ref(false);
 
 const safeBack = useSafeBack();
 const handleBack = (): void => safeBack({ name: 'lists' });
+
+const shareToastOpen = ref(false);
+const shareToastMessage = ref('');
+
+const formatListForSharing = (): string => {
+  if (!list.value) return '';
+  const lines: string[] = [];
+  lines.push(t('list.shareTitle', { name: list.value.name }));
+  lines.push('');
+
+  for (const [cat, items] of itemsByCategory.value) {
+    const toBuy = items.filter(i => !i.checked);
+    if (toBuy.length === 0) continue;
+
+    const catLabel = t(CATEGORIES[cat].labelKey);
+    const catIcon = CATEGORIES[cat].icon;
+    lines.push(`${catIcon} ${catLabel}`);
+
+    for (const item of toBuy) {
+      let line = `• ${item.name}`;
+      if (item.quantity) {
+        line += ` - ${t('item.quantity')}: ${item.quantity}`;
+      }
+      if (item.note) {
+        line += ` - Nota: ${item.note}`;
+      }
+      lines.push(line);
+    }
+    lines.push('');
+  }
+
+  lines.push(t('list.shareFooter'));
+  return lines.join('\n');
+};
+
+const handleShareList = async (): Promise<void> => {
+  const text = formatListForSharing();
+  if (!text) return;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        text: text,
+      });
+    } else {
+      await navigator.clipboard.writeText(text);
+      shareToastMessage.value = t('list.shareCopied');
+      shareToastOpen.value = true;
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return;
+    console.error('[ListDetailView] Error sharing list:', error);
+    shareToastMessage.value = t('list.shareError');
+    shareToastOpen.value = true;
+  }
+};
 
 const celebrationKey = ref(0);
 const wasComplete = ref(false);
@@ -605,18 +661,19 @@ watch(
       data-testid="list-stats"
       class="px-5 pb-3 flex flex-col gap-y-1 text-xs text-muted-gray"
     >
-      <div class="flex items-center gap-3">
-        <span data-testid="stat-items" class="inline-flex items-center gap-1">
-          <span>{{ t('listSettings.stats.items') }}:</span>
-          <span class="font-semibold text-charcoal">{{ itemCount }}</span>
-        </span>
-        <span aria-hidden="true">·</span>
-        <span data-testid="stat-bought" class="inline-flex items-center gap-1">
-          <span>{{ t('listSettings.stats.bought') }}:</span>
-          <span class="font-semibold text-charcoal tabular-nums">{{ boughtCount }}/{{ itemCount }}</span>
-        </span>
-        <span aria-hidden="true">·</span>
-        <span
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span data-testid="stat-items" class="inline-flex items-center gap-1">
+            <span>{{ t('listSettings.stats.items') }}:</span>
+            <span class="font-semibold text-charcoal">{{ itemCount }}</span>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span data-testid="stat-bought" class="inline-flex items-center gap-1">
+            <span>{{ t('listSettings.stats.bought') }}:</span>
+            <span class="font-semibold text-charcoal tabular-nums">{{ boughtCount }}/{{ itemCount }}</span>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span
           data-testid="stat-users"
           class="inline-flex items-center gap-1"
           :aria-label="t('listSettings.stats.users') + ': ' + usersCount"
@@ -654,6 +711,16 @@ watch(
           </span>
           <span v-else class="font-semibold text-charcoal">{{ usersCount }}</span>
         </span>
+        </div>
+
+        <button
+          :aria-label="t('list.share')"
+          data-testid="share-list"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-charcoal bg-black/5 hover:bg-black/10 active:bg-black/15 transition-colors"
+          @click="handleShareList"
+        >
+          <Share2 :size="14" :stroke-width="2.5" aria-hidden="true" />
+        </button>
       </div>
       <span
         data-testid="stat-updated"
@@ -799,6 +866,13 @@ watch(
       :message="toggleToastMessage"
       :duration-ms="4500"
       @close="toggleToastOpen = false"
+    />
+
+    <Toast
+      :open="shareToastOpen"
+      :message="shareToastMessage"
+      :duration-ms="4500"
+      @close="shareToastOpen = false"
     />
 
     <ConfirmModal

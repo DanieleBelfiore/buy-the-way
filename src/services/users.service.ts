@@ -13,30 +13,36 @@ import type { UserProfile } from '@/domain/types';
 
 const normalizeEmail = (raw: string): string => raw.trim().toLowerCase();
 
+import { getAuth } from 'firebase/auth';
+
 export const findUserByEmail = async (email: string): Promise<UserProfile | null> => {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  const q = query(
-    collection(db, 'users'),
-    where('email', '==', normalized),
-    limit(1),
-  );
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return null;
+  
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/.netlify/functions/find-user?email=${encodeURIComponent(normalized)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
 
-  const docSnap = snap.docs[0];
-  const data = docSnap.data() as UserProfile;
-  return {
-    uid: data.uid ?? docSnap.id,
-    email: data.email,
-    displayName: data.displayName ?? '',
-    lastLoginAt: data.lastLoginAt ?? 0,
-    ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
-    ...(data.lastSeenListMap !== undefined && { lastSeenListMap: data.lastSeenListMap }),
-    ...(data.photoURL && { photoURL: data.photoURL }),
-    ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
-  };
+    if (!res.ok) {
+      console.warn('[findUserByEmail] HTTP error', res.status);
+      return null;
+    }
+
+    const data = await res.json() as { profile: UserProfile | null };
+    return data.profile;
+  } catch (err) {
+    console.error('[findUserByEmail] Network error', err);
+    return null;
+  }
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {

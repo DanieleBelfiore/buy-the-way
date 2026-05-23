@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
+import { useListFavoritesStore } from '@/stores/listFavorites';
 import {
   addCollaborator,
   cancelPendingInvite,
@@ -37,6 +38,7 @@ const router = useRouter();
 const route = useRoute();
 const listsStore = useListsStore();
 const authStore = useAuthStore();
+const listFavoritesStore = useListFavoritesStore();
 
 const listId = computed(() => route.params.id as ULID);
 const list = computed(() => listsStore.lists.find((l) => l.id === listId.value));
@@ -62,6 +64,7 @@ const actionError = ref<string | null>(null);
 
 const showFavoritesValue = computed(() => list.value?.showFavorites !== false);
 const togglingFavorites = ref(false);
+const hasFavorites = computed(() => listFavoritesStore.rankedEntries.length > 0);
 
 const handleToggleShowFavorites = async (next: boolean): Promise<void> => {
   if (!isAdmin.value) return;
@@ -93,6 +96,7 @@ const handleSelectWallpaper = async (wallpaper: Wallpaper): Promise<void> => {
 };
 
 let listsUnsub: (() => void) | null = null;
+let favoritesUnsub: (() => void) | null = null;
 
 const loadMembers = async (uids: readonly string[]) => {
   membersLoading.value = true;
@@ -122,6 +126,9 @@ watch(
 
 onMounted(() => {
   listsUnsub = listsStore.subscribe();
+  if (listId.value) {
+    favoritesUnsub = listFavoritesStore.subscribe(listId.value);
+  }
   if (list.value) {
     nameDraft.value = list.value.name;
     void loadMembers(list.value.collaboratorUids);
@@ -130,6 +137,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   listsUnsub?.();
+  favoritesUnsub?.();
 });
 
 const handleRename = async () => {
@@ -358,20 +366,31 @@ const handleDelete = async () => {
         />
       </section>
 
-      <section v-if="isAdmin" data-testid="show-favorites-section" class="space-y-2">
-        <label class="flex items-start gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            data-testid="show-favorites-toggle"
-            class="mt-1 h-4 w-4 accent-charcoal cursor-pointer"
-            :checked="showFavoritesValue"
-            :disabled="togglingFavorites"
-            @change="handleToggleShowFavorites(($event.target as HTMLInputElement).checked)"
-          />
+      <section v-if="isAdmin && hasFavorites" data-testid="show-favorites-section" class="space-y-2">
+        <label class="flex items-start justify-between gap-3 cursor-pointer select-none">
           <span class="flex-1">
             <span class="block text-sm font-medium text-charcoal">{{ t('listSettings.showFavorites') }}</span>
             <span class="block text-xs text-muted-gray">{{ t('listSettings.showFavoritesHint') }}</span>
           </span>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="showFavoritesValue"
+            :disabled="togglingFavorites"
+            :class="[
+              showFavoritesValue ? 'bg-primary' : 'bg-gray-200',
+              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 mt-1'
+            ]"
+            @click="handleToggleShowFavorites(!showFavoritesValue)"
+          >
+            <span
+              aria-hidden="true"
+              :class="[
+                showFavoritesValue ? 'translate-x-5' : 'translate-x-0',
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+              ]"
+            />
+          </button>
         </label>
       </section>
 

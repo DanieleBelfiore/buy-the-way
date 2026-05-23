@@ -29,7 +29,12 @@
     "setDefault": "Imposta come lista predefinita",
     "unsetDefault": "Rimuovi lista predefinita",
     "defaultSetToast": "Lista predefinita: si aprirà automaticamente all'avvio dell'app!",
-    "defaultClearedToast": "Lista predefinita rimossa. All'avvio vedrai l'elenco delle liste!"
+    "defaultClearedToast": "Lista predefinita rimossa. All'avvio vedrai l'elenco delle liste!",
+    "share": "Condividi lista",
+    "shareCopied": "Lista copiata negli appunti!",
+    "shareError": "Errore durante la condivisione.",
+    "shareTitle": "🛒 Lista: {name}",
+    "shareFooter": "Buy The Way — La Tua Lista Della Spesa Intelligente\nhttps://buy-the-way.danielebelfiore.dev"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
@@ -57,6 +62,8 @@
     "priorityUrgent": "Urgente",
     "priorityOptional": "Opzionale",
     "priorityNone": "Normale",
+    "options": "Opzioni",
+    "renameHint": "Rinomina per raggruppare articoli simili",
     "openSettings": "Modifica articolo",
     "moveOrCopy": "Sposta o copia",
     "copy": "Copia",
@@ -113,7 +120,7 @@
     "leaveList": "Abbandona lista",
     "deleteList": "Elimina lista",
     "showFavorites": "Mostra preferiti",
-    "showFavoritesHint": "Mostra la sezione dei preferiti in cima alla lista (se disponibile)",
+    "showFavoritesHint": "Mostra la sezione dei preferiti in cima alla lista",
     "wallpaper": "Sfondo",
     "wallpaperOptionAria": "Seleziona sfondo {name}",
     "stats": {
