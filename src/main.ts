@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 import { installSafeBackTracker } from '@/composables/useSafeBack';
 import { setupServiceWorker } from '@/pwa/registerSW';
+import { setupInstallPrompt } from '@/pwa/installPrompt';
 import { initSentry } from '@/services/sentry';
 import '@/styles/global.css';
 
@@ -42,6 +43,7 @@ void initSentry(app, router);
 app.mount('#app');
 
 void setupServiceWorker();
+setupInstallPrompt();
 
 if (import.meta.env.DEV && import.meta.env['VITE_E2E'] === 'true') {
   void import('./e2e-bridge');

@@ -10,8 +10,14 @@ const props = withDefaults(
     actionLabel?: string;
     actionIcon?: Component;
     actionLoading?: boolean;
+    /**
+     * When true, the auto-dismiss timer runs even if `actionLabel` is set.
+     * Default false preserves the existing behavior of persistent action
+     * toasts (e.g. the PWA update prompt).
+     */
+    autoDismissWithAction?: boolean;
   }>(),
-  { durationMs: 2500, actionLoading: false },
+  { durationMs: 2500, actionLoading: false, autoDismissWithAction: false },
 );
 
 const emit = defineEmits<{ close: []; action: [] }>();
@@ -31,7 +37,8 @@ watch(
   (open) => {
     clear();
     visible.value = open;
-    if (open && !props.actionLabel) {
+    const autoDismiss = open && (!props.actionLabel || props.autoDismissWithAction);
+    if (autoDismiss) {
       timer = setTimeout(() => {
         visible.value = false;
         emit('close');

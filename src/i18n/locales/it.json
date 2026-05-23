@@ -169,7 +169,10 @@
   },
   "pwa": {
     "updateAvailable": "Nuova versione disponibile",
-    "reload": "Ricarica"
+    "reload": "Ricarica",
+    "installMessage": "Installa Buy The Way per un accesso rapido",
+    "install": "Installa",
+    "iosInstallHint": "Installa l'app: tocca Condividi → Aggiungi a Home"
   },
   "error": {
     "generic": "Qualcosa è andato storto. Riprova.",

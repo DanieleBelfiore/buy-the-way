@@ -169,7 +169,10 @@
   },
   "pwa": {
     "updateAvailable": "New version available",
-    "reload": "Reload"
+    "reload": "Reload",
+    "installMessage": "Install Buy The Way for quick access",
+    "install": "Install",
+    "iosInstallHint": "Install the app: tap Share → Add to Home Screen"
   },
   "error": {
     "generic": "Something went wrong. Please try again.",

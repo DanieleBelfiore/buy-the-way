@@ -113,5 +113,32 @@ describe('Toast', () => {
       await wrapper.find('[data-testid="toast-action"]').trigger('click');
       expect(wrapper.emitted('action')).toBeFalsy();
     });
+
+    it('auto-dismisses when actionLabel set AND autoDismissWithAction=true', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Install',
+          actionLabel: 'Install',
+          autoDismissWithAction: true,
+          durationMs: 500,
+        },
+      });
+      vi.advanceTimersByTime(600);
+      expect(wrapper.emitted('close')).toBeTruthy();
+    });
+
+    it('still suppresses auto-dismiss when actionLabel set AND autoDismissWithAction=false (default)', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Reload',
+          actionLabel: 'Reload',
+          durationMs: 500,
+        },
+      });
+      vi.advanceTimersByTime(5000);
+      expect(wrapper.emitted('close')).toBeFalsy();
+    });
   });
 });

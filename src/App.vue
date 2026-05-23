@@ -3,6 +3,7 @@ import { useHead } from '@unhead/vue';
 import { useI18n } from 'vue-i18n';
 import OfflineBanner from '@/components/ui/OfflineBanner.vue';
 import UpdatePrompt from '@/components/ui/UpdatePrompt.vue';
+import InstallPrompt from '@/components/ui/InstallPrompt.vue';
 
 // Set <html lang> at app root so it survives route changes (and authenticated
 // views that don't call useDocumentHead). axe-core fails serious if it's missing.
@@ -29,6 +30,7 @@ const isE2E = import.meta.env['VITE_E2E'] === 'true';
     </KeepAlive>
   </router-view>
   <UpdatePrompt />
+  <InstallPrompt />
 </template>
 
 <style>
