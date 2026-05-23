@@ -55,13 +55,28 @@ export interface CatalogEntry {
   category: Category;
   usageCount: number;
   lastUsedAt: number;
+}
+
+/**
+ * Per-list favorite state. Stored under `lists/{listId}/favoriteState/{slug}`
+ * with `slug` (normalized name) as the document id. Each list maintains its
+ * own usage counts and favorite/exclude/dismiss flags — favorites in list A
+ * are independent of favorites in list B even if both share the same item
+ * names.
+ */
+export interface ListFavoriteState {
+  slug: string;
+  name: string;
+  category: Category;
+  usageCount: number;
+  lastUsedAt: number;
   pinned?: boolean;
   excluded?: boolean;
   /**
-   * Sticky "do not auto-promote to favorites" flag. Independent of `excluded`:
-   * a dismissed entry still appears in autocomplete suggestions, but is hidden
-   * from the favorites shelf even if `usageCount` would otherwise qualify.
-   * Set when the user taps the star on an auto-favorite item.
+   * Sticky "do not auto-promote to favorites for this list" flag. A dismissed
+   * entry still appears in autocomplete suggestions (autocomplete pulls from
+   * the global per-user catalog), but is hidden from this list's favorites
+   * shelf even when `usageCount` would otherwise qualify.
    */
   dismissedFavorite?: boolean;
 }

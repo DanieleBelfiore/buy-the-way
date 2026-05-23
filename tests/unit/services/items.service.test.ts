@@ -32,6 +32,10 @@ vi.mock('@/services/catalog.service', () => ({
   upsertCatalogEntry: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/services/listFavorites.service', () => ({
+  upsertListFavorite: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   subscribeItems,
   addItem,
@@ -45,6 +49,7 @@ import {
 } from '@/services/items.service';
 import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
+import { upsertListFavorite } from '@/services/listFavorites.service';
 import type { Item } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -67,6 +72,7 @@ describe('items.service', () => {
     vi.mocked(updateDoc).mockResolvedValue(undefined);
     vi.mocked(deleteDoc).mockResolvedValue(undefined);
     vi.mocked(upsertCatalogEntry).mockResolvedValue(undefined);
+    vi.mocked(upsertListFavorite).mockResolvedValue(undefined);
     batchSet.mockReset();
     batchDelete.mockReset();
     batchUpdate.mockReset();
@@ -112,6 +118,12 @@ describe('items.service', () => {
       await addItem(defaultAddParams);
       expect(upsertCatalogEntry).toHaveBeenCalledOnce();
       expect(upsertCatalogEntry).toHaveBeenCalledWith('uid-1', 'Latte', 'dairy');
+    });
+
+    it('also calls upsertListFavorite (per-list favorite state) with listId + capitalized name', async () => {
+      await addItem(defaultAddParams);
+      expect(upsertListFavorite).toHaveBeenCalledOnce();
+      expect(upsertListFavorite).toHaveBeenCalledWith(listId, 'Latte', 'dairy');
     });
 
     it('checked defaults to false', async () => {
@@ -484,6 +496,12 @@ describe('items.service', () => {
       const [, data] = batchSet.mock.calls[0]!;
       expect((data as { note: string }).note).toBe('Biologico');
     });
+
+    it('upserts per-list favorite state in the destination list', async () => {
+      const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
+      await copyItem(sampleItem, dst, 'uid-1');
+      expect(upsertListFavorite).toHaveBeenCalledWith(dst, 'Latte', 'dairy');
+    });
   });
 
   describe('moveItem', () => {
@@ -510,6 +528,13 @@ describe('items.service', () => {
       expect(batchSet).toHaveBeenCalledOnce();
       expect(batchDelete).toHaveBeenCalledOnce();
       expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('upserts per-list favorite state in the destination list only', async () => {
+      const dst = '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID;
+      await moveItem(listId, sampleItem, dst, 'uid-1');
+      expect(upsertListFavorite).toHaveBeenCalledOnce();
+      expect(upsertListFavorite).toHaveBeenCalledWith(dst, 'Latte', 'dairy');
     });
   });
 });

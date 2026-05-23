@@ -75,88 +75,6 @@ describe('useCatalogStore', () => {
     expect(store.error).toBe('permission-denied');
   });
 
-  describe('topIds', () => {
-    it('returns empty set when no entries', () => {
-      const store = useCatalogStore();
-      expect(store.topIds.size).toBe(0);
-    });
-
-    it('returns set of first 2 ranked entry ids', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      const now = Date.now();
-      capturedOnChange([
-        makeEntry({ id: '01A' as ULID, usageCount: 1, lastUsedAt: now - 86_400_000 }),
-        makeEntry({ id: '01B' as ULID, usageCount: 10, lastUsedAt: now }),
-        makeEntry({ id: '01C' as ULID, usageCount: 5, lastUsedAt: now }),
-      ]);
-      expect(store.topIds.size).toBe(2);
-      expect(store.topIds.has('01B' as ULID)).toBe(true);
-      expect(store.topIds.has('01C' as ULID)).toBe(true);
-    });
-
-    it('returns set of size 1 when only 1 entry', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ id: '01A' as ULID })]);
-      expect(store.topIds.size).toBe(1);
-    });
-
-    it('updates reactively when entries change', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ id: '01A' as ULID })]);
-      expect(store.topIds.size).toBe(1);
-      capturedOnChange([
-        makeEntry({ id: '01A' as ULID }),
-        makeEntry({ id: '01B' as ULID }),
-      ]);
-      expect(store.topIds.size).toBe(2);
-    });
-  });
-
-  describe('suggestFor', () => {
-    it('returns all entries when query is empty', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ name: 'Latte' }), makeEntry({ id: '01B' as ULID, name: 'Pane' })]);
-      expect(store.suggestFor('')).toHaveLength(2);
-    });
-
-    it('filters by name startsWith (case-insensitive)', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([
-        makeEntry({ name: 'Latte' }),
-        makeEntry({ id: '01B' as ULID, name: 'Pane' }),
-      ]);
-      const results = store.suggestFor('lat');
-      expect(results).toHaveLength(1);
-      expect(results[0].name).toBe('Latte');
-    });
-
-    it('matches uppercase query against lowercase entry', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ name: 'latte' })]);
-      expect(store.suggestFor('LAT')).toHaveLength(1);
-    });
-
-    it('returns empty array when no match', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ name: 'Latte' })]);
-      expect(store.suggestFor('xyz')).toHaveLength(0);
-    });
-
-    it('trims whitespace from query', () => {
-      const store = useCatalogStore();
-      store.subscribe('uid-1');
-      capturedOnChange([makeEntry({ name: 'Latte' })]);
-      expect(store.suggestFor('  lat  ')).toHaveLength(1);
-    });
-  });
-
   describe('suggestionsFor (merged user + public catalog)', () => {
     it('returns matches from public catalog when user catalog is empty (it locale)', () => {
       const store = useCatalogStore();
@@ -228,14 +146,16 @@ describe('useCatalogStore', () => {
       expect(results.some((s) => s.name === 'Babà' && s.source === 'user')).toBe(true);
     });
 
-    it('excludes user entries flagged excluded=true', () => {
+    it('exclude/dismiss flags are now per-list and do not affect autocomplete suggestions', () => {
       const store = useCatalogStore();
       store.subscribe('uid-1');
+      // Cast accommodates legacy docs that may still carry the flag in
+      // Firestore — the store must ignore them now that favorites are per-list.
       capturedOnChange([
-        makeEntry({ id: '01EX' as ULID, name: 'Zarbo', usageCount: 5, excluded: true }),
+        makeEntry({ id: '01EX' as ULID, name: 'Zarbo', usageCount: 5, ...({ excluded: true } as object) } as CatalogEntry),
       ]);
       const results = store.suggestionsFor('zarb', 'it');
-      expect(results.some((s) => s.name === 'Zarbo')).toBe(false);
+      expect(results.some((s) => s.name === 'Zarbo')).toBe(true);
     });
   });
 });

@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { subscribeCatalog } from '@/services/catalog.service';
-import { rankCatalog } from '@/domain/ranking';
 import {
   PUBLIC_CATALOG,
   getPublicCatalogName,
   normalizeName,
 } from '@/domain/public-catalog';
 import type { CatalogEntry, Category } from '@/domain/types';
-import type { ULID } from '@/domain/id';
 
 export interface Suggestion {
   readonly key: string;
@@ -19,18 +17,17 @@ export interface Suggestion {
   readonly usageCount?: number;
 }
 
+/**
+ * Per-user, cross-list catalog used to power autocomplete suggestions.
+ * Per-list favorite shelf state (pinned/excluded/dismissedFavorite) lives in
+ * `useListFavoritesStore`; this store no longer carries any of those flags.
+ */
 export const useCatalogStore = defineStore('catalog', () => {
   const entries = ref<CatalogEntry[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
   let _unsubscribe: (() => void) | null = null;
-
-  const rankedEntries = computed(() => rankCatalog(entries.value, Date.now()));
-
-  const topIds = computed<Set<ULID>>(
-    () => new Set(rankedEntries.value.slice(0, 2).map((e) => e.id)),
-  );
 
   const subscribe = (ownerUid: string): (() => void) => {
     _unsubscribe?.();
@@ -52,25 +49,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     };
   };
 
-  const suggestFor = (query: string): CatalogEntry[] => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rankedEntries.value;
-    return rankedEntries.value.filter((e) => e.name.toLowerCase().startsWith(q));
-  };
-
   const suggestionsFor = (query: string, locale: string, limit = 12): Suggestion[] => {
     const normQ = normalizeName(query);
     const seen = new Set<string>();
     const result: Suggestion[] = [];
 
     const userPool = entries.value
-      .filter((e) => !e.excluded)
       .slice()
-      .sort((a, b) => {
-        const pinDiff = Number(b.pinned ?? false) - Number(a.pinned ?? false);
-        if (pinDiff !== 0) return pinDiff;
-        return b.lastUsedAt - a.lastUsedAt;
-      });
+      .sort((a, b) => b.lastUsedAt - a.lastUsedAt);
 
     for (const e of userPool) {
       const norm = normalizeName(e.name);
@@ -123,10 +109,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     entries,
     loading,
     error,
-    rankedEntries,
-    topIds,
     subscribe,
-    suggestFor,
     suggestionsFor,
   };
 });

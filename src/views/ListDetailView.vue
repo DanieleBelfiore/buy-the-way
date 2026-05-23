@@ -7,6 +7,7 @@ import { useListsStore } from '@/stores/lists';
 import { useItemsStore } from '@/stores/items';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
+import { useListFavoritesStore } from '@/stores/listFavorites';
 import {
   addItem,
   toggleChecked,
@@ -18,14 +19,13 @@ import {
   moveItem,
 } from '@/services/items.service';
 import {
-  setCatalogExcluded,
-  setCatalogFavoriteState,
-  findCatalogEntryByName,
-} from '@/services/catalog.service';
+  setListFavoriteExcluded,
+  setListFavoriteState,
+  findListFavoriteByName,
+} from '@/services/listFavorites.service';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { CATEGORIES } from '@/domain/categories';
 import { isCustomItemName } from '@/domain/public-catalog';
-import { FAVORITES_MIN_USES } from '@/domain/ranking';
 import { sortCategoriesByLabel } from '@/domain/sort';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
 import { ArrowLeft, Settings as SettingsIcon } from '@lucide/vue';
@@ -43,7 +43,11 @@ import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import Toast from '@/components/ui/Toast.vue';
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
-import type { Category, CatalogEntry, Item, ItemPriority } from '@/domain/types';
+import {
+  deleteCatalogEntry,
+  findCatalogEntryByName,
+} from '@/services/catalog.service';
+import type { Category, Item, ItemPriority, ListFavoriteState } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const { t, locale } = useI18n();
@@ -53,6 +57,7 @@ const listsStore = useListsStore();
 const itemsStore = useItemsStore();
 const authStore = useAuthStore();
 const catalogStore = useCatalogStore();
+const listFavoritesStore = useListFavoritesStore();
 
 const listId = computed(() => route.params.id as ULID);
 const list = computed(() => listsStore.lists.find((l) => l.id === listId.value));
@@ -63,8 +68,10 @@ const itemsByCategory = computed<[Category, Item[]][]>(() => {
   return sorted.map((c) => [c, map.get(c)!] as [Category, Item[]]);
 });
 const hasItems = computed(() => itemsStore.items.length > 0);
-const shelfEntries = computed(() => catalogStore.rankedEntries);
-const shelfTopIds = computed(() => catalogStore.topIds);
+const shelfEntries = computed(() => listFavoritesStore.rankedEntries);
+const shelfTopSlugs = computed<Set<string>>(
+  () => new Set(listFavoritesStore.rankedEntries.slice(0, 2).map((e) => e.slug)),
+);
 const itemCount = computed(() => itemsStore.items.length);
 const boughtCount = computed(() => itemsStore.items.filter((i) => i.checked).length);
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
@@ -175,7 +182,7 @@ const editingItem = ref<Item | null>(null);
 const editSheetOpen = computed(() => editingItem.value !== null);
 const editingPinned = ref(false);
 
-const excludeCandidate = ref<CatalogEntry | null>(null);
+const excludeCandidate = ref<ListFavoriteState | null>(null);
 const excludeModalOpen = computed(() => excludeCandidate.value !== null);
 
 const removeCandidate = ref<Item | null>(null);
@@ -193,18 +200,7 @@ const canMoveCopy = computed(() => otherLists.value.length > 0);
 const priorityItem = ref<Item | null>(null);
 const priorityOpen = computed(() => priorityItem.value !== null);
 
-const pinnedNames = computed<Set<string>>(() => {
-  const min = FAVORITES_MIN_USES;
-  const names = new Set<string>();
-  for (const entry of catalogStore.entries) {
-    if (entry.excluded) continue;
-    if (entry.dismissedFavorite) continue;
-    if (entry.pinned || entry.usageCount >= min) {
-      names.add(entry.name);
-    }
-  }
-  return names;
-});
+const pinnedNames = computed<Set<string>>(() => listFavoritesStore.pinnedNames);
 
 const handleRequestPriority = (item: Item): void => {
   priorityItem.value = item;
@@ -227,12 +223,11 @@ const handlePriorityCancel = (): void => {
 };
 
 const handleTogglePinned = async (item: Item): Promise<void> => {
-  if (!authStore.user) return;
   try {
-    const entry = await findCatalogEntryByName(authStore.user.uid, item.name);
-    if (!entry) return;
+    const fav = await findListFavoriteByName(listId.value, item.name);
+    if (!fav) return;
     const currentlyFavorite = pinnedNames.value.has(item.name);
-    await setCatalogFavoriteState(authStore.user.uid, entry.id, !currentlyFavorite);
+    await setListFavoriteState(listId.value, fav.slug, !currentlyFavorite);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] togglePinned failed:', err);
@@ -304,22 +299,9 @@ watch(
 
 const handleOpenItemEdit = async (item: Item): Promise<void> => {
   editingItem.value = item;
-  editingPinned.value = false;
-  if (!authStore.user) return;
-  try {
-    const entry = await findCatalogEntryByName(authStore.user.uid, item.name);
-    if (!entry) {
-      editingPinned.value = false;
-      return;
-    }
-    if (entry.excluded || entry.dismissedFavorite) {
-      editingPinned.value = Boolean(entry.pinned);
-    } else {
-      editingPinned.value = Boolean(entry.pinned) || entry.usageCount >= FAVORITES_MIN_USES;
-    }
-  } catch (err) {
-    console.warn('[ListDetailView] lookup catalog entry failed:', err);
-  }
+  // Per-list favorite shelf state already lives in the local store — no
+  // round-trip needed. The shelf pinnedNames set is the authoritative source.
+  editingPinned.value = pinnedNames.value.has(item.name);
 };
 
 const handleEditCancel = (): void => {
@@ -346,9 +328,9 @@ const handleEditSave = async (patch: {
       category: patch.category,
     });
     if (patch.pinned !== previousPinned) {
-      const entry = await findCatalogEntryByName(authStore.user.uid, itemName);
-      if (entry) {
-        await setCatalogFavoriteState(authStore.user.uid, entry.id, patch.pinned);
+      const fav = await findListFavoriteByName(listId.value, itemName);
+      if (fav) {
+        await setListFavoriteState(listId.value, fav.slug, patch.pinned);
       }
     }
   } catch (err) {
@@ -356,7 +338,7 @@ const handleEditSave = async (patch: {
   }
 };
 
-const handleShelfExclude = (entry: CatalogEntry): void => {
+const handleShelfExclude = (entry: ListFavoriteState): void => {
   excludeCandidate.value = entry;
 };
 
@@ -367,15 +349,15 @@ const cancelExclude = (): void => {
 const confirmExclude = async (): Promise<void> => {
   const target = excludeCandidate.value;
   excludeCandidate.value = null;
-  if (!target || !authStore.user) return;
+  if (!target) return;
   try {
-    await setCatalogExcluded(authStore.user.uid, target.id, true);
+    await setListFavoriteExcluded(listId.value, target.slug, true);
   } catch (err) {
     console.error('[ListDetailView] exclude favorite failed:', err);
   }
 };
 
-const handleShelfAdd = async (entry: CatalogEntry) => {
+const handleShelfAdd = async (entry: ListFavoriteState) => {
   if (!authStore.user) return;
   try {
     await addItem({
@@ -477,7 +459,7 @@ const maybeOfferDontSuggest = async (removedName: string): Promise<void> => {
   if (!isCustomItemName(removedName, locale.value)) return;
   try {
     const entry = await findCatalogEntryByName(authStore.user.uid, removedName);
-    if (!entry || entry.excluded) return;
+    if (!entry) return;
     closeDontSuggestToast();
     dontSuggestToast.value = { name: removedName, entryId: entry.id };
     _dontSuggestTimer = setTimeout(() => {
@@ -493,9 +475,11 @@ const handleDontSuggestAction = async (): Promise<void> => {
   closeDontSuggestToast();
   if (!target || !authStore.user) return;
   try {
-    await setCatalogExcluded(authStore.user.uid, target.entryId, true);
+    // Delete the per-user catalog entry so the item is no longer suggested in
+    // autocomplete across any list. Per-list shelf state is independent.
+    await deleteCatalogEntry(authStore.user.uid, target.entryId);
   } catch (err) {
-    console.error('[ListDetailView] dont-suggest exclude failed:', err);
+    console.error('[ListDetailView] dont-suggest delete failed:', err);
   }
 };
 
@@ -522,6 +506,7 @@ const handleEmptyList = async () => {
 };
 
 let _listsUnsub: (() => void) | null = null;
+let _favsUnsub: (() => void) | null = null;
 
 onMounted(() => {
   _listsUnsub = listsStore.subscribe();
@@ -529,6 +514,7 @@ onMounted(() => {
   if (authStore.user) {
     catalogStore.subscribe(authStore.user.uid);
   }
+  _favsUnsub = listFavoritesStore.subscribe(listId.value);
   // Ensure profile is loaded so the stale-default cleanup below can compare
   // listId.value to authStore.profile.defaultListId.
   void authStore.ensureProfile();
@@ -543,6 +529,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   _listsUnsub?.();
+  _favsUnsub?.();
   itemsStore.setCurrentList(null);
   closeDontSuggestToast();
 });
@@ -683,7 +670,7 @@ watch(
     <MostUsedShelf
       v-if="list?.showFavorites !== false"
       :entries="shelfEntries"
-      :top-ids="shelfTopIds"
+      :top-slugs="shelfTopSlugs"
       @add-from-shelf="handleShelfAdd"
       @exclude-tile="handleShelfExclude"
     />

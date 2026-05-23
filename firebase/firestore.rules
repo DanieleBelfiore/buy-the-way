@@ -112,6 +112,13 @@ service cloud.firestore {
       match /items/{itemId} {
         allow read, write: if isListCollaborator(listId);
       }
+
+      // Per-list favorite shelf state — any collaborator on the parent list.
+      // Holds usage counts + pinned/excluded/dismissedFavorite flags scoped
+      // to this list only (no cross-list bleed).
+      match /favoriteState/{slug} {
+        allow read, write: if isListCollaborator(listId);
+      }
     }
 
     // Per-user catalog — owner only.

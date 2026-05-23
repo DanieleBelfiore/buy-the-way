@@ -7,6 +7,7 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn().mockReturnValue({ id: 'mock-doc' }),
   setDoc: vi.fn().mockResolvedValue(undefined),
   updateDoc: vi.fn().mockResolvedValue(undefined),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
   getDocs: vi.fn(),
   onSnapshot: vi.fn(),
   query: vi.fn().mockReturnValue({ type: 'query' }),
@@ -17,9 +18,9 @@ vi.mock('firebase/firestore', () => ({
 import {
   upsertCatalogEntry,
   subscribeCatalog,
-  setCatalogFavoriteState,
+  deleteCatalogEntry,
 } from '@/services/catalog.service';
-import { setDoc, updateDoc, getDocs, increment, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, getDocs, increment, onSnapshot } from 'firebase/firestore';
 import type { CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -157,37 +158,21 @@ describe('catalog.service', () => {
     });
   });
 
-  describe('setCatalogFavoriteState', () => {
+  describe('deleteCatalogEntry', () => {
     beforeEach(() => {
       vi.clearAllMocks();
-      vi.mocked(updateDoc).mockResolvedValue(undefined);
+      vi.mocked(deleteDoc).mockResolvedValue(undefined);
     });
 
-    it('marking as favorite sets pinned=true, dismissedFavorite=false, excluded=false', async () => {
-      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, true);
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toEqual({
-        pinned: true,
-        dismissedFavorite: false,
-        excluded: false,
-      });
+    it('hard-deletes the entry doc via deleteDoc', async () => {
+      await deleteCatalogEntry('uid-1', 'entry-1' as ULID);
+      expect(deleteDoc).toHaveBeenCalledOnce();
     });
 
-    it('un-favoriting sets pinned=false, dismissedFavorite=true', async () => {
-      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, false);
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toEqual({
-        pinned: false,
-        dismissedFavorite: true,
-      });
-    });
-
-    it('un-favoriting does not also exclude the entry from suggestions', async () => {
-      await setCatalogFavoriteState('uid-1', 'entry-1' as ULID, false);
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect((patch as Record<string, unknown>).excluded).toBeUndefined();
+    it('does NOT touch other docs (no updateDoc / setDoc)', async () => {
+      await deleteCatalogEntry('uid-1', 'entry-1' as ULID);
+      expect(updateDoc).not.toHaveBeenCalled();
+      expect(setDoc).not.toHaveBeenCalled();
     });
   });
 });

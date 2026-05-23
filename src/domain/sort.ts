@@ -1,4 +1,4 @@
-import type { CatalogEntry, Category, ItemPriority } from './types';
+import type { Category, ItemPriority } from './types';
 
 const COLLATOR_OPTS: Intl.CollatorOptions = { sensitivity: 'base', numeric: true };
 
@@ -51,12 +51,18 @@ export const sortItemsByPriorityThenName = <
   });
 };
 
-export const groupCatalogByCategory = (
-  entries: readonly CatalogEntry[],
+/**
+ * Group catalog-like entries by their `category` field, returning groups in
+ * alphabetical order by translated category label. Generic over any entry
+ * shape carrying a `category` so the same helper serves both the per-user
+ * `CatalogEntry` and the per-list `ListFavoriteState`.
+ */
+export const groupCatalogByCategory = <T extends { category: Category }>(
+  entries: readonly T[],
   getLabel: (c: Category) => string,
   locale: string,
-): Array<[Category, CatalogEntry[]]> => {
-  const map = new Map<Category, CatalogEntry[]>();
+): Array<[Category, T[]]> => {
+  const map = new Map<Category, T[]>();
   for (const entry of entries) {
     const bucket = map.get(entry.category);
     if (bucket) bucket.push(entry);

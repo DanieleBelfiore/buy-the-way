@@ -17,6 +17,7 @@ import type { ULID } from '@/domain/id';
 import type { Item, Category, ItemPriority } from '@/domain/types';
 import { capitalizeInitial } from '@/domain/text';
 import { upsertCatalogEntry } from '@/services/catalog.service';
+import { upsertListFavorite } from '@/services/listFavorites.service';
 
 export const subscribeItems = (
   listId: ULID,
@@ -70,6 +71,7 @@ export const addItem = async (params: {
     updatedAt: now,
   });
   await upsertCatalogEntry(params.createdByUid, name, params.category);
+  await upsertListFavorite(params.listId, name, params.category);
 
   return id;
 };
@@ -175,6 +177,7 @@ export const copyItem = async (
   await batch.commit();
 
   await upsertCatalogEntry(byUid, name, item.category);
+  await upsertListFavorite(dstListId, name, item.category);
   return newItem.id;
 };
 
@@ -204,6 +207,7 @@ export const moveItem = async (
   await batch.commit();
 
   await upsertCatalogEntry(byUid, name, item.category);
+  await upsertListFavorite(dstListId, name, item.category);
   return newItem.id;
 };
 

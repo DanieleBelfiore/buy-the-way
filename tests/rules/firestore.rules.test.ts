@@ -304,6 +304,46 @@ describe('firestore.rules — items subcollection', () => {
   });
 });
 
+describe('firestore.rules — favoriteState subcollection', () => {
+  it('allows a collaborator to read favoriteState entries', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'favoriteState', 'latte'), {
+        slug: 'latte', name: 'Latte', category: 'dairy', usageCount: 1, lastUsedAt: 1,
+      });
+    });
+    await assertSucceeds(getDoc(doc(bobCtx() as any, 'lists', 'L1', 'favoriteState', 'latte')));
+  });
+
+  it('allows a collaborator to write favoriteState entries', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(
+      setDoc(doc(bobCtx() as any, 'lists', 'L1', 'favoriteState', 'latte'), {
+        slug: 'latte', name: 'Latte', category: 'dairy', usageCount: 1, lastUsedAt: 1,
+      }),
+    );
+  });
+
+  it('denies a non-collaborator from reading favoriteState', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'favoriteState', 'latte'), {
+        slug: 'latte', name: 'Latte', category: 'dairy', usageCount: 1, lastUsedAt: 1,
+      });
+    });
+    await assertFails(getDoc(doc(bobCtx() as any, 'lists', 'L1', 'favoriteState', 'latte')));
+  });
+
+  it('denies a non-collaborator from writing favoriteState', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertFails(
+      setDoc(doc(bobCtx() as any, 'lists', 'L1', 'favoriteState', 'latte'), {
+        slug: 'latte', name: 'Latte', category: 'dairy', usageCount: 1, lastUsedAt: 1,
+      }),
+    );
+  });
+});
+
 describe('firestore.rules — catalog/{uid}/entries', () => {
   it('allows owner to read/write their catalog', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'catalog', ALICE, 'entries', 'milk'), {

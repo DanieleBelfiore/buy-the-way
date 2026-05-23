@@ -3,17 +3,17 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Trash2 } from '@lucide/vue';
 import { iconForName } from '@/domain/public-catalog';
-import type { CatalogEntry } from '@/domain/types';
+import type { ListFavoriteState } from '@/domain/types';
 
 const props = defineProps<{
-  entry: CatalogEntry;
+  entry: ListFavoriteState;
   isTop: boolean;
 }>();
 
 const emit = defineEmits<{
-  add: [CatalogEntry];
-  /** Trash button — request to hide this entry from future suggestions. */
-  exclude: [CatalogEntry];
+  add: [ListFavoriteState];
+  /** Trash button — request to hide this entry from this list's favorites shelf. */
+  exclude: [ListFavoriteState];
 }>();
 
 const { t, locale } = useI18n();

@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   getDocs,
   onSnapshot,
   query,
@@ -58,46 +59,17 @@ export const upsertCatalogEntry = async (
   }
 };
 
-export const setCatalogPinned = async (
-  ownerUid: string,
-  entryId: ULID,
-  pinned: boolean,
-): Promise<void> => {
-  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
-  const patch: Record<string, unknown> = { pinned };
-  if (pinned) patch.excluded = false;
-  await updateDoc(doc(entriesCol, entryId), patch);
-};
-
-export const setCatalogExcluded = async (
-  ownerUid: string,
-  entryId: ULID,
-  excluded: boolean,
-): Promise<void> => {
-  const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
-  const patch: Record<string, unknown> = { excluded };
-  if (excluded) patch.pinned = false;
-  await updateDoc(doc(entriesCol, entryId), patch);
-};
-
 /**
- * Single-shot writer for the favorites-shelf state of a catalog entry.
- *
- * `wantFavorite = true`  → explicit pin, clear any dismissal/exclusion.
- * `wantFavorite = false` → stop showing in the favorites shelf without
- * suppressing the entry from autocomplete suggestions (uses the sticky
- * `dismissedFavorite` flag so usage-count-based auto-promotion stays off).
+ * Hard-delete a catalog entry. Used by the "don't suggest again" action to
+ * suppress an item from autocomplete suggestions across all of the user's
+ * lists. Re-adding the same name later will recreate the entry from scratch.
  */
-export const setCatalogFavoriteState = async (
+export const deleteCatalogEntry = async (
   ownerUid: string,
   entryId: ULID,
-  wantFavorite: boolean,
 ): Promise<void> => {
   const entriesCol = collection(db, 'catalog', ownerUid, 'entries');
-  const patch: Record<string, unknown> = wantFavorite
-    ? { pinned: true, dismissedFavorite: false, excluded: false }
-    : { pinned: false, dismissedFavorite: true };
-  await updateDoc(doc(entriesCol, entryId), patch);
+  await deleteDoc(doc(entriesCol, entryId));
 };
 
 export const findCatalogEntryByName = async (

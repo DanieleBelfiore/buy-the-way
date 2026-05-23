@@ -5,17 +5,16 @@ import { Star } from '@lucide/vue';
 import ShelfTile from '@/components/list/ShelfTile.vue';
 import { CATEGORIES } from '@/domain/categories';
 import { groupCatalogByCategory } from '@/domain/sort';
-import type { CatalogEntry, Category } from '@/domain/types';
-import type { ULID } from '@/domain/id';
+import type { Category, ListFavoriteState } from '@/domain/types';
 
 const props = defineProps<{
-  entries: CatalogEntry[];
-  topIds: Set<ULID>;
+  entries: ListFavoriteState[];
+  topSlugs: Set<string>;
 }>();
 
 const emit = defineEmits<{
-  'add-from-shelf': [CatalogEntry];
-  'exclude-tile': [CatalogEntry];
+  'add-from-shelf': [ListFavoriteState];
+  'exclude-tile': [ListFavoriteState];
 }>();
 
 const { t, locale } = useI18n();
@@ -26,26 +25,29 @@ const toggle = () => {
   collapsed.value = !collapsed.value;
 };
 
-const onAdd = (entry: CatalogEntry) => emit('add-from-shelf', entry);
-const onExclude = (entry: CatalogEntry) => emit('exclude-tile', entry);
+const onAdd = (entry: ListFavoriteState) => emit('add-from-shelf', entry);
+const onExclude = (entry: ListFavoriteState) => emit('exclude-tile', entry);
 
-const stableEntries = ref<CatalogEntry[]>([...props.entries]);
+const stableEntries = ref<ListFavoriteState[]>([...props.entries]);
 
-const sameIds = (a: readonly CatalogEntry[], b: readonly CatalogEntry[]): boolean => {
+const sameSlugs = (
+  a: readonly ListFavoriteState[],
+  b: readonly ListFavoriteState[],
+): boolean => {
   if (a.length !== b.length) return false;
-  const setA = new Set(a.map((e) => e.id));
-  for (const e of b) if (!setA.has(e.id)) return false;
+  const setA = new Set(a.map((e) => e.slug));
+  for (const e of b) if (!setA.has(e.slug)) return false;
   return true;
 };
 
 watch(
   () => props.entries,
   (incoming) => {
-    if (sameIds(stableEntries.value, incoming)) {
-      const byId = new Map(incoming.map((e) => [e.id, e] as const));
+    if (sameSlugs(stableEntries.value, incoming)) {
+      const bySlug = new Map(incoming.map((e) => [e.slug, e] as const));
       stableEntries.value = stableEntries.value
-        .map((e) => byId.get(e.id))
-        .filter((e): e is CatalogEntry => e !== undefined);
+        .map((e) => bySlug.get(e.slug))
+        .filter((e): e is ListFavoriteState => e !== undefined);
     } else {
       stableEntries.value = [...incoming];
     }
@@ -53,7 +55,7 @@ watch(
   { deep: false },
 );
 
-const groups = computed<Array<[Category, CatalogEntry[]]>>(() =>
+const groups = computed<Array<[Category, ListFavoriteState[]]>>(() =>
   groupCatalogByCategory(stableEntries.value, (c) => t(CATEGORIES[c].labelKey), locale.value),
 );
 
@@ -158,9 +160,9 @@ const onLeave = (el: Element, done: () => void): void => {
           <TransitionGroup name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
             <ShelfTile
               v-for="entry in items"
-              :key="entry.id"
+              :key="entry.slug"
               :entry="entry"
-              :is-top="topIds.has(entry.id)"
+              :is-top="topSlugs.has(entry.slug)"
               @add="onAdd"
               @exclude="onExclude"
             />
