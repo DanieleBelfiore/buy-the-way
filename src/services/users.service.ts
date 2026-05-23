@@ -1,11 +1,6 @@
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
-  query,
-  where,
-  limit,
   setDoc,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';

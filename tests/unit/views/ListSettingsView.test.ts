@@ -6,6 +6,7 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }));
 vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
+vi.mock('@/stores/listFavorites', () => ({ useListFavoritesStore: vi.fn() }));
 vi.mock('@/services/lists.service', () => ({
   addCollaborator: vi.fn(),
   removeCollaborator: vi.fn(),
@@ -34,6 +35,7 @@ import {
   setListWallpaper,
 } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
+import { useListFavoritesStore } from '@/stores/listFavorites';
 
 const i18n = createI18n({
   legacy: false,
@@ -126,6 +128,16 @@ const setupStores = (
     profile,
     ensureProfile: vi.fn().mockResolvedValue(undefined),
     setDefaultListId: mockSetDefaultListId,
+  } as any);
+  
+  vi.mocked(useListFavoritesStore).mockReturnValue({
+    entries: [{ slug: 'a', name: 'A', category: 'Other', usageCount: 1, lastUsedAt: 1 }],
+    loading: false,
+    error: null,
+    currentListId: null,
+    rankedEntries: [{ slug: 'a', name: 'A', category: 'Other', usageCount: 1, lastUsedAt: 1 }],
+    pinnedNames: new Set(),
+    subscribe: vi.fn().mockReturnValue(vi.fn()),
   } as any);
 };
 
@@ -365,16 +377,16 @@ describe('ListSettingsView', () => {
     setupStores(ownerList, 'uid-me');
     const wrapper = await mountView();
     await flushPromises();
-    const input = wrapper.find('[data-testid="show-favorites-toggle"]').element as HTMLInputElement;
-    expect(input.checked).toBe(true);
+    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
+    expect(btn.attributes('aria-checked')).toBe('true');
   });
 
   it('show-favorites toggle reflects showFavorites: false', async () => {
     setupStores({ ...ownerList, showFavorites: false }, 'uid-me');
     const wrapper = await mountView();
     await flushPromises();
-    const input = wrapper.find('[data-testid="show-favorites-toggle"]').element as HTMLInputElement;
-    expect(input.checked).toBe(false);
+    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
+    expect(btn.attributes('aria-checked')).toBe('false');
   });
 
   it('toggling show-favorites calls setListShowFavorites', async () => {
@@ -382,9 +394,8 @@ describe('ListSettingsView', () => {
     vi.mocked(setListShowFavorites).mockResolvedValue(undefined);
     const wrapper = await mountView();
     await flushPromises();
-    const checkbox = wrapper.find('[data-testid="show-favorites-toggle"]');
-    (checkbox.element as HTMLInputElement).checked = false;
-    await checkbox.trigger('change');
+    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
+    await btn.trigger('click');
     await flushPromises();
     expect(setListShowFavorites).toHaveBeenCalledWith('list-1', false);
   });

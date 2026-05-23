@@ -373,6 +373,7 @@ const handleDelete = async () => {
             <span class="block text-xs text-muted-gray">{{ t('listSettings.showFavoritesHint') }}</span>
           </span>
           <button
+            data-testid="show-favorites-toggle"
             type="button"
             role="switch"
             :aria-checked="showFavoritesValue"

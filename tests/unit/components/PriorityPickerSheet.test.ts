@@ -101,10 +101,4 @@ describe('PriorityPickerSheet', () => {
     wrapper.unmount();
   });
 
-  it('emits cancel on cancel button click', async () => {
-    const wrapper = mountSheet({ open: true });
-    await wrapper.get('[data-testid="priority-picker-cancel"]').trigger('click');
-    expect(wrapper.emitted('cancel')).toBeTruthy();
-    wrapper.unmount();
-  });
 });

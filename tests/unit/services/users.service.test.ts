@@ -28,7 +28,7 @@ import {
   touchLastSeenList,
   getUsersByUids,
 } from '@/services/users.service';
-import { getDoc, getDocs, query, where, limit, setDoc } from 'firebase/firestore';
+import { getDoc, setDoc } from 'firebase/firestore';
 
 describe('users.service', () => {
   beforeEach(() => {
