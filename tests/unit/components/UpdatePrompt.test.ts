@@ -52,7 +52,7 @@ describe('UpdatePrompt', () => {
     expect(updateServiceWorker).toHaveBeenCalledWith(true);
   });
 
-  it('shows spinner during pending updateServiceWorker call', async () => {
+  it('rotates the existing reload icon during pending updateServiceWorker call', async () => {
     let resolveSW: () => void = () => {};
     updateServiceWorker.mockImplementationOnce(
       () => new Promise<void>((r) => { resolveSW = r; }),
@@ -62,7 +62,9 @@ describe('UpdatePrompt', () => {
     await nextTick();
     await wrapper.find('[data-testid="toast-action"]').trigger('click');
     await nextTick();
-    expect(wrapper.find('[data-testid="toast-action-spinner"]').exists()).toBe(true);
+    const icon = wrapper.find('[data-testid="toast-action-icon"]');
+    expect(icon.exists()).toBe(true);
+    expect(icon.classes()).toContain('animate-spin');
     resolveSW();
     await flushPromises();
   });

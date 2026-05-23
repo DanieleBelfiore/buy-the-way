@@ -8,10 +8,11 @@ const emit = defineEmits<{ (e: 'click'): void }>();
 
 <template>
   <button
-    class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white
+    class="fixed right-6 w-14 h-14 bg-primary text-white
            rounded-full shadow-lg hover:bg-primary-hover active:bg-primary-active
            flex items-center justify-center
            active:scale-90 transition-transform"
+    style="bottom: max(1.5rem, env(safe-area-inset-bottom));"
     :aria-label="t('list.new')"
     @click="emit('click')"
   >

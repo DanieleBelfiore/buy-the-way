@@ -74,8 +74,11 @@ const totalCards = computed(() => [
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream flex flex-col pb-8">
-    <header class="px-5 pt-12 pb-4 flex items-center gap-3">
+  <main
+    class="min-h-dvh bg-cream flex flex-col"
+    style="padding-bottom: max(2rem, env(safe-area-inset-bottom));"
+  >
+    <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         :aria-label="t('stats.title')"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"

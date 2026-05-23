@@ -17,8 +17,21 @@ export type Category =
 export interface List {
   id: ULID;
   name: string;
+  /**
+   * Creator-of-record. Kept stable for cascade-delete pivot logic and as a
+   * fallback for legacy lists that pre-date `admins`. Permissions are now
+   * driven by `admins` — `ownerUid` alone does not grant any privilege beyond
+   * what membership in `admins` already implies.
+   */
   ownerUid: string;
   collaboratorUids: readonly string[];
+  /**
+   * UIDs that may rename/wallpaper/delete the list, manage collaborators, and
+   * promote/demote other admins. Legacy lists (created before this field
+   * existed) MAY be missing it; Firestore rules treat that case as
+   * `admins = [ownerUid]`.
+   */
+  admins?: readonly string[];
   /**
    * Emails (lowercased) of users who were invited but had no account yet.
    * On sign-in, the auth flow matches the user's email here and migrates them

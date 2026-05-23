@@ -108,3 +108,32 @@ export const findListFavoriteByName = async (
   if (!snap.exists()) return null;
   return { slug, ...snap.data() } as ListFavoriteState;
 };
+
+/**
+ * Ensure a per-list favorite doc exists for `name` and return its slug. If
+ * the doc is missing (legacy list, or a row whose source row was created
+ * before per-list favorites shipped) a fresh doc is created with
+ * `usageCount: 0` — distinct from `upsertListFavorite`, which is the
+ * add-item path and bumps the count. Use this when the user is acting on
+ * the favorite directly (e.g. tapping the star) without adding a new row.
+ */
+export const ensureListFavorite = async (
+  listId: ULID,
+  name: string,
+  category: Category,
+): Promise<string> => {
+  const slug = slugFor(name);
+  const ref = doc(db, 'lists', listId, 'favoriteState', slug);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    const entry: ListFavoriteState = {
+      slug,
+      name,
+      category,
+      usageCount: 0,
+      lastUsedAt: Date.now(),
+    };
+    await setDoc(ref, entry);
+  }
+  return slug;
+};

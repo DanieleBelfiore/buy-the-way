@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { LogOut, X } from '@lucide/vue';
+import { LogOut, ShieldCheck, ShieldOff, X } from '@lucide/vue';
 import type { UserProfile } from '@/domain/types';
 
 const props = withDefaults(
   defineProps<{
     members: readonly UserProfile[];
     ownerUid: string;
+    /** Resolved admin set (falls back to [ownerUid] in the caller for legacy lists). */
+    admins: readonly string[];
     selfUid: string;
     hideLeave?: boolean;
   }>(),
@@ -17,11 +19,14 @@ const props = withDefaults(
 const emit = defineEmits<{
   remove: [string];
   leave: [];
+  promote: [string];
+  demote: [string];
 }>();
 
 const { t } = useI18n();
 
-const isOwner = computed(() => props.selfUid === props.ownerUid);
+const isSelfAdmin = computed(() => props.admins.includes(props.selfUid));
+const isAdmin = (uid: string): boolean => props.admins.includes(uid);
 
 const labelFor = (m: UserProfile): string =>
   m.displayName.trim().length > 0 ? m.displayName : m.email;
@@ -80,13 +85,43 @@ const colorFor = (uid: string): string => {
         </span>
         <span class="font-medium">{{ labelFor(m) }}</span>
         <span
-          v-if="m.uid === props.ownerUid"
+          v-if="isAdmin(m.uid)"
+          :data-testid="`admin-badge-${m.uid}`"
           class="rounded-full bg-charcoal/10 px-2 py-0.5 text-xs text-charcoal"
         >
-          {{ t('collaborators.owner') }}
+          {{ t('collaborators.admin') }}
         </span>
+
+        <!-- Promote: visible to any admin, on any non-admin collaborator. -->
         <button
-          v-if="isOwner && m.uid !== props.ownerUid"
+          v-if="isSelfAdmin && !isAdmin(m.uid)"
+          type="button"
+          :data-testid="`promote-${m.uid}`"
+          :aria-label="`${t('collaborators.promote')} ${labelFor(m)}`"
+          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-950 dark:active:bg-emerald-900"
+          @click="emit('promote', m.uid)"
+        >
+          <ShieldCheck :size="12" :stroke-width="2.25" aria-hidden="true" />
+          {{ t('collaborators.promote') }}
+        </button>
+
+        <!-- Demote: visible to any admin, on any other admin (including the
+             creator). Self-demote is permitted only when other admins remain;
+             the service layer enforces the LastAdminError guard. -->
+        <button
+          v-if="isSelfAdmin && isAdmin(m.uid)"
+          type="button"
+          :data-testid="`demote-${m.uid}`"
+          :aria-label="`${t('collaborators.demote')} ${labelFor(m)}`"
+          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-amber-700 hover:bg-amber-50 active:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-950 dark:active:bg-amber-900"
+          @click="emit('demote', m.uid)"
+        >
+          <ShieldOff :size="12" :stroke-width="2.25" aria-hidden="true" />
+          {{ t('collaborators.demote') }}
+        </button>
+
+        <button
+          v-if="isSelfAdmin && m.uid !== props.ownerUid && m.uid !== props.selfUid"
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"
@@ -100,7 +135,7 @@ const colorFor = (uid: string): string => {
     </ul>
 
     <button
-      v-if="!isOwner && !props.hideLeave"
+      v-if="!isSelfAdmin && !props.hideLeave"
       type="button"
       data-testid="leave-list"
       class="inline-flex items-center gap-2 rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"

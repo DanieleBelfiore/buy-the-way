@@ -22,6 +22,7 @@ import {
   setListFavoriteExcluded,
   setListFavoriteState,
   findListFavoriteByName,
+  ensureListFavorite,
 } from '@/services/listFavorites.service';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { CATEGORIES } from '@/domain/categories';
@@ -224,10 +225,12 @@ const handlePriorityCancel = (): void => {
 
 const handleTogglePinned = async (item: Item): Promise<void> => {
   try {
-    const fav = await findListFavoriteByName(listId.value, item.name);
-    if (!fav) return;
+    // Guarantee a favoriteState doc exists before flipping flags. Covers the
+    // case where the row's row predates per-list favorites or the doc was
+    // never created (defensive — addItem upserts, but legacy lists won't).
+    const slug = await ensureListFavorite(listId.value, item.name, item.category);
     const currentlyFavorite = pinnedNames.value.has(item.name);
-    await setListFavoriteState(listId.value, fav.slug, !currentlyFavorite);
+    await setListFavoriteState(listId.value, slug, !currentlyFavorite);
     pulse();
   } catch (err) {
     console.error('[ListDetailView] togglePinned failed:', err);
@@ -443,15 +446,14 @@ const cancelRemove = (): void => {
   removeCandidate.value = null;
 };
 
-const dontSuggestToast = ref<{ name: string; entryId: ULID } | null>(null);
-let _dontSuggestTimer: ReturnType<typeof setTimeout> | null = null;
+// "Don't suggest again?" follow-up after a custom-item trash. Holds the
+// candidate the user is being asked about; the template binds two
+// ConfirmModal buttons — Don't-suggest = delete catalog entry, Continue =
+// no-op (close).
+const dontSuggestCandidate = ref<{ name: string; entryId: ULID } | null>(null);
 
-const closeDontSuggestToast = (): void => {
-  dontSuggestToast.value = null;
-  if (_dontSuggestTimer) {
-    clearTimeout(_dontSuggestTimer);
-    _dontSuggestTimer = null;
-  }
+const closeDontSuggest = (): void => {
+  dontSuggestCandidate.value = null;
 };
 
 const maybeOfferDontSuggest = async (removedName: string): Promise<void> => {
@@ -460,19 +462,15 @@ const maybeOfferDontSuggest = async (removedName: string): Promise<void> => {
   try {
     const entry = await findCatalogEntryByName(authStore.user.uid, removedName);
     if (!entry) return;
-    closeDontSuggestToast();
-    dontSuggestToast.value = { name: removedName, entryId: entry.id };
-    _dontSuggestTimer = setTimeout(() => {
-      closeDontSuggestToast();
-    }, 6000);
+    dontSuggestCandidate.value = { name: removedName, entryId: entry.id };
   } catch (err) {
     console.warn('[ListDetailView] dont-suggest lookup failed:', err);
   }
 };
 
-const handleDontSuggestAction = async (): Promise<void> => {
-  const target = dontSuggestToast.value;
-  closeDontSuggestToast();
+const handleDontSuggestConfirm = async (): Promise<void> => {
+  const target = dontSuggestCandidate.value;
+  closeDontSuggest();
   if (!target || !authStore.user) return;
   try {
     // Delete the per-user catalog entry so the item is no longer suggested in
@@ -531,7 +529,7 @@ onUnmounted(() => {
   _listsUnsub?.();
   _favsUnsub?.();
   itemsStore.setCurrentList(null);
-  closeDontSuggestToast();
+  closeDontSuggest();
 });
 
 // Stale-default fallback: if the user is on the detail view for a list that
@@ -569,8 +567,8 @@ watch(
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream flex flex-col pb-4">
-    <header class="px-5 pt-12 pb-4 flex items-center gap-3">
+  <main class="h-dvh bg-cream flex flex-col">
+    <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
@@ -660,70 +658,83 @@ watch(
       </span>
     </div>
 
-    <div class="px-0">
+    <!-- Sticky autocomplete: stays above the scroll region so the user can
+         add items at any scroll position. shrink-0 prevents the flex parent
+         from squeezing it out when the items list grows. -->
+    <div class="px-0 shrink-0">
       <ItemAutocomplete
         @add-item="handleAddItem"
         @active-change="(v) => (autocompleteActive = v)"
       />
     </div>
 
-    <MostUsedShelf
-      v-if="list?.showFavorites !== false"
-      :entries="shelfEntries"
-      :top-slugs="shelfTopSlugs"
-      @add-from-shelf="handleShelfAdd"
-      @exclude-tile="handleShelfExclude"
-    />
+    <!-- Scrollable item list region. `min-h-0` is required for the flex
+         child to shrink below its intrinsic content height so the inner
+         overflow-y-auto can actually scroll instead of pushing the parent.
+         The favorites shelf scrolls with the items — only the header /
+         stats / autocomplete stay pinned at the top. -->
+    <div
+      data-testid="list-items-scroll"
+      class="flex-1 min-h-0 overflow-y-auto pb-4"
+    >
+      <MostUsedShelf
+        v-if="list?.showFavorites !== false"
+        :entries="shelfEntries"
+        :top-slugs="shelfTopSlugs"
+        @add-from-shelf="handleShelfAdd"
+        @exclude-tile="handleShelfExclude"
+      />
 
-    <div v-if="itemsStore.loading && !hasItems" class="px-5 py-4 space-y-2">
-      <SkeletonCard height-class="h-10" />
-      <SkeletonCard height-class="h-10" />
-      <SkeletonCard height-class="h-10" />
+      <div v-if="itemsStore.loading && !hasItems" class="px-5 py-4 space-y-2">
+        <SkeletonCard height-class="h-10" />
+        <SkeletonCard height-class="h-10" />
+        <SkeletonCard height-class="h-10" />
+      </div>
+
+      <div v-else-if="!hasItems" class="px-5 py-12 text-center space-y-3">
+        <DotLottieVue
+          data-testid="list-empty-lottie"
+          aria-hidden="true"
+          class="mx-auto h-40 w-40"
+          src="/animations/cart_empty.lottie"
+          :autoplay="true"
+          :loop="true"
+        />
+        <p class="text-sm text-muted-gray">{{ t('list.empty') }}</p>
+        <p class="text-xs text-muted-gray mt-1">{{ t('list.emptyHint') }}</p>
+      </div>
+
+      <div v-else>
+        <CategorySection
+          v-for="[category, items] in itemsByCategory"
+          :key="category"
+          :category="category"
+          :items="items"
+          :collapsed="isCollapsed(category)"
+          :can-move-copy="canMoveCopy"
+          :pinned-names="pinnedNames"
+          @toggle-checked="(id, val) => handleToggleChecked(id, val)"
+          @remove-item="(id) => handleRemoveItem(id)"
+          @toggle-collapse="(c) => toggleCollapsed(c)"
+          @open-edit="handleOpenItemEdit"
+          @request-priority="handleRequestPriority"
+          @move-copy="handleOpenMoveCopy"
+          @toggle-pinned="handleTogglePinned"
+        />
+      </div>
     </div>
 
-    <div v-else-if="!hasItems" class="px-5 py-12 text-center space-y-3">
-      <DotLottieVue
-        data-testid="list-empty-lottie"
-        aria-hidden="true"
-        class="mx-auto h-40 w-40"
-        src="/animations/cart_empty.lottie"
-        :autoplay="true"
-        :loop="true"
-      />
-      <p class="text-sm text-muted-gray">{{ t('list.empty') }}</p>
-      <p class="text-xs text-muted-gray mt-1">{{ t('list.emptyHint') }}</p>
-    </div>
-
-    <div v-else>
-      <CategorySection
-        v-for="[category, items] in itemsByCategory"
-        :key="category"
-        :category="category"
-        :items="items"
-        :collapsed="isCollapsed(category)"
-        :can-move-copy="canMoveCopy"
-        :pinned-names="pinnedNames"
-        @toggle-checked="(id, val) => handleToggleChecked(id, val)"
-        @remove-item="(id) => handleRemoveItem(id)"
-        @toggle-collapse="(c) => toggleCollapsed(c)"
-        @open-edit="handleOpenItemEdit"
-        @request-priority="handleRequestPriority"
-        @move-copy="handleOpenMoveCopy"
-        @toggle-pinned="handleTogglePinned"
-      />
-    </div>
-
-    <div class="mt-auto">
-      <div
-        v-if="hasItems && !autocompleteActive"
-        class="mx-5 my-4 border-t border-dashed border-cream-soft"
-      />
-      <EmptyListButton
-        v-if="hasItems && !autocompleteActive"
-        :count="itemCount"
-        @empty="handleEmptyList"
-      />
-    </div>
+    <!-- Sticky footer: "Svuota lista" stays visible regardless of list
+         length. Hidden only while the autocomplete is active to avoid
+         covering the keyboard-driven flow. -->
+    <footer
+      v-if="hasItems && !autocompleteActive"
+      data-testid="list-detail-footer"
+      class="shrink-0 border-t border-cream-soft bg-cream"
+      style="padding-bottom: max(0px, env(safe-area-inset-bottom));"
+    >
+      <EmptyListButton :count="itemCount" @empty="handleEmptyList" />
+    </footer>
 
     <ItemEditSheet
       :open="editSheetOpen"
@@ -784,12 +795,16 @@ watch(
       @close="toggleToastOpen = false"
     />
 
-    <Toast
-      :open="dontSuggestToast !== null"
-      :message="dontSuggestToast ? t('item.dontSuggestAgainMessage', { name: dontSuggestToast.name }) : ''"
-      :action-label="t('item.dontSuggestAgainAction')"
-      @action="handleDontSuggestAction"
-      @close="closeDontSuggestToast"
+    <ConfirmModal
+      v-if="dontSuggestCandidate"
+      :open="dontSuggestCandidate !== null"
+      :title="t('item.dontSuggestAgainTitle')"
+      :message="t('item.dontSuggestAgainMessage', { name: dontSuggestCandidate.name })"
+      :confirm-label="t('item.dontSuggestAgainAction')"
+      :cancel-label="t('item.keepSuggesting')"
+      destructive
+      @confirm="handleDontSuggestConfirm"
+      @cancel="closeDontSuggest"
     />
   </main>
 </template>

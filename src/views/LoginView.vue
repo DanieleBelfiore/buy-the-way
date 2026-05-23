@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useLogoMotion } from '@/composables/useLogoMotion';
 import { useDocumentHead } from '@/composables/useDocumentHead';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
+import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import pkg from '../../package.json';
 
 const APP_VERSION = pkg.version;
@@ -47,7 +48,10 @@ const handleSignIn = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream flex flex-col items-center px-6">
+  <main class="min-h-dvh bg-cream flex flex-col items-center px-6 relative">
+    <div class="absolute top-4 right-4">
+      <LocaleSwitcher />
+    </div>
     <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center">
       <!-- Logo + Wordmark -->
       <div class="text-center space-y-3">

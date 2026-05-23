@@ -13,6 +13,9 @@ import {
   deleteList,
   setListShowFavorites,
   setListWallpaper,
+  promoteAdmin,
+  demoteAdmin,
+  LastAdminError,
   type AddCollaboratorResult,
 } from '@/services/lists.service';
 import { sendInviteEmail } from '@/services/invites.service';
@@ -39,7 +42,13 @@ const listId = computed(() => route.params.id as ULID);
 const list = computed(() => listsStore.lists.find((l) => l.id === listId.value));
 
 const selfUid = computed(() => authStore.user?.uid ?? '');
-const isOwner = computed(() => list.value?.ownerUid === selfUid.value);
+// Legacy lists may not have an `admins` field; rules and the service layer
+// both fall back to `[ownerUid]`. Mirror that here so UI gates behave the
+// same way against un-migrated docs.
+const adminUids = computed<readonly string[]>(
+  () => list.value?.admins ?? (list.value ? [list.value.ownerUid] : []),
+);
+const isAdmin = computed(() => adminUids.value.includes(selfUid.value));
 
 const nameDraft = ref('');
 const renaming = ref(false);
@@ -55,7 +64,7 @@ const showFavoritesValue = computed(() => list.value?.showFavorites !== false);
 const togglingFavorites = ref(false);
 
 const handleToggleShowFavorites = async (next: boolean): Promise<void> => {
-  if (!isOwner.value) return;
+  if (!isAdmin.value) return;
   togglingFavorites.value = true;
   actionError.value = null;
   try {
@@ -71,7 +80,7 @@ const wallpaperValue = computed(() => list.value?.wallpaper);
 const settingWallpaper = ref(false);
 
 const handleSelectWallpaper = async (wallpaper: Wallpaper): Promise<void> => {
-  if (!isOwner.value) return;
+  if (!isAdmin.value) return;
   settingWallpaper.value = true;
   actionError.value = null;
   try {
@@ -124,7 +133,7 @@ onUnmounted(() => {
 });
 
 const handleRename = async () => {
-  if (!isOwner.value) return;
+  if (!isAdmin.value) return;
   const trimmed = nameDraft.value.trim();
   if (!trimmed || trimmed === list.value?.name) return;
   renaming.value = true;
@@ -204,6 +213,55 @@ const handleRemove = async (uid: string) => {
   }
 };
 
+// Promote / demote flow: a tap on the chip button stages the candidate uid
+// in a ref that opens a ConfirmModal. Confirm hits the service; cancel just
+// clears the candidate.
+const promoteCandidate = ref<string | null>(null);
+const demoteCandidate = ref<string | null>(null);
+
+const memberLabel = (uid: string | null): string => {
+  if (!uid) return '';
+  const m = members.value.find((x) => x.uid === uid);
+  if (!m) return uid;
+  return m.displayName.trim() || m.email || uid;
+};
+
+const onPromoteRequest = (uid: string): void => {
+  promoteCandidate.value = uid;
+};
+
+const onDemoteRequest = (uid: string): void => {
+  demoteCandidate.value = uid;
+};
+
+const confirmPromote = async (): Promise<void> => {
+  const target = promoteCandidate.value;
+  promoteCandidate.value = null;
+  if (!target) return;
+  actionError.value = null;
+  try {
+    await promoteAdmin(listId.value, target);
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : String(err);
+  }
+};
+
+const confirmDemote = async (): Promise<void> => {
+  const target = demoteCandidate.value;
+  demoteCandidate.value = null;
+  if (!target) return;
+  actionError.value = null;
+  try {
+    await demoteAdmin(listId.value, target);
+  } catch (err) {
+    if (err instanceof LastAdminError) {
+      actionError.value = t('collaborators.lastAdminError');
+    } else {
+      actionError.value = err instanceof Error ? err.message : String(err);
+    }
+  }
+};
+
 // Clear the default-list pref if it points to the list we're about to walk
 // away from. Errors are non-fatal — the lazy cleanup in ListsView will retry.
 const clearDefaultIfMatches = async (): Promise<void> => {
@@ -241,8 +299,11 @@ const handleDelete = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream pb-6 flex flex-col">
-    <header class="px-5 pt-12 pb-4 flex items-center gap-3">
+  <main
+    class="min-h-dvh bg-cream flex flex-col"
+    style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));"
+  >
+    <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
@@ -260,7 +321,7 @@ const handleDelete = async () => {
     </div>
 
     <div v-else class="px-5 flex-1 flex flex-col gap-6">
-      <section v-if="isOwner" data-testid="rename-section" class="space-y-2">
+      <section v-if="isAdmin" data-testid="rename-section" class="space-y-2">
         <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
           {{ t('listSettings.rename') }}
         </label>
@@ -286,7 +347,7 @@ const handleDelete = async () => {
         <p v-if="renameError" class="text-red-500 text-xs">{{ renameError }}</p>
       </section>
 
-      <section v-if="isOwner" data-testid="wallpaper-section" class="space-y-2">
+      <section v-if="isAdmin" data-testid="wallpaper-section" class="space-y-2">
         <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
           {{ t('listSettings.wallpaper') }}
         </label>
@@ -297,7 +358,7 @@ const handleDelete = async () => {
         />
       </section>
 
-      <section v-if="isOwner" data-testid="show-favorites-section" class="space-y-2">
+      <section v-if="isAdmin" data-testid="show-favorites-section" class="space-y-2">
         <label class="flex items-start gap-3 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -321,13 +382,16 @@ const handleDelete = async () => {
         <CollaboratorList
           :members="members"
           :owner-uid="list.ownerUid"
+          :admins="adminUids"
           :self-uid="selfUid"
           hide-leave
           @remove="handleRemove"
           @leave="handleLeave"
+          @promote="onPromoteRequest"
+          @demote="onDemoteRequest"
         />
         <AddCollaboratorForm
-          v-if="isOwner"
+          v-if="isAdmin"
           :submit-fn="handleAddCollaborator"
           @pending="onCollaboratorPending"
         />
@@ -335,7 +399,7 @@ const handleDelete = async () => {
         <!-- Pending email invites (queued until invitee signs up). Only the
              owner sees these and can revoke a queued invite. -->
         <ul
-          v-if="isOwner && pendingInviteEmails.length > 0"
+          v-if="isAdmin && pendingInviteEmails.length > 0"
           data-testid="pending-invites"
           class="flex flex-wrap gap-2"
         >
@@ -365,7 +429,7 @@ const handleDelete = async () => {
 
       <div class="mt-auto pt-4 border-t border-cream-soft">
         <button
-          v-if="!isOwner"
+          v-if="!isAdmin"
           data-testid="leave-list-bottom"
           type="button"
           class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
@@ -375,7 +439,7 @@ const handleDelete = async () => {
           {{ t('listSettings.leaveList') }}
         </button>
         <button
-          v-if="isOwner"
+          v-if="isAdmin"
           data-testid="delete-list"
           type="button"
           class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
@@ -396,6 +460,29 @@ const handleDelete = async () => {
         destructive
         @confirm="handleDelete"
         @cancel="deleteOpen = false"
+      />
+
+      <ConfirmModal
+        v-if="promoteCandidate"
+        :open="promoteCandidate !== null"
+        :title="t('collaborators.promoteConfirmTitle')"
+        :message="t('collaborators.promoteConfirmMessage', { name: memberLabel(promoteCandidate) })"
+        :confirm-label="t('collaborators.promote')"
+        :cancel-label="t('listSettings.cancel')"
+        @confirm="confirmPromote"
+        @cancel="promoteCandidate = null"
+      />
+
+      <ConfirmModal
+        v-if="demoteCandidate"
+        :open="demoteCandidate !== null"
+        :title="t('collaborators.demoteConfirmTitle')"
+        :message="t('collaborators.demoteConfirmMessage', { name: memberLabel(demoteCandidate) })"
+        :confirm-label="t('collaborators.demote')"
+        :cancel-label="t('listSettings.cancel')"
+        destructive
+        @confirm="confirmDemote"
+        @cancel="demoteCandidate = null"
       />
 
       <Toast

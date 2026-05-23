@@ -19,6 +19,8 @@ export interface InstallPromptState {
   isInstalled: Ref<boolean>;
   /** True when we should show the iOS Safari "tap share → add to home" hint. */
   showIOSHint: Ref<boolean>;
+  /** True when the host UA looks like a mobile device. Install prompt is mobile-only. */
+  isMobile: Ref<boolean>;
   /** Show the native install prompt and resolve with the user's outcome. */
   promptInstall: () => Promise<InstallPromptOutcome>;
   /** Dismiss the in-app prompt for the rest of this tab session (in-memory only). */
@@ -30,6 +32,7 @@ export interface InstallPromptState {
 const canInstall = ref(false);
 const isInstalled = ref(false);
 const showIOSHint = ref(false);
+const isMobile = ref(false);
 const dismissed = ref(false);
 
 let deferredPrompt: InstallPromptEvent | null = null;
@@ -49,6 +52,21 @@ const detectIOS = (): boolean => {
   return /iPad|iPhone|iPod/.test(window.navigator.userAgent);
 };
 
+/**
+ * UA-based mobile detection. The install prompt is mobile-only per product
+ * decision — desktop browsers get nothing. Covers iOS, Android, plus other
+ * mobile UAs. Width fallback (≤ 768) catches mobile UAs spoofed as desktop
+ * (rare) without surfacing the prompt on legitimate laptops with narrow
+ * windows (we OR the two so a narrow desktop window still shows nothing
+ * unless the UA also reports mobile — desktop windows being narrow is
+ * common; legitimate mobile is rare on width alone).
+ */
+const detectMobile = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const ua = window.navigator.userAgent;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/.test(ua);
+};
+
 export const setupInstallPrompt = (): InstallPromptState => {
   if (typeof window === 'undefined') {
     return state();
@@ -57,6 +75,7 @@ export const setupInstallPrompt = (): InstallPromptState => {
   listenersAttached = true;
 
   isInstalled.value = detectStandalone();
+  isMobile.value = detectMobile();
   if (isInstalled.value) {
     canInstall.value = false;
     showIOSHint.value = false;
@@ -107,6 +126,7 @@ const state = (): InstallPromptState => ({
   canInstall,
   isInstalled,
   showIOSHint,
+  isMobile,
   promptInstall,
   dismiss,
   dismissed,
@@ -119,6 +139,7 @@ export const __resetInstallPromptForTests = (): void => {
   canInstall.value = false;
   isInstalled.value = false;
   showIOSHint.value = false;
+  isMobile.value = false;
   dismissed.value = false;
   deferredPrompt = null;
   listenersAttached = false;

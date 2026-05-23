@@ -60,9 +60,13 @@ describe('ListItemRow', () => {
     expect(wrapper.find('[data-testid="row-custom-badge"]').exists()).toBe(true);
   });
 
-  it('renders item quantity', () => {
-    const wrapper = mountRow(makeItem());
-    expect(wrapper.text()).toContain('2');
+  it('does NOT render the inline quantity indicator on the row', () => {
+    const wrapper = mountRow(makeItem({ quantity: '2L' }));
+    expect(wrapper.find('[data-testid="row-quantity"]').exists()).toBe(false);
+    // The "2" still leaks via the row-toggle aria-label / icon size attrs;
+    // assert the visible row text omits the quantity string instead.
+    const visibleText = wrapper.find('[data-testid="row-name-inner"]').text();
+    expect(visibleText).not.toContain('2L');
   });
 
   it('emits toggle-checked with negated bool on toggle click (unchecked → true)', async () => {

@@ -13,6 +13,9 @@ const i18n = createI18n({
         remove: 'Remove',
         leave: 'Leave list',
         owner: 'Admin',
+        admin: 'Admin',
+        promote: 'Make admin',
+        demote: 'Remove admin',
       },
     },
   },
@@ -26,9 +29,15 @@ const mountList = (props: {
   members: UserProfile[];
   ownerUid: string;
   selfUid: string;
+  admins?: string[];
 }) =>
   mount(CollaboratorList, {
-    props,
+    props: {
+      ...props,
+      // Default to single-admin (owner) when test doesn't specify — keeps
+      // legacy assertions working.
+      admins: props.admins ?? [props.ownerUid],
+    },
     global: { plugins: [i18n] },
     attachTo: document.body,
   });
@@ -123,5 +132,81 @@ describe('CollaboratorList', () => {
     await wrapper.get('[data-testid="leave-list"]').trigger('click');
     expect(wrapper.emitted('leave')).toBeTruthy();
     wrapper.unmount();
+  });
+
+  describe('admin promote / demote (multi-admin model)', () => {
+    it('shows Admin badge on every uid in the admins set', () => {
+      const wrapper = mountList({
+        members: [owner, bob, eve],
+        ownerUid: 'owner-1',
+        selfUid: 'owner-1',
+        admins: ['owner-1', 'bob-2'],
+      });
+      expect(wrapper.find('[data-testid="admin-badge-owner-1"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="admin-badge-bob-2"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="admin-badge-eve-3"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it('admin sees Make-admin button only on non-admin collaborators', () => {
+      const wrapper = mountList({
+        members: [owner, bob, eve],
+        ownerUid: 'owner-1',
+        selfUid: 'owner-1',
+        admins: ['owner-1'],
+      });
+      expect(wrapper.find('[data-testid="promote-bob-2"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="promote-eve-3"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="promote-owner-1"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it('admin sees Remove-admin button only on other admins (including the creator)', () => {
+      const wrapper = mountList({
+        members: [owner, bob],
+        ownerUid: 'owner-1',
+        selfUid: 'bob-2',
+        admins: ['owner-1', 'bob-2'],
+      });
+      expect(wrapper.find('[data-testid="demote-owner-1"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="demote-bob-2"]').exists()).toBe(true);
+      wrapper.unmount();
+    });
+
+    it('non-admin sees neither promote nor demote buttons', () => {
+      const wrapper = mountList({
+        members: [owner, bob, eve],
+        ownerUid: 'owner-1',
+        selfUid: 'bob-2',
+        admins: ['owner-1'],
+      });
+      expect(wrapper.find('[data-testid="promote-eve-3"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="demote-owner-1"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it('emits promote(uid) when admin clicks Make admin', async () => {
+      const wrapper = mountList({
+        members: [owner, bob],
+        ownerUid: 'owner-1',
+        selfUid: 'owner-1',
+        admins: ['owner-1'],
+      });
+      await wrapper.get('[data-testid="promote-bob-2"]').trigger('click');
+      expect(wrapper.emitted('promote')![0]).toEqual(['bob-2']);
+      wrapper.unmount();
+    });
+
+    it('emits demote(uid) when admin clicks Remove admin', async () => {
+      const wrapper = mountList({
+        members: [owner, bob],
+        ownerUid: 'owner-1',
+        selfUid: 'owner-1',
+        admins: ['owner-1', 'bob-2'],
+      });
+      await wrapper.get('[data-testid="demote-bob-2"]').trigger('click');
+      expect(wrapper.emitted('demote')![0]).toEqual(['bob-2']);
+      wrapper.unmount();
+    });
   });
 });

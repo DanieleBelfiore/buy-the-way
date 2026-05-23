@@ -77,8 +77,8 @@ const goToLogin = (): void => {
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream text-charcoal">
-    <section class="mx-auto max-w-3xl px-6 pt-16 pb-12 text-center space-y-6">
+  <main class="min-h-dvh bg-cream text-charcoal">
+    <section class="mx-auto max-w-3xl px-6 pt-8 pb-12 text-center space-y-6">
       <picture>
         <source
           srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"

@@ -19,6 +19,17 @@ service cloud.firestore {
       return isSignedIn() && uid() in listDoc(listId).collaboratorUids;
     }
 
+    // Resolved admin set for a list. Legacy docs missing the `admins` field
+    // fall back to a single-admin set of [ownerUid] so existing lists keep
+    // working without a backfill migration.
+    function adminsOf(listData) {
+      return listData.get('admins', [listData.ownerUid]);
+    }
+
+    function isListAdmin(listData) {
+      return isSignedIn() && uid() in adminsOf(listData);
+    }
+
     // True when the signed-in user has been invited by email but hasn't yet
     // claimed the list — used to grant the minimum read/update they need to
     // promote themselves into collaboratorUids on first sign-in.
@@ -34,8 +45,8 @@ service cloud.firestore {
       allow write: if isSignedIn() && uid() == userId;
     }
 
-    // Lists — collaborators read; owner mutates name + collaborators + invites; non-owner can only remove self.
-    // Invited (pending) users also get read + a restricted self-claim update so they can promote themselves on first sign-in.
+    // Lists. Permissions are now driven by the admins set; `ownerUid` is the
+    // creator-of-record (kept stable for cascade-delete pivot logic).
     match /lists/{listId} {
       allow read: if isSignedIn() && (
         uid() in resource.data.collaboratorUids
@@ -44,41 +55,43 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.ownerUid == uid()
-        && uid() in request.resource.data.collaboratorUids;
+        && uid() in request.resource.data.collaboratorUids
+        // Creator must seed admins=[self]. Bare-string in-list check via toSet.
+        && request.resource.data.admins.toSet() == [uid()].toSet();
 
       allow update: if isSignedIn() && (
-        // Owner update: may only touch name, collaboratorUids, pendingInviteEmails,
-        // wallpaper, showFavorites, itemCount, updatedAt. ownerUid + createdAt must stay;
-        // owner must remain a collaborator.
+        // Admin update: may touch any of the privileged fields. createdAt is
+        // immutable. After the write the list must keep at least one admin
+        // (drop-last-admin protection — enforced here so a buggy client can't
+        // brick a shared list).
         (
-          uid() == resource.data.ownerUid
-          && request.resource.data.ownerUid == resource.data.ownerUid
+          isListAdmin(resource.data)
           && request.resource.data.createdAt == resource.data.createdAt
-          && resource.data.ownerUid in request.resource.data.collaboratorUids
+          && request.resource.data.get('admins', [request.resource.data.ownerUid]).size() >= 1
           && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['name', 'collaboratorUids', 'pendingInviteEmails', 'wallpaper', 'showFavorites', 'itemCount', 'updatedAt'])
+             .hasOnly([
+               'name',
+               'collaboratorUids',
+               'pendingInviteEmails',
+               'wallpaper',
+               'showFavorites',
+               'itemCount',
+               'updatedAt',
+               'admins',
+               'ownerUid'
+             ])
         )
-        // Owner-transfer: current owner hands ownership to an existing collaborator,
-        // removing themself from collaboratorUids. Only ownerUid + collaboratorUids + updatedAt change.
+        // Non-admin self-leave: a collaborator may remove themself from
+        // collaboratorUids (and admins, if they were one). ownerUid stays.
         || (
-          uid() == resource.data.ownerUid
-          && request.resource.data.ownerUid != resource.data.ownerUid
-          && request.resource.data.ownerUid in resource.data.collaboratorUids
-          && request.resource.data.ownerUid in request.resource.data.collaboratorUids
-          && !(uid() in request.resource.data.collaboratorUids)
-          && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['ownerUid', 'collaboratorUids', 'updatedAt'])
-        )
-        // Non-owner update: only allowed to remove own uid from collaboratorUids.
-        || (
-          uid() != resource.data.ownerUid
+          !isListAdmin(resource.data)
           && uid() in resource.data.collaboratorUids
           && !(uid() in request.resource.data.collaboratorUids)
           && request.resource.data.ownerUid == resource.data.ownerUid
           && request.resource.data.collaboratorUids.toSet()
              == resource.data.collaboratorUids.toSet().difference([uid()].toSet())
           && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['collaboratorUids', 'updatedAt'])
+             .hasOnly(['collaboratorUids', 'admins', 'updatedAt'])
         )
         // Any collaborator may bump itemCount + updatedAt (denormalized counter on item writes).
         || (
@@ -106,7 +119,7 @@ service cloud.firestore {
         )
       );
 
-      allow delete: if isSignedIn() && uid() == resource.data.ownerUid;
+      allow delete: if isSignedIn() && isListAdmin(resource.data);
 
       // Items — any collaborator on the parent list.
       match /items/{itemId} {

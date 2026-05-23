@@ -6,6 +6,7 @@ import { createI18n } from 'vue-i18n';
 const canInstall = ref(false);
 const isInstalled = ref(false);
 const showIOSHint = ref(false);
+const isMobile = ref(true);
 const dismissed = ref(false);
 const promptInstall = vi.fn(async () => 'accepted' as const);
 const dismiss = vi.fn(() => {
@@ -17,6 +18,7 @@ vi.mock('@/pwa/installPrompt', () => ({
     canInstall,
     isInstalled,
     showIOSHint,
+    isMobile,
     dismissed,
     promptInstall,
     dismiss,
@@ -47,6 +49,7 @@ describe('InstallPrompt', () => {
     canInstall.value = false;
     isInstalled.value = false;
     showIOSHint.value = false;
+    isMobile.value = true;
     dismissed.value = false;
     promptInstall.mockClear();
     promptInstall.mockResolvedValue('accepted');
@@ -128,5 +131,21 @@ describe('InstallPrompt', () => {
     await wrapper.find('[data-testid="toast-action"]').trigger('click');
     await flushPromises();
     expect(dismiss).not.toHaveBeenCalled();
+  });
+
+  it('hidden on desktop even when canInstall is true', async () => {
+    canInstall.value = true;
+    isMobile.value = false;
+    const wrapper = mountPrompt();
+    await nextTick();
+    expect(wrapper.find('[data-testid="toast"]').exists()).toBe(false);
+  });
+
+  it('hidden on desktop even when showIOSHint is true', async () => {
+    showIOSHint.value = true;
+    isMobile.value = false;
+    const wrapper = mountPrompt();
+    await nextTick();
+    expect(wrapper.find('[data-testid="toast"]').exists()).toBe(false);
   });
 });

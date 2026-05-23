@@ -135,23 +135,37 @@ describe('firestore.rules — lists/{id} reads', () => {
 });
 
 describe('firestore.rules — lists/{id} create', () => {
-  it('allows owner-uid creator who is in collaboratorUids', async () => {
+  it('allows owner-uid creator who is in collaboratorUids and admins=[self]', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
+      createdAt: 1, updatedAt: 1,
+    }));
+  });
+
+  it('denies creation when admins is missing', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE],
+      createdAt: 1, updatedAt: 1,
+    }));
+  });
+
+  it('denies creation when admins includes someone other than the caller', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE, BOB], admins: [ALICE, BOB],
       createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when ownerUid is not the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      id: 'L1', name: 'New', ownerUid: BOB, collaboratorUids: [BOB],
+      id: 'L1', name: 'New', ownerUid: BOB, collaboratorUids: [BOB], admins: [BOB],
       createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when caller is not in collaboratorUids', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [BOB],
+      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [BOB], admins: [ALICE],
       createdAt: 1, updatedAt: 1,
     }));
   });
@@ -186,17 +200,24 @@ describe('firestore.rules — lists/{id} update', () => {
     }));
   });
 
-  it('denies owner removing themself from collaboratorUids', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      collaboratorUids: [BOB], updatedAt: 2,
+  it('allows admin to change ownerUid (pivot during owner demotion)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      ownerUid: BOB, admins: [BOB], updatedAt: 2,
     }));
   });
 
-  it('denies ownerUid change', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+  it('denies non-admin collaborator from changing ownerUid', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
       ownerUid: BOB, updatedAt: 2,
+    }));
+  });
+
+  it('denies admin update that would leave zero admins', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      admins: [], updatedAt: 2,
     }));
   });
 
@@ -258,12 +279,17 @@ describe('firestore.rules — lists/{id} update', () => {
 });
 
 describe('firestore.rules — lists/{id} delete', () => {
-  it('allows owner to delete', async () => {
+  it('allows owner (sole admin via legacy fallback) to delete', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'lists', 'L1')));
   });
 
-  it('denies non-owner collaborator delete', async () => {
+  it('allows any explicit admin to delete (multi-admin model)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });
+    await assertSucceeds(deleteDoc(doc(bobCtx() as any, 'lists', 'L1')));
+  });
+
+  it('denies non-admin collaborator delete', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertFails(deleteDoc(doc(bobCtx() as any, 'lists', 'L1')));
   });
@@ -416,50 +442,48 @@ describe('firestore.rules — account-cascade self-deletes', () => {
   });
 });
 
-describe('firestore.rules — owner-transfer', () => {
-  it('allows owner to transfer ownership to an existing collaborator, removing self', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
+describe('firestore.rules — admin promote / demote', () => {
+  it('allows admin to promote another collaborator into admins', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
     await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      ownerUid: BOB,
-      collaboratorUids: [BOB],
-      updatedAt: 2,
+      admins: [ALICE, BOB], updatedAt: 2,
     }));
   });
 
-  it('denies transfer to a non-collaborator', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      ownerUid: CARL,
-      collaboratorUids: [CARL],
-      updatedAt: 2,
+  it('allows any admin (not just owner) to promote', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB, CARL], { admins: [ALICE, BOB] });
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      admins: [ALICE, BOB, CARL], updatedAt: 2,
     }));
   });
 
-  it('denies transfer that keeps old owner in collaboratorUids', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      ownerUid: BOB,
-      collaboratorUids: [ALICE, BOB],
-      updatedAt: 2,
+  it('allows any admin to demote any other admin (even the creator)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });
+    // BOB demotes ALICE; ownerUid pivot already done service-side, so simulate
+    // the full write: admins drops ALICE, ownerUid pivots to BOB.
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      admins: [BOB], ownerUid: BOB, updatedAt: 2,
     }));
   });
 
-  it('denies transfer that renames the list at the same time', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      ownerUid: BOB,
-      collaboratorUids: [BOB],
-      name: 'Hacked',
-      updatedAt: 2,
-    }));
-  });
-
-  it('denies non-owner from initiating transfer', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
+  it('denies non-admin from promoting anyone', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
     await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
-      ownerUid: BOB,
-      collaboratorUids: [BOB],
-      updatedAt: 2,
+      admins: [ALICE, BOB], updatedAt: 2,
+    }));
+  });
+
+  it('denies last-admin removal (would leave list with zero admins)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      admins: [], updatedAt: 2,
+    }));
+  });
+
+  it('admin can self-demote when other admins remain', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      admins: [BOB], ownerUid: BOB, updatedAt: 2,
     }));
   });
 });
@@ -558,11 +582,16 @@ describe('firestore.rules — owner update field whitelist', () => {
     } as Record<string, unknown>));
   });
 
-  it('denies owner-transfer that also bumps itemCount', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+  // The owner-transfer-with-itemCount case used to be denied because the old
+  // owner-transfer branch had a narrow whitelist. Under the new admin update
+  // rule, both fields share a whitelist, so this combination is now allowed —
+  // assert the new behaviour to lock the contract.
+  it('allows admin to bundle ownerUid pivot + itemCount bump in a single write', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       ownerUid: BOB,
       collaboratorUids: [BOB],
+      admins: [BOB],
       itemCount: 999,
       updatedAt: 2,
     } as Record<string, unknown>));

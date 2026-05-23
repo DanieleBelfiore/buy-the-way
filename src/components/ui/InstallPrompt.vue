@@ -6,20 +6,25 @@ import { useInstallPrompt } from '@/pwa/installPrompt';
 import Toast from '@/components/ui/Toast.vue';
 
 const { t } = useI18n();
-const { canInstall, showIOSHint, isInstalled, dismissed, promptInstall, dismiss } =
-  useInstallPrompt();
+const {
+  canInstall,
+  showIOSHint,
+  isInstalled,
+  isMobile,
+  dismissed,
+  promptInstall,
+  dismiss,
+} = useInstallPrompt();
 
 const showChromiumPrompt = computed(
-  () => !isInstalled.value && !dismissed.value && canInstall.value,
+  () => isMobile.value && !isInstalled.value && !dismissed.value && canInstall.value,
 );
 const showIOSPrompt = computed(
-  () => !isInstalled.value && !dismissed.value && showIOSHint.value,
+  () => isMobile.value && !isInstalled.value && !dismissed.value && showIOSHint.value,
 );
 
 const onInstall = async (): Promise<void> => {
   const outcome = await promptInstall();
-  // Both 'accepted' and 'dismissed' should clear the toast — the user has
-  // made a choice and 'beforeinstallprompt' will not refire in this session.
   if (outcome !== 'unavailable') dismiss();
 };
 
@@ -35,6 +40,8 @@ const onClose = (): void => {
     :message="t('pwa.installMessage')"
     :action-label="t('pwa.install')"
     :action-icon="Download"
+    :duration-ms="10000"
+    auto-dismiss-with-action
     @action="onInstall"
     @close="onClose"
   />
@@ -42,7 +49,7 @@ const onClose = (): void => {
     v-else-if="showIOSPrompt"
     :open="true"
     :message="t('pwa.iosInstallHint')"
-    :duration-ms="8000"
+    :duration-ms="10000"
     @close="onClose"
   />
 </template>

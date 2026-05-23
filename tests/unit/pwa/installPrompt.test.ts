@@ -42,10 +42,16 @@ const setStandalone = (standalone: boolean): void => {
   });
 };
 
+const setMobileUserAgent = (): void => {
+  setUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit Chrome/120 Mobile Safari');
+};
+
 describe('installPrompt', () => {
   beforeEach(() => {
     __resetInstallPromptForTests();
-    setUserAgent('Mozilla/5.0 (X11; Linux x86_64) Chrome/120');
+    // Default to a mobile UA — the install prompt is mobile-only, so every
+    // existing assertion that expects flags to flip needs a mobile context.
+    setMobileUserAgent();
     setStandalone(false);
     // Reset iOS standalone flag if set previously.
     Object.defineProperty(window.navigator, 'standalone', {
@@ -59,7 +65,19 @@ describe('installPrompt', () => {
     expect(state.canInstall.value).toBe(false);
     expect(state.isInstalled.value).toBe(false);
     expect(state.showIOSHint.value).toBe(false);
+    expect(state.isMobile.value).toBe(false);
     expect(state.dismissed.value).toBe(false);
+  });
+
+  it('flags isMobile=true for a mobile UA', () => {
+    const state = setupInstallPrompt();
+    expect(state.isMobile.value).toBe(true);
+  });
+
+  it('flags isMobile=false for a desktop UA', () => {
+    setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit Chrome/120 Safari');
+    const state = setupInstallPrompt();
+    expect(state.isMobile.value).toBe(false);
   });
 
   it('flags isInstalled when display-mode standalone matches', () => {

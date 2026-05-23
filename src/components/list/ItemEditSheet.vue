@@ -138,7 +138,7 @@ const onSave = (): void => {
 
       </div>
 
-      <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div class="mt-5 flex flex-row items-center justify-between gap-2">
         <button
           data-testid="edit-cancel"
           type="button"

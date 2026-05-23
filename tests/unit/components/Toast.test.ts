@@ -75,16 +75,39 @@ describe('Toast', () => {
       expect(wrapper.find('[data-testid="toast-action"]').exists()).toBe(false);
     });
 
-    it('renders spinner instead of action icon when actionLoading is true', async () => {
+    it('adds animate-spin class to the action icon when actionLoading is true', async () => {
+      // Import locally so we can pass a real Lucide icon component as actionIcon
+      // (without it the icon element doesn't render at all and the spin class
+      // has nothing to attach to).
+      const { RefreshCw } = await import('@lucide/vue');
       const wrapper = mount(Toast, {
         props: {
           open: true,
           message: 'Update',
           actionLabel: 'Reload',
+          actionIcon: RefreshCw,
           actionLoading: true,
         },
       });
-      expect(wrapper.find('[data-testid="toast-action-spinner"]').exists()).toBe(true);
+      const icon = wrapper.find('[data-testid="toast-action-icon"]');
+      expect(icon.exists()).toBe(true);
+      expect(icon.classes()).toContain('animate-spin');
+    });
+
+    it('omits animate-spin class on the action icon when actionLoading is false', async () => {
+      const { RefreshCw } = await import('@lucide/vue');
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Update',
+          actionLabel: 'Reload',
+          actionIcon: RefreshCw,
+          actionLoading: false,
+        },
+      });
+      const icon = wrapper.find('[data-testid="toast-action-icon"]');
+      expect(icon.exists()).toBe(true);
+      expect(icon.classes()).not.toContain('animate-spin');
     });
 
     it('disables action button while actionLoading is true', async () => {

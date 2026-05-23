@@ -8,10 +8,6 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(),
 }));
 
-vi.mock('@/i18n', () => ({
-  setLocale: vi.fn(),
-}));
-
 vi.mock('@/services/auth.service', () => ({
   RequiresRecentLoginError: class RequiresRecentLoginError extends Error {
     constructor() {
@@ -29,7 +25,6 @@ vi.mock('@/services/auth.service', () => ({
 
 import SettingsView from '@/views/SettingsView.vue';
 import { useAuthStore } from '@/stores/auth';
-import { setLocale } from '@/i18n';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
 
 const settingsIt = {
@@ -114,33 +109,11 @@ describe('SettingsView', () => {
     expect(wrapper.text()).toContain('Impostazioni');
   });
 
-  it('renders language section', () => {
+  it('no longer renders the language selector (moved to Login + Lists header)', () => {
     const wrapper = mountView();
-    expect(wrapper.text()).toContain('Lingua');
-  });
-
-  it('renders Italian and English locale buttons', () => {
-    const wrapper = mountView();
-    expect(wrapper.find('[data-testid="locale-it"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="locale-en"]').exists()).toBe(true);
-  });
-
-  it('marks current locale (it) as checked', () => {
-    const wrapper = mountView();
-    expect(wrapper.find('[data-testid="locale-it"]').attributes('aria-checked')).toBe('true');
-    expect(wrapper.find('[data-testid="locale-en"]').attributes('aria-checked')).toBe('false');
-  });
-
-  it('calls setLocale("en") when English clicked', async () => {
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="locale-en"]').trigger('click');
-    expect(setLocale).toHaveBeenCalledWith('en');
-  });
-
-  it('calls setLocale("it") when Italian clicked', async () => {
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="locale-it"]').trigger('click');
-    expect(setLocale).toHaveBeenCalledWith('it');
+    expect(wrapper.find('[data-testid="locale-it"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="locale-en"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(false);
   });
 
   describe('theme selector', () => {

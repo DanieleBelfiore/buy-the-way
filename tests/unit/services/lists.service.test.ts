@@ -4,19 +4,30 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn().mockReturnValue({ id: 'lists' }),
   doc: vi.fn().mockReturnValue({ id: 'mock-doc' }),
   setDoc: vi.fn().mockResolvedValue(undefined),
+  updateDoc: vi.fn().mockResolvedValue(undefined),
+  getDoc: vi.fn(),
   onSnapshot: vi.fn(),
   query: vi.fn().mockReturnValue({ type: 'query' }),
   where: vi.fn().mockReturnValue({ type: 'where' }),
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
+  arrayUnion: vi.fn((...vals: unknown[]) => ({ __arrayUnion: vals })),
+  arrayRemove: vi.fn((...vals: unknown[]) => ({ __arrayRemove: vals })),
 }));
 
 import {
   createList,
   subscribeUserLists,
+  promoteAdmin,
+  demoteAdmin,
+  transferListOwnership,
+  removeCollaborator,
+  leaveList,
   capitalizeListName,
   DuplicateListNameError,
+  LastAdminError,
+  NotACollaboratorError,
 } from '@/services/lists.service';
-import { setDoc, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
 describe('lists.service', () => {
   beforeEach(() => {
@@ -37,6 +48,7 @@ describe('lists.service', () => {
         name: 'Spesa',
         ownerUid: 'uid-1',
         collaboratorUids: ['uid-1'],
+        admins: ['uid-1'],
       });
       expect(data).not.toHaveProperty('deletedAt');
       expect(typeof (data as any).createdAt).toBe('number');
@@ -174,6 +186,163 @@ describe('lists.service', () => {
       subscribeUserLists('uid-1', vi.fn(), onError);
 
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  const mockListSnap = (data: {
+    ownerUid: string;
+    collaboratorUids: string[];
+    admins?: string[];
+  }) => {
+    vi.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => data,
+    } as any);
+  };
+
+  describe('promoteAdmin', () => {
+    beforeEach(() => {
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('arrayUnion target into admins for an existing collaborator', async () => {
+      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'], admins: ['owner'] });
+      await promoteAdmin('L1', 'bob');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({ admins: { __arrayUnion: ['bob'] } });
+      expect(typeof (patch as any).updatedAt).toBe('number');
+    });
+
+    it('throws NotACollaboratorError when target is not a collaborator', async () => {
+      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner'], admins: ['owner'] });
+      await expect(promoteAdmin('L1', 'stranger')).rejects.toBeInstanceOf(
+        NotACollaboratorError,
+      );
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent — promoting an already-admin uid still writes arrayUnion', async () => {
+      mockListSnap({
+        ownerUid: 'owner',
+        collaboratorUids: ['owner', 'bob'],
+        admins: ['owner', 'bob'],
+      });
+      await promoteAdmin('L1', 'bob');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({ admins: { __arrayUnion: ['bob'] } });
+    });
+  });
+
+  describe('demoteAdmin', () => {
+    beforeEach(() => {
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('drops target from admins when other admins remain', async () => {
+      mockListSnap({
+        ownerUid: 'owner',
+        collaboratorUids: ['owner', 'bob'],
+        admins: ['owner', 'bob'],
+      });
+      await demoteAdmin('L1', 'bob');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({ admins: { __arrayRemove: ['bob'] } });
+      expect((patch as any).ownerUid).toBeUndefined();
+    });
+
+    it('throws LastAdminError when removal would leave no admins', async () => {
+      mockListSnap({
+        ownerUid: 'owner',
+        collaboratorUids: ['owner', 'bob'],
+        admins: ['owner'],
+      });
+      await expect(demoteAdmin('L1', 'owner')).rejects.toBeInstanceOf(LastAdminError);
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when target is not currently an admin', async () => {
+      mockListSnap({
+        ownerUid: 'owner',
+        collaboratorUids: ['owner', 'bob'],
+        admins: ['owner'],
+      });
+      await demoteAdmin('L1', 'bob');
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+
+    it('pivots ownerUid to lex-first remaining admin when demoting current owner', async () => {
+      mockListSnap({
+        ownerUid: 'owner',
+        collaboratorUids: ['owner', 'alice', 'bob'],
+        admins: ['owner', 'alice', 'bob'],
+      });
+      await demoteAdmin('L1', 'owner');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({
+        ownerUid: 'alice',
+        admins: { __arrayRemove: ['owner'] },
+      });
+    });
+
+    it('uses fallback admins=[ownerUid] when the legacy admins field is missing', async () => {
+      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'] });
+      await expect(demoteAdmin('L1', 'owner')).rejects.toBeInstanceOf(LastAdminError);
+    });
+  });
+
+  describe('transferListOwnership (admins sync)', () => {
+    beforeEach(() => {
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('writes the pivot then strips old owner from admins in a follow-up call', async () => {
+      await transferListOwnership('L1', 'oldOwner', 'newOwner');
+      expect(updateDoc).toHaveBeenCalledTimes(2);
+      const [, first] = vi.mocked(updateDoc).mock.calls[0];
+      expect(first).toMatchObject({
+        ownerUid: 'newOwner',
+        collaboratorUids: { __arrayRemove: ['oldOwner'] },
+        admins: { __arrayUnion: ['newOwner'] },
+      });
+      const [, second] = vi.mocked(updateDoc).mock.calls[1];
+      expect(second).toMatchObject({ admins: { __arrayRemove: ['oldOwner'] } });
+    });
+
+    it('rejects when old and new owner are the same uid', async () => {
+      await expect(transferListOwnership('L1', 'same', 'same')).rejects.toThrow();
+      expect(updateDoc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeCollaborator (also drops admins)', () => {
+    beforeEach(() => {
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('drops uid from both collaboratorUids and admins', async () => {
+      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'], admins: ['owner', 'bob'] });
+      await removeCollaborator('L1', 'bob');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({
+        collaboratorUids: { __arrayRemove: ['bob'] },
+        admins: { __arrayRemove: ['bob'] },
+      });
+    });
+  });
+
+  describe('leaveList (also drops admins)', () => {
+    beforeEach(() => {
+      vi.mocked(updateDoc).mockResolvedValue(undefined);
+    });
+
+    it('drops self from both collaboratorUids and admins', async () => {
+      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'], admins: ['owner', 'bob'] });
+      await leaveList('L1', 'bob');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toMatchObject({
+        collaboratorUids: { __arrayRemove: ['bob'] },
+        admins: { __arrayRemove: ['bob'] },
+      });
     });
   });
 });

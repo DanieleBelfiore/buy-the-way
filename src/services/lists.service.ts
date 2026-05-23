@@ -56,6 +56,20 @@ export class InvalidWallpaperError extends Error {
   }
 }
 
+export class LastAdminError extends Error {
+  constructor() {
+    super('A list must keep at least one admin');
+    this.name = 'LastAdminError';
+  }
+}
+
+export class NotACollaboratorError extends Error {
+  constructor(uid: string) {
+    super(`User ${uid} is not a collaborator on this list`);
+    this.name = 'NotACollaboratorError';
+  }
+}
+
 const normalizeListName = (name: string): string => name.trim().toLowerCase();
 
 export const capitalizeListName = capitalizeInitial;
@@ -77,6 +91,7 @@ export const createList = async (
     name: formatted,
     ownerUid,
     collaboratorUids: [ownerUid],
+    admins: [ownerUid],
     itemCount: 0,
     wallpaper: pickRandomWallpaper(),
     createdAt: now,
@@ -229,8 +244,11 @@ export const removeCollaborator = async (
   const ownerUid = await loadListOwner(listId);
   if (uid === ownerUid) throw new CannotRemoveOwnerError();
 
+  // Drop from collaborators AND admins in one write so the doc never holds
+  // an admin uid that's no longer a collaborator.
   await updateDoc(doc(db, 'lists', listId), {
     collaboratorUids: arrayRemove(uid),
+    admins: arrayRemove(uid),
     updatedAt: Date.now(),
   });
 };
@@ -241,6 +259,7 @@ export const leaveList = async (listId: string, selfUid: string): Promise<void> 
 
   await updateDoc(doc(db, 'lists', listId), {
     collaboratorUids: arrayRemove(selfUid),
+    admins: arrayRemove(selfUid),
     updatedAt: Date.now(),
   });
 };
@@ -272,11 +291,88 @@ export const transferListOwnership = async (
   if (oldOwnerUid === newOwnerUid) {
     throw new Error('Cannot transfer ownership to the same user');
   }
+  // Move ownerUid to the new user and sync the admins set: promote the new
+  // owner if they weren't already an admin, drop the old owner from admins
+  // alongside the collaborator removal. Keeps invariant "ownerUid in admins".
   await updateDoc(doc(db, 'lists', listId), {
     ownerUid: newOwnerUid,
     collaboratorUids: arrayRemove(oldOwnerUid),
+    admins: arrayUnion(newOwnerUid),
     updatedAt: Date.now(),
   });
+  await updateDoc(doc(db, 'lists', listId), {
+    admins: arrayRemove(oldOwnerUid),
+    updatedAt: Date.now(),
+  });
+};
+
+const loadListSnapshot = async (
+  listId: string,
+): Promise<Pick<List, 'ownerUid' | 'collaboratorUids' | 'admins'>> => {
+  const snap = await getDoc(doc(db, 'lists', listId));
+  if (!snap.exists()) throw new ListNotFoundError(listId);
+  const data = snap.data() as List;
+  return {
+    ownerUid: data.ownerUid,
+    collaboratorUids: data.collaboratorUids,
+    admins: data.admins,
+  };
+};
+
+const adminsOf = (list: Pick<List, 'ownerUid' | 'admins'>): readonly string[] =>
+  list.admins ?? [list.ownerUid];
+
+/**
+ * Promote a collaborator to admin. Requires the target to be an existing
+ * collaborator on the list. Idempotent: promoting an already-admin user is a
+ * no-op write that bumps updatedAt.
+ */
+export const promoteAdmin = async (
+  listId: string,
+  targetUid: string,
+): Promise<void> => {
+  const snap = await loadListSnapshot(listId);
+  if (!snap.collaboratorUids.includes(targetUid)) {
+    throw new NotACollaboratorError(targetUid);
+  }
+  await updateDoc(doc(db, 'lists', listId), {
+    admins: arrayUnion(targetUid),
+    updatedAt: Date.now(),
+  });
+};
+
+/**
+ * Demote an admin back to plain collaborator. Throws `LastAdminError` if the
+ * removal would leave the list with no admins. If the demoted user is the
+ * current `ownerUid`, ownership transfers (lexicographically) to another
+ * remaining admin to preserve the "ownerUid points at an active admin"
+ * invariant relied on by cascade-delete code paths.
+ */
+export const demoteAdmin = async (
+  listId: string,
+  targetUid: string,
+): Promise<void> => {
+  const snap = await loadListSnapshot(listId);
+  const current = [...adminsOf(snap)];
+  if (!current.includes(targetUid)) return; // Already not an admin — no-op.
+  const remaining = current.filter((u) => u !== targetUid);
+  if (remaining.length === 0) throw new LastAdminError();
+
+  if (snap.ownerUid === targetUid) {
+    // Pivot ownerUid to the lexicographically-first remaining admin so the
+    // doc never points at a non-admin (cascade-delete depends on this).
+    const nextOwner = [...remaining].sort()[0]!;
+    await updateDoc(doc(db, 'lists', listId), {
+      ownerUid: nextOwner,
+      admins: arrayRemove(targetUid),
+      updatedAt: Date.now(),
+    });
+  } else {
+    await updateDoc(doc(db, 'lists', listId), {
+      admins: arrayRemove(targetUid),
+      updatedAt: Date.now(),
+    });
+  }
 };
 
 const DELETE_BATCH_SIZE = 500;

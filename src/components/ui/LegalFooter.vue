@@ -10,8 +10,13 @@ const { t } = useI18n();
   <footer
     :class="[
       'mx-auto max-w-3xl px-6 text-xs text-muted-gray',
-      dense ? 'pt-4 pb-1' : 'pt-6 pb-10',
+      dense ? 'pt-4' : 'pt-6',
     ]"
+    :style="{
+      paddingBottom: dense
+        ? 'max(0.25rem, env(safe-area-inset-bottom))'
+        : 'max(2.5rem, env(safe-area-inset-bottom))',
+    }"
   >
     <nav aria-label="Legal" class="flex flex-wrap justify-center gap-2">
       <router-link to="/about" class="underline inline-flex items-center min-h-[44px] px-3 py-2">

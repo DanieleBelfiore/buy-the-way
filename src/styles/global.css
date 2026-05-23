@@ -29,18 +29,22 @@ body {
   color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Reserve room for the iOS home indicator / Android nav bar so the
-     fixed footer / FAB never sit underneath it. Combined with viewport-fit
-     =cover in the meta tag, this keeps the bottom edge readable inside the
-     safe area without shrinking the dvh-based main containers.
-     The `max(1rem, …)` floor guarantees breathing room on Android Chrome
-     where `env(safe-area-inset-bottom)` resolves to 0 — without it the
-     last footer line (e.g. "Fatto da Daniele Belfiore", v1.x.x) gets
-     clipped by the gesture indicator on Pixel-class devices. */
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   /* Block horizontal rubber-banding on iOS Safari that can otherwise look
      like an unwanted side-scroll. */
   overflow-x: hidden;
+}
+
+/* Safe-area handling. The previous approach put `padding-bottom: max(1rem,
+   env(safe-area-inset-bottom))` on `body`, which combined with `min-h-dvh`
+   on every main produced a ~16-34px vertical overflow on mobile browsers
+   (visible as a stuck scrollbar even when content fit inside the viewport).
+   We now handle safe-area per-component (FAB, LegalFooter, ListDetailView
+   footer, etc.) with inline `padding-bottom: max(...)` so the dvh-sized
+   main containers never overflow the viewport. The `.pb-safe` utility
+   below is available for one-off bottom-edge elements that prefer a class
+   over inline styles. */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 button:not(:disabled):not([aria-disabled='true']),

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
 import { iconForName, isCustomItemName } from '@/domain/public-catalog';
+import { useFitText } from '@/composables/useFitText';
 import type { Item, ItemPriority } from '@/domain/types';
 
 const { t, locale } = useI18n();
@@ -16,6 +17,13 @@ const props = withDefaults(
 );
 const icon = computed(() => iconForName(props.item.name, locale.value));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
+
+// Auto-fit the name + custom-badge + note onto one line. Re-measure when
+// the item's name or note changes — `toRef` keeps the watch source live.
+const nameContainerRef = ref<HTMLElement | null>(null);
+const nameInnerRef = ref<HTMLElement | null>(null);
+const nameSignature = computed(() => `${props.item.name}|${props.item.note}`);
+useFitText(nameInnerRef, nameContainerRef, toRef(nameSignature));
 const emit = defineEmits<{
   'toggle-checked': [boolean];
   remove: [];
@@ -68,12 +76,11 @@ const priorityBtnClasses = computed(() => {
   return 'text-muted-gray hover:bg-black/5 active:bg-black/10';
 });
 
-const nameClasses = computed(() => {
-  const base = 'flex-1 text-sm flex items-baseline gap-1.5 flex-wrap';
-  if (props.item.checked) return `${base} line-through text-ink-40`;
-  if (props.item.priority === 'urgent') return `${base} text-red-700 font-semibold`;
-  if (props.item.priority === 'optional') return `${base} text-muted-gray`;
-  return `${base} text-charcoal`;
+const nameStateClasses = computed(() => {
+  if (props.item.checked) return 'line-through text-ink-40';
+  if (props.item.priority === 'urgent') return 'text-red-700 font-semibold';
+  if (props.item.priority === 'optional') return 'text-muted-gray';
+  return 'text-charcoal';
 });
 </script>
 
@@ -93,36 +100,33 @@ const nameClasses = computed(() => {
       >
         {{ icon }}
       </span>
-      <span :class="nameClasses">
-        <span class="font-medium">{{ props.item.name }}</span>
-        <UserPlus
-          v-if="isCustom"
-          data-testid="row-custom-badge"
-          :size="13"
-          :stroke-width="2"
-          class="text-muted-gray shrink-0"
-          :aria-label="t('item.customBadge')"
-        />
+      <span
+        ref="nameContainerRef"
+        :class="['flex-1 min-w-0 text-sm', nameStateClasses]"
+        data-testid="row-name-container"
+        style="overflow: hidden;"
+      >
         <span
-          v-if="props.item.quantity"
-          data-testid="row-quantity"
-          class="text-xs text-muted-gray font-normal"
+          ref="nameInnerRef"
+          data-testid="row-name-inner"
+          class="inline-flex items-center gap-1.5 whitespace-nowrap"
         >
-          {{ props.item.quantity }}
-        </span>
-        <span
-          v-if="props.item.quantity && props.item.note"
-          aria-hidden="true"
-          class="text-xs text-muted-gray font-normal"
-        >
-          ·
-        </span>
-        <span
-          v-if="props.item.note"
-          data-testid="row-note"
-          class="text-xs text-muted-gray font-normal italic"
-        >
-          {{ props.item.note }}
+          <span class="font-medium">{{ props.item.name }}</span>
+          <UserPlus
+            v-if="isCustom"
+            data-testid="row-custom-badge"
+            :size="13"
+            :stroke-width="2"
+            class="text-muted-gray shrink-0"
+            :aria-label="t('item.customBadge')"
+          />
+          <span
+            v-if="props.item.note"
+            data-testid="row-note"
+            class="text-xs text-muted-gray font-normal italic"
+          >
+            {{ props.item.note }}
+          </span>
         </span>
       </span>
     </button>

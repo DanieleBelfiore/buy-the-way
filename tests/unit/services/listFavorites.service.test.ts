@@ -16,6 +16,7 @@ import {
   setListFavoriteExcluded,
   setListFavoriteState,
   findListFavoriteByName,
+  ensureListFavorite,
 } from '@/services/listFavorites.service';
 import { setDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { ULID } from '@/domain/id';
@@ -101,6 +102,33 @@ describe('listFavorites.service', () => {
       await setListFavoriteState(listId, 'latte', false);
       const [, patch] = vi.mocked(updateDoc).mock.calls[0];
       expect(patch).toEqual({ pinned: false, dismissedFavorite: true });
+    });
+  });
+
+  describe('ensureListFavorite', () => {
+    it('creates a new doc with usageCount=0 when missing (does NOT increment)', async () => {
+      vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
+      await ensureListFavorite(listId, 'Babà', 'bakery');
+      expect(setDoc).toHaveBeenCalledOnce();
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect(data).toMatchObject({
+        slug: 'baba',
+        name: 'Babà',
+        category: 'bakery',
+        usageCount: 0,
+      });
+    });
+
+    it('no-op when doc already exists (preserves existing usageCount + flags)', async () => {
+      vi.mocked(getDoc).mockResolvedValue({ exists: () => true } as any);
+      await ensureListFavorite(listId, 'Latte', 'dairy');
+      expect(setDoc).not.toHaveBeenCalled();
+    });
+
+    it('returns the slug regardless of create/no-op branch', async () => {
+      vi.mocked(getDoc).mockResolvedValue({ exists: () => true } as any);
+      const slug = await ensureListFavorite(listId, 'Pane Integrale', 'bakery');
+      expect(slug).toBe('pane integrale');
     });
   });
 

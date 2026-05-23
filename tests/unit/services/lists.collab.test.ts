@@ -283,16 +283,21 @@ describe('lists.service collaborator ops', () => {
   });
 
   describe('transferListOwnership', () => {
-    it('writes new ownerUid and arrayRemoves old owner', async () => {
+    it('writes new ownerUid + promotes new admin in first write, strips old owner from admins in follow-up', async () => {
       await transferListOwnership('list-1', 'old-uid', 'new-uid');
       expect(arrayRemove).toHaveBeenCalledWith('old-uid');
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const [, payload] = vi.mocked(updateDoc).mock.calls[0];
-      expect(payload).toMatchObject({
+      expect(updateDoc).toHaveBeenCalledTimes(2);
+      const [, firstPayload] = vi.mocked(updateDoc).mock.calls[0];
+      expect(firstPayload).toMatchObject({
         ownerUid: 'new-uid',
         collaboratorUids: { __op: 'arrayRemove', args: ['old-uid'] },
+        admins: { __op: 'arrayUnion', args: ['new-uid'] },
       });
-      expect(typeof (payload as any).updatedAt).toBe('number');
+      expect(typeof (firstPayload as any).updatedAt).toBe('number');
+      const [, secondPayload] = vi.mocked(updateDoc).mock.calls[1];
+      expect(secondPayload).toMatchObject({
+        admins: { __op: 'arrayRemove', args: ['old-uid'] },
+      });
     });
 
     it('throws when old and new owner are the same uid', async () => {

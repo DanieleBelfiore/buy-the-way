@@ -7,13 +7,11 @@ import { useAuthStore } from '@/stores/auth';
 import { useThemeStore, type ThemeMode } from '@/stores/theme';
 import { useShareApp } from '@/composables/useShareApp';
 import { useSafeBack } from '@/composables/useSafeBack';
-import { setLocale } from '@/i18n';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import FeedbackModal from '@/components/ui/FeedbackModal.vue';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import Toast from '@/components/ui/Toast.vue';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
-import type { Locale } from '@/domain/types';
 import pkg from '../../package.json';
 
 const APP_VERSION = pkg.version;
@@ -21,7 +19,7 @@ const APP_VERSION = pkg.version;
 const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const signingOut = ref(false);
 const deletingAccount = ref(false);
 const deleteConfirmOpen = ref(false);
@@ -41,12 +39,7 @@ const showToast = (message: string): void => {
 };
 const feedbackOpen = ref(false);
 
-const currentLocale = computed<Locale>(() => locale.value as Locale);
 const user = computed(() => authStore.user);
-
-const handleSetLocale = (next: Locale) => {
-  setLocale(next);
-};
 
 const currentTheme = computed<ThemeMode>(() => themeStore.mode);
 const handleSetTheme = (next: ThemeMode): void => {
@@ -133,8 +126,11 @@ const reauthAndRetry = async () => {
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream flex flex-col">
-    <header class="px-5 pt-12 pb-4 flex items-center gap-3">
+  <main
+    class="min-h-dvh bg-cream flex flex-col"
+    style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));"
+  >
+    <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
         :aria-label="t('settings.title')"
@@ -148,50 +144,6 @@ const reauthAndRetry = async () => {
     </header>
 
     <section class="px-5 pt-6">
-      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
-        {{ t('settings.language') }}
-      </h2>
-      <div
-        role="radiogroup"
-        :aria-label="t('settings.language')"
-        class="flex gap-2"
-      >
-        <button
-          type="button"
-          role="radio"
-          :aria-checked="currentLocale === 'it'"
-          data-testid="locale-it"
-          :class="[
-            'flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium border transition-colors',
-            currentLocale === 'it'
-              ? 'bg-primary text-white border-primary'
-              : 'bg-offwhite text-charcoal border-cream-soft',
-          ]"
-          @click="handleSetLocale('it')"
-        >
-          <span aria-hidden="true" class="text-lg leading-none">🇮🇹</span>
-          <span>Italiano</span>
-        </button>
-        <button
-          type="button"
-          role="radio"
-          :aria-checked="currentLocale === 'en'"
-          data-testid="locale-en"
-          :class="[
-            'flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium border transition-colors',
-            currentLocale === 'en'
-              ? 'bg-primary text-white border-primary'
-              : 'bg-offwhite text-charcoal border-cream-soft',
-          ]"
-          @click="handleSetLocale('en')"
-        >
-          <span aria-hidden="true" class="text-lg leading-none">🇬🇧</span>
-          <span>English</span>
-        </button>
-      </div>
-    </section>
-
-    <section class="px-5 pt-8">
       <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
         {{ t('settings.theme') }}
       </h2>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, type Component } from 'vue';
-import { Info, Loader2 } from '@lucide/vue';
+import { Info } from '@lucide/vue';
 
 const props = withDefaults(
   defineProps<{
@@ -63,12 +63,17 @@ const onAction = (): void => {
       data-testid="toast"
       :class="[
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
-        // Hug the content's intrinsic width; only wrap when the message
-        // would otherwise overflow the viewport. Half-rem gutter on each
-        // side keeps the toast off the screen edge without sacrificing the
-        // single-line layout for medium-length messages on narrow phones.
-        'w-fit max-w-[calc(100vw-1rem)]',
-        'flex items-center justify-between gap-3',
+        // Hug the content's natural width up to a viewport-capped maximum.
+        // Critically: no `flex-1` / `min-w-0` on the message span. With
+        // `w-fit`, a `flex-1` child with `basis: 0` would contribute zero
+        // to the container's intrinsic width — the container would shrink
+        // to icon+button width, then the flex-grow distributes 0px, and
+        // the message wraps to a tiny vertical strip. Dropping flex-1
+        // makes the container measure the message's natural single-line
+        // width, so short/medium messages stay on one line and only
+        // genuinely long ones wrap when the max-w cap kicks in.
+        'w-fit max-w-[calc(100vw-0.5rem)]',
+        'flex items-center gap-3',
         'text-white shadow-xl bg-primary',
         props.actionLabel
           ? 'rounded-2xl px-4 py-3'
@@ -81,16 +86,7 @@ const onAction = (): void => {
         class="shrink-0"
         aria-hidden="true"
       />
-      <!-- No flex-1 / min-w-0 on the simple variant: we want the toast to
-           hug the message width (single line if it fits) and only wrap when
-           max-w-[calc(100vw-2rem)] caps the container. With actionLabel the
-           button needs the span to grow, so we keep flex behaviour there. -->
-      <span
-        :class="[
-          'text-sm font-medium leading-snug',
-          props.actionLabel ? 'min-w-0 flex-1' : '',
-        ]"
-      >{{ props.message }}</span>
+      <span class="text-sm font-medium leading-snug">{{ props.message }}</span>
       <button
         v-if="props.actionLabel"
         type="button"
@@ -105,19 +101,13 @@ const onAction = (): void => {
         ]"
         @click="onAction"
       >
-        <Loader2
-          v-if="props.actionLoading"
-          data-testid="toast-action-spinner"
-          :size="16"
-          :stroke-width="2.5"
-          class="animate-spin"
-          aria-hidden="true"
-        />
         <component
-          v-else-if="props.actionIcon"
+          v-if="props.actionIcon"
           :is="props.actionIcon"
+          data-testid="toast-action-icon"
           :size="16"
           :stroke-width="2.5"
+          :class="props.actionLoading ? 'animate-spin' : ''"
           aria-hidden="true"
         />
         {{ props.actionLabel }}

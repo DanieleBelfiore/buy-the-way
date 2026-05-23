@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import { Plus, X, Settings as SettingsIcon, BarChart3 } from '@lucide/vue';
+import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import ListCard from '@/components/list/ListCard.vue';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
@@ -186,9 +187,12 @@ watch(
 </script>
 
 <template>
-  <main class="min-h-screen min-h-dvh bg-cream flex flex-col">
+  <main class="min-h-dvh bg-cream flex flex-col relative">
+    <div class="absolute top-4 right-4 z-10">
+      <LocaleSwitcher />
+    </div>
     <!-- Top bar with stats + settings buttons (split 50/50 full width). -->
-    <header class="px-5 pt-12 pb-2 flex items-center gap-2">
+    <header class="px-5 pt-6 pb-2 flex items-center gap-2">
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
@@ -287,7 +291,7 @@ watch(
         <div
           v-else-if="listsStore.lists.length === 0"
           key="empty"
-          class="text-center pt-16 space-y-3"
+          class="text-center pt-8 space-y-3"
         >
           <DotLottieVue
             :key="`empty-lottie-${emptyLottieKey}`"
