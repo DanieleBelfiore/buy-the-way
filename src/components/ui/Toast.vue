@@ -79,7 +79,7 @@ const onAction = (): void => {
           class="shrink-0"
           aria-hidden="true"
         />
-        <span class="font-medium leading-snug flex-1 min-w-0 whitespace-nowrap truncate text-[clamp(11px,3.5vw,14px)]">
+        <span class="font-medium leading-snug flex-1 min-w-0 break-words text-[clamp(11px,3.5vw,14px)]">
           {{ props.message }}
         </span>
       </div>

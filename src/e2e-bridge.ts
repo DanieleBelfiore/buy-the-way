@@ -8,6 +8,20 @@ import { GoogleAuthProvider, signInWithCredential, signOut as fbSignOut } from '
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase';
 
+// Defense-in-depth: hard-refuse to install the fetch monkey-patch and the
+// __btw global if this module is reached in a production build. Production
+// must never gain a path to the emulator owner-token or the bypass surface,
+// even if VITE_E2E were ever to leak past the build flag.
+if (!import.meta.env.DEV) {
+  throw new Error('[E2E Bridge] refusing to load outside dev build');
+}
+
+// Firebase emulator accepts this literal as a super-user bearer token. Only
+// usable against the local emulator — non-emulator Firestore rejects it.
+const EMULATOR_OWNER_TOKEN = 'owner';
+const EMULATOR_FIRESTORE_URL =
+  'http://localhost:8080/v1/projects/buy-the-way/databases/(default)/documents:runQuery';
+
 const originalFetch = window.fetch;
 window.fetch = async (input, init) => {
   if (typeof input === 'string' && input.includes('/.netlify/functions/find-user')) {
@@ -29,31 +43,40 @@ window.fetch = async (input, init) => {
         }
       };
       
-      const res = await originalFetch('http://localhost:8080/v1/projects/buy-the-way/databases/(default)/documents:runQuery', {
+      const res = await originalFetch(EMULATOR_FIRESTORE_URL, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer owner' 
+          'Authorization': `Bearer ${EMULATOR_OWNER_TOKEN}`,
         },
-        body: JSON.stringify(queryPayload)
+        body: JSON.stringify(queryPayload),
       });
-      
+
       const data = await res.json();
       const docData = data[0]?.document;
-      
+
       if (!docData) {
         return new Response(JSON.stringify({ profile: null }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
 
       const uid = docData.name.split('/').pop();
       const snap = await getDoc(doc(db, 'users', uid));
-      
+
       if (!snap.exists()) {
         return new Response(JSON.stringify({ profile: null }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
-      
-      const profile = snap.data();
-      return new Response(JSON.stringify({ profile: { uid: snap.id, ...profile } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+      // Mirror the netlify function's minimal payload so E2E exercises the
+      // same shape production callers see.
+      const raw = snap.data() as Record<string, unknown>;
+      const profile: Record<string, unknown> = {
+        uid: snap.id,
+        email: raw.email ?? '',
+        displayName: raw.displayName ?? '',
+        lastLoginAt: 0,
+      };
+      if (raw.photoURL) profile.photoURL = raw.photoURL;
+      return new Response(JSON.stringify({ profile }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     } catch (e) {
       console.error('[E2E Bridge] Error finding user:', e);
       return new Response(JSON.stringify({ profile: null }), { status: 200, headers: { 'Content-Type': 'application/json' } });

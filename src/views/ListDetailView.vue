@@ -180,7 +180,7 @@ const formatListForSharing = (): string => {
         line += ` - ${t('item.quantity')}: ${item.quantity}`;
       }
       if (item.note) {
-        line += ` - Nota: ${item.note}`;
+        line += ` - ${t('list.shareNoteLabel')}: ${item.note}`;
       }
       lines.push(line);
     }
@@ -880,10 +880,11 @@ watch(
       :open="dontSuggestCandidate !== null"
       :title="t('item.dontSuggestAgainTitle')"
       :message="t('item.dontSuggestAgainMessage', { name: dontSuggestCandidate.name })"
-      :confirm-label="t('item.keepSuggesting')"
-      :cancel-label="t('item.dontSuggestAgainAction')"
-      @confirm="closeDontSuggest"
-      @cancel="handleDontSuggestConfirm"
+      :confirm-label="t('item.dontSuggestAgainAction')"
+      :cancel-label="t('item.keepSuggesting')"
+      destructive
+      @confirm="handleDontSuggestConfirm"
+      @cancel="closeDontSuggest"
     />
   </main>
 </template>

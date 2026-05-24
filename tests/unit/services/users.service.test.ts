@@ -47,16 +47,24 @@ describe('users.service', () => {
       global.fetch = originalFetch;
     });
 
-    it('returns null on empty input', async () => {
-      const out = await findUserByEmail('');
-      expect(out).toBeNull();
+    it('throws on empty input (caller-level bug, not a "no match" case)', async () => {
+      await expect(findUserByEmail('')).rejects.toThrow(/empty email/);
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('returns null on whitespace-only input', async () => {
-      const out = await findUserByEmail('   ');
-      expect(out).toBeNull();
+    it('throws on whitespace-only input', async () => {
+      await expect(findUserByEmail('   ')).rejects.toThrow(/empty email/);
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('throws on non-2xx HTTP response (distinct from "no match")', async () => {
+      vi.mocked(global.fetch).mockResolvedValue({ ok: false, status: 500 } as any);
+      await expect(findUserByEmail('a@b.com')).rejects.toThrow(/HTTP 500/);
+    });
+
+    it('throws on network failure', async () => {
+      vi.mocked(global.fetch).mockRejectedValue(new Error('offline'));
+      await expect(findUserByEmail('a@b.com')).rejects.toThrow(/offline/);
     });
 
     it('normalizes input (trim + lowercase) before query', async () => {

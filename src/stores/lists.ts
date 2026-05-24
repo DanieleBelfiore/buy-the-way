@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import {
   createList as serviceCreateList,
   subscribeUserLists,
@@ -96,6 +96,17 @@ export const useListsStore = defineStore('lists', () => {
     lastSeenLists.value = 0;
     lastSeenListMap.value = {};
   };
+
+  // Auto-clear cached lists whenever the signed-in identity changes. Done
+  // here (not in the auth store) to avoid a static import cycle: the auth
+  // store still needs to invalidate this cache on sign-out, and listening to
+  // auth from inside lists keeps the dependency edge one-way (lists → auth).
+  watch(
+    () => useAuthStore().user?.uid ?? null,
+    (newUid, oldUid) => {
+      if (newUid !== oldUid) clear();
+    },
+  );
 
   return {
     lists,

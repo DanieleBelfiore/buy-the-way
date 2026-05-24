@@ -107,6 +107,27 @@ describe('useListsStore', () => {
     await expect(store.createList('Spesa')).rejects.toThrow();
   });
 
+  it('clears cached state when the signed-in user uid changes', async () => {
+    const { reactive, nextTick } = await import('vue');
+    const authState = reactive<{ user: { uid: string; email: string; displayName: string } | null }>({
+      user: { uid: 'uid-1', email: 'a@b.com', displayName: 'A' },
+    });
+    vi.mocked(useAuthStore).mockReturnValue(authState as any);
+    vi.mocked(subscribeUserLists).mockReturnValue(vi.fn());
+
+    const store = useListsStore();
+    store.lists = [{ id: 'L1' } as any];
+    store.lastSeenLists = 999;
+    store.initialized = true;
+
+    authState.user = { uid: 'uid-2', email: 'c@d.com', displayName: 'C' };
+    await nextTick();
+
+    expect(store.lists).toEqual([]);
+    expect(store.lastSeenLists).toBe(0);
+    expect(store.initialized).toBe(false);
+  });
+
   describe('loadLastSeen', () => {
     it('reads profile.lastSeenLists (legacy fallback) into store', async () => {
       vi.mocked(getUserProfile).mockResolvedValue({

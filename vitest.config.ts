@@ -27,6 +27,9 @@ export default defineConfig({
       exclude: [
         'src/main.ts',
         'src/pwa/**',
+        // E2E-only module: loaded when VITE_E2E=true and exercised by Playwright,
+        // never bundled in production. Out of scope for unit coverage.
+        'src/e2e-bridge.ts',
         // No runtime code — types only
         'src/domain/types.ts',
         // Side-effectful Firebase init, globally mocked in tests

@@ -34,16 +34,17 @@
     "shareCopied": "Lista copiata negli appunti!",
     "shareError": "Errore durante la condivisione.",
     "shareTitle": "🛒 Lista: {name}",
-    "shareFooter": "Buy The Way — La Tua Lista Della Spesa Intelligente\nhttps://buy-the-way.danielebelfiore.dev"
+    "shareFooter": "Buy The Way — La Tua Lista Della Spesa Intelligente\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareNoteLabel": "Nota"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
     "name": "Nome",
     "customBadge": "Articolo personalizzato",
-    "dontSuggestAgainTitle": "Continuare a suggerirlo?",
-    "dontSuggestAgainMessage": "Hai appena eliminato \"{name}\". Vuoi che continuiamo a suggerirlo in futuro?",
-    "dontSuggestAgainAction": "No",
-    "keepSuggesting": "Sì",
+    "dontSuggestAgainTitle": "Smettere di suggerire questo articolo?",
+    "dontSuggestAgainMessage": "\"{name}\" non comparirà più nei suggerimenti dell'autocompletamento in nessuna delle tue liste.",
+    "dontSuggestAgainAction": "Non suggerire",
+    "keepSuggesting": "Continua a suggerire",
     "markAsBought": "Segna come acquistato",
     "markAsToBuy": "Segna come da acquistare",
     "firstCheckTutorialToast": "Articolo segnato come acquistato!",

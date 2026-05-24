@@ -47,17 +47,17 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
 
     const doc = snap.docs[0];
     const data = doc.data();
-    
-    const profile = {
+
+    // Only expose fields the invite flow needs. Activity metadata
+    // (lastLoginAt, lastSeenLists, lastSeenListMap, defaultListId) is private
+    // and must not leak to other authenticated callers via this surface.
+    const profile: Record<string, unknown> = {
       uid: data.uid ?? doc.id,
       email: data.email ?? '',
       displayName: data.displayName ?? '',
-      lastLoginAt: data.lastLoginAt ?? 0,
-      ...(data.lastSeenLists !== undefined && { lastSeenLists: data.lastSeenLists }),
-      ...(data.lastSeenListMap !== undefined && { lastSeenListMap: data.lastSeenListMap }),
-      ...(data.photoURL && { photoURL: data.photoURL }),
-      ...(data.defaultListId !== undefined && { defaultListId: data.defaultListId }),
+      lastLoginAt: 0,
     };
+    if (data.photoURL) profile.photoURL = data.photoURL;
 
     return jsonResponse(200, { profile });
   } catch (err) {

@@ -3,41 +3,46 @@ import {
   getDoc,
   setDoc,
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '@/services/firebase';
 import type { UserProfile } from '@/domain/types';
 
 const normalizeEmail = (raw: string): string => raw.trim().toLowerCase();
 
-import { getAuth } from 'firebase/auth';
-
+/**
+ * Look up a user by their canonical (trimmed, lowercased) email.
+ *
+ * Returns `null` only when the lookup succeeded and no matching account
+ * exists (the server-side `find-user` function returned `{ profile: null }`).
+ *
+ * Throws on:
+ *   - empty / unauthenticated caller state (cannot mint an ID token)
+ *   - transport failures (network down, fetch rejected)
+ *   - non-2xx HTTP responses
+ *
+ * Callers driving an invite flow rely on this distinction to tell the user
+ * "no such account" vs "we couldn't check right now — try again".
+ */
 export const findUserByEmail = async (email: string): Promise<UserProfile | null> => {
   const normalized = normalizeEmail(email);
-  if (!normalized) return null;
+  if (!normalized) throw new Error('findUserByEmail: empty email');
 
   const auth = getAuth();
   const user = auth.currentUser;
-  if (!user) return null;
-  
-  try {
-    const idToken = await user.getIdToken();
-    const res = await fetch(`/.netlify/functions/find-user?email=${encodeURIComponent(normalized)}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+  if (!user) throw new Error('findUserByEmail: not authenticated');
 
-    if (!res.ok) {
-      console.warn('[findUserByEmail] HTTP error', res.status);
-      return null;
-    }
+  const idToken = await user.getIdToken();
+  const res = await fetch(`/.netlify/functions/find-user?email=${encodeURIComponent(normalized)}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
 
-    const data = await res.json() as { profile: UserProfile | null };
-    return data.profile;
-  } catch (err) {
-    console.error('[findUserByEmail] Network error', err);
-    return null;
+  if (!res.ok) {
+    throw new Error(`findUserByEmail: HTTP ${res.status}`);
   }
+
+  const data = (await res.json()) as { profile: UserProfile | null };
+  return data.profile;
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {

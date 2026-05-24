@@ -2,40 +2,47 @@ import { watch, onMounted, onUnmounted } from 'vue';
 import type { Ref } from 'vue';
 
 /**
- * Intercepts the hardware back button (or swipe back) when a modal is open.
- * Instead of navigating back, it closes the modal.
+ * Intercepts hardware back / swipe-back while a modal is open: a back gesture
+ * closes the modal instead of navigating the underlying route.
+ *
+ * Each call owns a unique token that is written into `history.state`. Only
+ * history entries we pushed ourselves are popped on close — this lets stacked
+ * modals coexist and prevents stale `modalOpen` flags left in history.state by
+ * earlier navigation from triggering spurious `history.back()` calls.
+ *
+ * Works for both usage patterns:
+ *   - parent `v-if`s the modal (open=true the whole time the component lives)
+ *   - parent always renders, toggles `:open` instead
  */
 export const useModalBack = (isOpen: Ref<boolean>, close: () => void) => {
+  const token = `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const ownsCurrentState = (): boolean =>
+    !!history.state && (history.state as { modalToken?: string }).modalToken === token;
+
   const onPopState = () => {
-    if (isOpen.value) {
-      // User pressed back button: close the modal
-      close();
+    if (isOpen.value) close();
+  };
+
+  const sync = (open: boolean) => {
+    if (open) {
+      if (!ownsCurrentState()) {
+        history.pushState({ ...history.state, modalToken: token }, '');
+      }
+    } else if (ownsCurrentState()) {
+      history.back();
     }
   };
 
-  watch(isOpen, (newVal) => {
-    if (newVal) {
-      // When modal opens, push a new state to the browser history
-      if (!history.state?.modalOpen) {
-        history.pushState({ ...history.state, modalOpen: true }, '');
-      }
-    } else {
-      // When modal closes programmatically (e.g. by clicking 'X' or saving)
-      // and we are still on the modal's history state, we go back to clean it up
-      if (history.state?.modalOpen) {
-        history.back();
-      }
-    }
-  });
+  watch(isOpen, sync);
 
   onMounted(() => {
     window.addEventListener('popstate', onPopState);
+    if (isOpen.value) sync(true);
   });
 
   onUnmounted(() => {
     window.removeEventListener('popstate', onPopState);
-    if (history.state?.modalOpen) {
-      history.back();
-    }
+    if (ownsCurrentState()) history.back();
   });
 };

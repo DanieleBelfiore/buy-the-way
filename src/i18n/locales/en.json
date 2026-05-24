@@ -34,16 +34,17 @@
     "shareCopied": "List copied to clipboard!",
     "shareError": "Error sharing list.",
     "shareTitle": "🛒 List: {name}",
-    "shareFooter": "Buy The Way — Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev"
+    "shareFooter": "Buy The Way — Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareNoteLabel": "Note"
   },
   "item": {
     "addPlaceholder": "Add an item",
     "name": "Name",
     "customBadge": "Custom item",
-    "dontSuggestAgainTitle": "Keep suggesting this item?",
-    "dontSuggestAgainMessage": "You just deleted \"{name}\". Do you want us to keep suggesting it in the future?",
-    "dontSuggestAgainAction": "No",
-    "keepSuggesting": "Yes",
+    "dontSuggestAgainTitle": "Stop suggesting this item?",
+    "dontSuggestAgainMessage": "\"{name}\" will no longer appear in autocomplete suggestions across any of your lists.",
+    "dontSuggestAgainAction": "Don't suggest",
+    "keepSuggesting": "Keep suggesting",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
     "firstCheckTutorialToast": "Item marked as bought!",

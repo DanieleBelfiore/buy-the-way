@@ -22,10 +22,13 @@ export const useAuthStore = defineStore('auth', () => {
   const init = (): (() => void) => {
     return onAuthChanged((authUser) => {
       // Invalidate cached profile whenever the signed-in identity changes.
+      // Cross-store cleanup (e.g. lists) lives on the consumer side — see
+      // `src/stores/lists.ts`, which watches `auth.user?.uid` directly. That
+      // avoids the dynamic import that would otherwise be needed to break the
+      // auth↔lists module cycle.
       if (!authUser || authUser.uid !== user.value?.uid) {
         profile.value = null;
         profileLoadPromise = null;
-        import('@/stores/lists').then((m) => m.useListsStore().clear());
       }
       user.value = authUser;
       ready.value = true;
