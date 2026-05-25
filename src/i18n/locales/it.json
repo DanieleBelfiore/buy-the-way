@@ -111,7 +111,8 @@
     "lastAdminError": "Una lista deve avere almeno un amministratore.",
     "pendingBadge": "In attesa",
     "inviteEmailSent": "Email di invito inviata a {email}.",
-    "inviteEmailFailed": "Invio email a {email} non riuscito. L'invito è salvato comunque."
+    "inviteEmailFailed": "Invio email a {email} non riuscito. L'invito è salvato comunque.",
+    "lookupFailed": "Non è stato possibile verificare quell'email. Riprova."
   },
   "listSettings": {
     "title": "Impostazioni lista",

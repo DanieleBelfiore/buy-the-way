@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft, LogOut, MessageSquare, Moon, Share2, Sun, Trash2 } from '@lucide/vue';
+import { getAuth } from 'firebase/auth';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore, type ThemeMode } from '@/stores/theme';
 import { useShareApp } from '@/composables/useShareApp';
@@ -87,17 +88,48 @@ const cancelDelete = () => {
   deleteError.value = null;
 };
 
+// Threshold matching Firebase's "recent login" window. The SDK requires a
+// re-auth within ~5 minutes for destructive operations like `User.delete()`.
+// We're conservative (4 minutes) to leave headroom for the cascade-delete to
+// run before the token grows stale mid-flight.
+const RECENT_LOGIN_WINDOW_MS = 4 * 60 * 1000;
+
+const sessionIsFresh = (): boolean => {
+  // Firebase exposes `auth.currentUser.metadata.lastSignInTime` as an ISO
+  // string. Treat parsing failure as "not fresh" so we always reauth on
+  // doubt rather than risk a mid-cascade requires-recent-login error.
+  try {
+    const iso = getAuth().currentUser?.metadata?.lastSignInTime;
+    if (!iso) return false;
+    const ts = Date.parse(iso);
+    if (Number.isNaN(ts)) return false;
+    return Date.now() - ts < RECENT_LOGIN_WINDOW_MS;
+  } catch {
+    return false;
+  }
+};
+
 const runDelete = async () => {
   if (!authStore.user) return;
   const uid = authStore.user.uid;
   deletingAccount.value = true;
   deleteError.value = null;
   try {
+    // C1: reauth BEFORE wiping any data. The previous flow deleted
+    // Firestore data first, then discovered "requires-recent-login" only at
+    // the final auth.currentUser.delete() step — leaving the account
+    // orphaned with no data if the user didn't reauth+retry.
+    if (!sessionIsFresh()) {
+      reauthNeeded.value = true;
+      return;
+    }
     await authStore.deleteAccount(uid);
     deleteConfirmOpen.value = false;
     router.push({ name: 'login' });
   } catch (err) {
     if (err instanceof RequiresRecentLoginError) {
+      // Defence in depth: even with the pre-flight check above, Firebase may
+      // still raise this if the session aged out mid-call.
       reauthNeeded.value = true;
     } else if (err instanceof PartialDeletionError) {
       deleteError.value = t('settings.deleteAccountPartial');

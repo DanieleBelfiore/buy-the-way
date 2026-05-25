@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { UserPlus } from '@lucide/vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
 import type { AddCollaboratorResult } from '@/services/lists.service';
+import { FindUserError } from '@/services/users.service';
 import type { UserProfile } from '@/domain/types';
 
 const props = defineProps<{
@@ -42,7 +43,11 @@ const onSubmit = async () => {
     }
     email.value = '';
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : String(err);
+    if (err instanceof FindUserError && (err.code === 'transport' || err.code === 'http')) {
+      errorMessage.value = t('collaborators.lookupFailed');
+    } else {
+      errorMessage.value = err instanceof Error ? err.message : String(err);
+    }
     console.error('[AddCollaboratorForm] submit failed:', err);
   } finally {
     submitting.value = false;

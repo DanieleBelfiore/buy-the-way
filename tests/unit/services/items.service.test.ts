@@ -81,14 +81,14 @@ describe('items.service', () => {
   });
 
   describe('addItem', () => {
-    it('writes item doc via setDoc', async () => {
+    it('writes item doc via batch.set (atomic with itemCount bump)', async () => {
       await addItem(defaultAddParams);
-      expect(setDoc).toHaveBeenCalledOnce();
+      expect(batchSet).toHaveBeenCalledOnce();
     });
 
     it('includes all required Item fields in doc', async () => {
       await addItem(defaultAddParams);
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const [, data] = batchSet.mock.calls[0];
       expect(data).toMatchObject({
         listId,
         name: 'Latte',
@@ -110,7 +110,7 @@ describe('items.service', () => {
 
     it('id in doc matches returned id', async () => {
       const id = await addItem(defaultAddParams);
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const [, data] = batchSet.mock.calls[0];
       expect((data as any).id).toBe(id);
     });
 
@@ -128,8 +128,13 @@ describe('items.service', () => {
 
     it('checked defaults to false', async () => {
       await addItem(defaultAddParams);
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const [, data] = batchSet.mock.calls[0];
       expect((data as any).checked).toBe(false);
+    });
+
+    it('does not write the item via raw setDoc (atomicity I5)', async () => {
+      await addItem(defaultAddParams);
+      expect(setDoc).not.toHaveBeenCalled();
     });
   });
 
@@ -187,11 +192,10 @@ describe('items.service', () => {
   });
 
   describe('addItem itemCount bump', () => {
-    it('increments list itemCount via updateDoc on add', async () => {
+    it('increments list itemCount via batch.update on add (same batch as item write — I5)', async () => {
       await addItem(defaultAddParams);
-      const updateCalls = vi.mocked(updateDoc).mock.calls;
-      expect(updateCalls.length).toBeGreaterThanOrEqual(1);
-      const payloads = updateCalls.map(([, data]) => data as Record<string, unknown>);
+      expect(batchUpdate).toHaveBeenCalled();
+      const payloads = batchUpdate.mock.calls.map(([, data]) => data as Record<string, unknown>);
       expect(payloads.some((p) => JSON.stringify(p.itemCount) === JSON.stringify({ __increment: 1 }))).toBe(true);
     });
   });
@@ -268,7 +272,7 @@ describe('items.service', () => {
   describe('addItem capitalization', () => {
     it('capitalizes lowercase initial of new item name', async () => {
       await addItem({ ...defaultAddParams, name: 'mela rossa' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { name: string }).name).toBe('Mela rossa');
     });
 
@@ -280,37 +284,37 @@ describe('items.service', () => {
 
     it('leaves already-capitalized name unchanged', async () => {
       await addItem({ ...defaultAddParams, name: 'Pane' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { name: string }).name).toBe('Pane');
     });
 
     it('capitalizes lowercase initial of note', async () => {
       await addItem({ ...defaultAddParams, note: 'semola' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { note: string }).note).toBe('Semola');
     });
 
     it('leaves already-capitalized note unchanged', async () => {
       await addItem({ ...defaultAddParams, note: 'Manitoba' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { note: string }).note).toBe('Manitoba');
     });
 
     it('keeps empty note empty', async () => {
       await addItem({ ...defaultAddParams, note: '' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { note: string }).note).toBe('');
     });
 
     it('trims trailing/leading whitespace from name', async () => {
       await addItem({ ...defaultAddParams, name: '  Mela rossa   ' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { name: string }).name).toBe('Mela rossa');
     });
 
     it('trims trailing/leading whitespace from note', async () => {
       await addItem({ ...defaultAddParams, note: '   semola  ' });
-      const [, data] = vi.mocked(setDoc).mock.calls[0]!;
+      const [, data] = batchSet.mock.calls[0]!;
       expect((data as { note: string }).note).toBe('Semola');
     });
 
@@ -331,15 +335,37 @@ describe('items.service', () => {
       expect(batchCommit).not.toHaveBeenCalled();
     });
 
-    it('uses a single batch for <= 500 items', async () => {
+    it('uses a single batch for <= 499 items (chunk size leaves room for the itemCount update)', async () => {
       const ids = mkIds(3);
       await emptyList(listId, ids);
       expect(writeBatchMock).toHaveBeenCalledOnce();
       expect(batchDelete).toHaveBeenCalledTimes(3);
+      // I6: itemCount update slotted into the SAME batch as the deletes.
+      expect(batchUpdate).toHaveBeenCalledOnce();
+      const [, payload] = batchUpdate.mock.calls[0]!;
+      expect((payload as any).itemCount).toEqual({ __increment: -3 });
       expect(batchCommit).toHaveBeenCalledOnce();
     });
 
-    it('paginates into 500-item chunks for > 500 items', async () => {
+    it('handles exactly 499 items in a single batch', async () => {
+      const ids = mkIds(499);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchDelete).toHaveBeenCalledTimes(499);
+      expect(batchUpdate).toHaveBeenCalledOnce();
+      expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('handles 500 items as two batches (499 + 1) — Firestore 500-op cap leaves no room', async () => {
+      const ids = mkIds(500);
+      await emptyList(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
+      expect(batchDelete).toHaveBeenCalledTimes(500);
+      expect(batchUpdate).toHaveBeenCalledTimes(2);
+      expect(batchCommit).toHaveBeenCalledTimes(2);
+    });
+
+    it('paginates into 499-item chunks for > 499 items', async () => {
       const ids = mkIds(600);
       await emptyList(listId, ids);
       expect(writeBatchMock).toHaveBeenCalledTimes(2);
@@ -347,19 +373,11 @@ describe('items.service', () => {
       expect(batchCommit).toHaveBeenCalledTimes(2);
     });
 
-    it('handles exactly 500 items in a single batch', async () => {
-      const ids = mkIds(500);
-      await emptyList(listId, ids);
-      expect(writeBatchMock).toHaveBeenCalledOnce();
-      expect(batchDelete).toHaveBeenCalledTimes(500);
-      expect(batchCommit).toHaveBeenCalledOnce();
-    });
-
-    it('handles 1000 items as two full batches', async () => {
+    it('handles 1000 items as three batches (499 + 499 + 2)', async () => {
       const ids = mkIds(1000);
       await emptyList(listId, ids);
-      expect(writeBatchMock).toHaveBeenCalledTimes(2);
-      expect(batchCommit).toHaveBeenCalledTimes(2);
+      expect(writeBatchMock).toHaveBeenCalledTimes(3);
+      expect(batchCommit).toHaveBeenCalledTimes(3);
     });
   });
 

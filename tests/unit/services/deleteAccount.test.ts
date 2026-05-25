@@ -31,6 +31,15 @@ vi.mock('@/services/lists.service', () => ({
   deleteList: vi.fn().mockResolvedValue(undefined),
   leaveList: vi.fn().mockResolvedValue(undefined),
   transferListOwnership: vi.fn().mockResolvedValue(undefined),
+  claimPendingInvites: vi.fn().mockResolvedValue(0),
+}));
+
+// Stub the C3 private-state helpers so deleteAccount can call them without
+// pulling the real getDoc / deleteDoc machinery into this suite. They run
+// best-effort in production; here they're no-ops.
+vi.mock('@/services/users.service', () => ({
+  migrateLegacyPrivateFields: vi.fn().mockResolvedValue([]),
+  deletePrivateState: vi.fn().mockResolvedValue(undefined),
 }));
 
 import {

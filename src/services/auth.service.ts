@@ -17,8 +17,8 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase';
 import { claimPendingInvites, deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
+import { migrateLegacyPrivateFields, deletePrivateState } from '@/services/users.service';
 import type { AuthUser } from '@/composables/useAuth';
-import type { UserProfile } from '@/domain/types';
 
 export class RequiresRecentLoginError extends Error {
   constructor() {
@@ -122,7 +122,12 @@ export const deleteAccount = async (uid: string): Promise<void> => {
     failures.push('catalog');
   }
 
-  // 5. Delete user doc.
+  // 5a. Purge private subcollection (lastLoginAt + activity state).
+  // Best-effort: continues on failure so a missing/orphan doc doesn't block
+  // the rest of the cascade.
+  await deletePrivateState(uid);
+
+  // 5b. Delete user doc.
   try {
     await deleteDoc(doc(db, 'users', uid));
   } catch (err) {
@@ -150,31 +155,68 @@ export const deleteAccount = async (uid: string): Promise<void> => {
 
 export const signOutCurrent = (): Promise<void> => signOut(auth);
 
+// Tracks the uid we last saw a non-null state for, so we can debounce the
+// upsert + invite-claim work to "actual sign-in transitions" rather than
+// firing on every token-refresh / tab-focus event.
+let _lastSeenUid: string | null = null;
+
 export const onAuthChanged = (
   callback: (user: AuthUser | null) => void,
 ): (() => void) => {
   return _onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
-      const profile: UserProfile = {
-        uid: firebaseUser.uid,
-        email: (firebaseUser.email ?? '').toLowerCase().trim(),
-        displayName: firebaseUser.displayName ?? '',
-        lastLoginAt: Date.now(),
-        ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
-      };
-      try {
-        await setDoc(doc(db, 'users', firebaseUser.uid), profile, { merge: true });
-      } catch (err) {
-        // Non-fatal — profile upsert fails if Firestore is unavailable,
-        // but auth state is still valid and the guard must resolve.
-        console.warn('[auth] Failed to upsert user profile:', err);
+      const isNewSignIn = _lastSeenUid !== firebaseUser.uid;
+      _lastSeenUid = firebaseUser.uid;
+
+      // Only do the heavyweight work (profile upsert with lastLoginAt + invite
+      // claim) on actual sign-in transitions. Token refreshes / focus events
+      // fire the same callback but with the same uid — skip the writes there.
+      if (isNewSignIn) {
+        const publicProfile = {
+          uid: firebaseUser.uid,
+          email: (firebaseUser.email ?? '').toLowerCase().trim(),
+          displayName: firebaseUser.displayName ?? '',
+          ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
+        };
+        try {
+          await setDoc(doc(db, 'users', firebaseUser.uid), publicProfile, { merge: true });
+        } catch (err) {
+          // Non-fatal — profile upsert fails if Firestore is unavailable,
+          // but auth state is still valid and the guard must resolve.
+          console.warn('[auth] Failed to upsert user profile:', err);
+        }
+
+        // C3 migration: if this user predates the schema split, move any
+        // legacy private fields (lastLoginAt/lastSeenLists/lastSeenListMap/
+        // defaultListId) off the publicly-readable top-level doc into the
+        // owner-only private subcollection. One-shot; subsequent sign-ins
+        // see no legacy keys and return immediately.
+        try {
+          await migrateLegacyPrivateFields(firebaseUser.uid);
+        } catch (err) {
+          console.warn('[auth] Legacy private-field migration failed:', err);
+        }
+
+        // Private state (lastLoginAt) lives in the per-user private
+        // subcollection so it doesn't leak through cross-user profile reads.
+        try {
+          await setDoc(
+            doc(db, 'users', firebaseUser.uid, 'private', 'state'),
+            { lastLoginAt: Date.now() },
+            { merge: true },
+          );
+        } catch (err) {
+          console.warn('[auth] Failed to upsert private state:', err);
+        }
+
+        // Claim any lists where this user was invited by email before they
+        // had an account. Failures are logged inside the service; don't block
+        // sign-in if the claim can't proceed.
+        if (publicProfile.email) {
+          void claimPendingInvites(firebaseUser.uid, publicProfile.email);
+        }
       }
-      // Claim any lists where this user was invited by email before they
-      // had an account. Failures are logged inside the service; don't block
-      // sign-in if the claim can't proceed.
-      if (profile.email) {
-        void claimPendingInvites(firebaseUser.uid, profile.email);
-      }
+
       callback({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -182,7 +224,13 @@ export const onAuthChanged = (
         ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
       });
     } else {
+      _lastSeenUid = null;
       callback(null);
     }
   });
+};
+
+/** Test-only escape hatch: reset the module-level uid tracker between tests. */
+export const __resetAuthLastSeenUid = (): void => {
+  _lastSeenUid = null;
 };

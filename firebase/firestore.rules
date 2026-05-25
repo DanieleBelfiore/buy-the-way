@@ -39,11 +39,52 @@ service cloud.firestore {
         && request.auth.token.email in listData.pendingInviteEmails;
     }
 
-    // User profiles — any authenticated user can get (email lookup via function); write only self.
+    // User profiles.
+    //
+    // Public top-level doc holds ONLY the fields cross-user reads need
+    // (uid, email, displayName, photoURL). Activity metadata and
+    // preferences (lastLoginAt, lastSeenLists, lastSeenListMap,
+    // defaultListId) live in `users/{userId}/private/state` — owner only.
+    //
+    // The list of keys allowed in update affectedKeys() includes the legacy
+    // private keys so the one-shot migration in auth.service.ts can strip
+    // them via deleteField(); no new arbitrary keys are accepted.
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list: if false;
-      allow write: if isSignedIn() && uid() == userId;
+      allow create: if isSignedIn() && uid() == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 200
+        && (!('photoURL' in request.resource.data.keys())
+            || request.resource.data.photoURL is string)
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL']);
+      allow update: if isSignedIn() && uid() == userId
+        && request.resource.data.uid == userId
+        && (!('email' in request.resource.data.keys())
+            || (request.resource.data.email is string
+                && request.resource.data.email.size() <= 254))
+        && (!('displayName' in request.resource.data.keys())
+            || (request.resource.data.displayName is string
+                && request.resource.data.displayName.size() <= 200))
+        && (!('photoURL' in request.resource.data.keys())
+            || request.resource.data.photoURL is string)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+               'uid', 'email', 'displayName', 'photoURL',
+               // Legacy keys allowed only because the migration strips them
+               // via deleteField(); new writes never introduce them.
+               'lastLoginAt', 'lastSeenLists', 'lastSeenListMap', 'defaultListId',
+             ]);
+      allow delete: if isSignedIn() && uid() == userId;
+
+      // Owner-only private state. No cross-user reads possible — closes the
+      // PII surface that the top-level `allow get` would otherwise expose.
+      match /private/{docId} {
+        allow read, write, delete: if isSignedIn() && uid() == userId;
+      }
     }
 
     // Lists. Permissions are now driven by the admins set; `ownerUid` is the

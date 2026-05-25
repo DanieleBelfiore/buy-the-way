@@ -104,16 +104,74 @@ describe('firestore.rules — users/{uid}', () => {
     await assertFails(getDoc(doc(anonCtx() as any, 'users', BOB)));
   });
 
-  it('allows a user to write their own profile', async () => {
+  it('allows a user to write their own profile (public schema only — C4)', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'users', ALICE), {
+      uid: ALICE, email: 'a@example.com', displayName: 'A',
+    }));
+  });
+
+  it('denies a user from writing their own profile with arbitrary extra keys (C4 hasOnly)', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'users', ALICE), {
+      uid: ALICE, email: 'a@example.com', displayName: 'A', isAdmin: true,
+    }));
+  });
+
+  it('denies a user from writing their own profile with legacy private fields on create (C3 schema split)', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'users', ALICE), {
       uid: ALICE, email: 'a@example.com', displayName: 'A', lastLoginAt: 1,
     }));
   });
 
   it('denies a user from writing another profile', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'users', BOB), {
-      uid: BOB, email: 'b@example.com', displayName: 'B', lastLoginAt: 1,
+      uid: BOB, email: 'b@example.com', displayName: 'B',
     }));
+  });
+
+  it('allows owner to read their private/state subcollection (C3)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE, 'private', 'state'), {
+        lastLoginAt: 1, defaultListId: 'L1',
+      });
+    });
+    await assertSucceeds(getDoc(doc(aliceCtx() as any, 'users', ALICE, 'private', 'state')));
+  });
+
+  it('denies cross-user read of private/state subcollection (closes C3 leak)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE, 'private', 'state'), {
+        lastLoginAt: 1, defaultListId: 'L1',
+      });
+    });
+    await assertFails(getDoc(doc(bobCtx() as any, 'users', ALICE, 'private', 'state')));
+  });
+
+  it('allows owner to write their private/state subcollection', async () => {
+    await assertSucceeds(setDoc(doc(aliceCtx() as any, 'users', ALICE, 'private', 'state'), {
+      lastLoginAt: 1700000000, defaultListId: 'L1', lastSeenListMap: { L1: 1 },
+    }));
+  });
+
+  it('denies cross-user write of private/state subcollection', async () => {
+    await assertFails(setDoc(doc(bobCtx() as any, 'users', ALICE, 'private', 'state'), {
+      lastLoginAt: 1,
+    }));
+  });
+
+  it('allows owner to strip legacy private fields from the top-level user doc via update (migration)', async () => {
+    const { deleteField, updateDoc } = await import('firebase/firestore');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE), {
+        uid: ALICE, email: 'a@example.com', displayName: 'A',
+        lastLoginAt: 1, lastSeenLists: 2,
+      });
+    });
+    await assertSucceeds(
+      updateDoc(doc(aliceCtx() as any, 'users', ALICE), {
+        lastLoginAt: deleteField(),
+        lastSeenLists: deleteField(),
+      } as Record<string, unknown>),
+    );
   });
 });
 

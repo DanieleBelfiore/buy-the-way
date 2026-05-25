@@ -10,6 +10,7 @@ import {
   query,
   where,
   orderBy,
+  limit as fbLimit,
   writeBatch,
   arrayUnion,
   arrayRemove,
@@ -112,6 +113,11 @@ export const setListWallpaper = async (
   });
 };
 
+// Upper bound on the number of lists a single user can see in one snapshot.
+// 100 covers any reasonable household; past that, the UI virtualises and we
+// can wire pagination if a real user ever hits the cap.
+export const USER_LISTS_PAGE_LIMIT = 100;
+
 export const subscribeUserLists = (
   uid: string,
   onChange: (lists: List[]) => void,
@@ -121,6 +127,7 @@ export const subscribeUserLists = (
     collection(db, 'lists'),
     where('collaboratorUids', 'array-contains', uid),
     orderBy('updatedAt', 'desc'),
+    fbLimit(USER_LISTS_PAGE_LIMIT),
   );
 
   return onSnapshot(
@@ -378,14 +385,24 @@ export const demoteAdmin = async (
 const DELETE_BATCH_SIZE = 500;
 
 export const deleteList = async (listId: string): Promise<void> => {
-  const itemsCol = collection(db, 'lists', listId, 'items');
-  const snap = await getDocs(itemsCol);
-  const ids = snap.docs.map((d) => d.id);
-  for (let i = 0; i < ids.length; i += DELETE_BATCH_SIZE) {
-    const chunk = ids.slice(i, i + DELETE_BATCH_SIZE);
-    const batch = writeBatch(db);
-    for (const id of chunk) batch.delete(doc(itemsCol, id));
-    await batch.commit();
-  }
+  // Delete the list document FIRST so a mid-cascade failure leaves orphan
+  // items that are unreachable via the UI (no parent list to navigate to)
+  // rather than a list doc that appears intact but is half-emptied. A
+  // maintenance sweep can purge orphans server-side; the user-facing state
+  // is consistent immediately.
   await deleteDoc(doc(db, 'lists', listId));
+
+  try {
+    const itemsCol = collection(db, 'lists', listId, 'items');
+    const snap = await getDocs(itemsCol);
+    const ids = snap.docs.map((d) => d.id);
+    for (let i = 0; i < ids.length; i += DELETE_BATCH_SIZE) {
+      const chunk = ids.slice(i, i + DELETE_BATCH_SIZE);
+      const batch = writeBatch(db);
+      for (const id of chunk) batch.delete(doc(itemsCol, id));
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('[lists] deleteList: cascade item delete failed (list doc already gone):', err);
+  }
 };

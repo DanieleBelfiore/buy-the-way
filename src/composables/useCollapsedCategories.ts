@@ -33,7 +33,12 @@ export const useCollapsedCategories = (
 
   const persist = (id: string, s: Set<Category>): void => {
     if (typeof localStorage === 'undefined' || !id) return;
-    localStorage.setItem(storageKey(id), JSON.stringify([...s]));
+    try {
+      localStorage.setItem(storageKey(id), JSON.stringify([...s]));
+    } catch {
+      // Quota exceeded / Safari private mode — keep in-memory state, accept
+      // loss on reload rather than crashing the toggle handler.
+    }
   };
 
   if (typeof listId !== 'string') {

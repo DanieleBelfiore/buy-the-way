@@ -8,6 +8,18 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(),
 }));
 
+// Provide a "fresh" lastSignInTime so the C1 pre-flight reauth check in
+// SettingsView.runDelete passes and the test exercises the full delete path
+// rather than short-circuiting to the reauth prompt.
+const mockGetAuth = vi.fn(() => ({
+  currentUser: {
+    metadata: { lastSignInTime: new Date().toISOString() },
+  },
+}));
+vi.mock('firebase/auth', () => ({
+  getAuth: () => mockGetAuth(),
+}));
+
 vi.mock('@/services/auth.service', () => ({
   RequiresRecentLoginError: class RequiresRecentLoginError extends Error {
     constructor() {

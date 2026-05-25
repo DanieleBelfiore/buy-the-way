@@ -31,27 +31,53 @@ export const useListsStore = defineStore('lists', () => {
    */
   const initialized = ref(false);
 
+  // Ref-counted singleton subscription. Multiple views can call subscribe()
+  // (ListsView, ListDetailView, ListSettingsView, StatsView) but only ONE
+  // Firestore onSnapshot is opened — torn down when the last caller invokes
+  // its returned unsub. Avoids 3–4x redundant snapshot listens on the same
+  // query during normal navigation.
+  let _refCount = 0;
+  let _unsub: (() => void) | null = null;
+
   const subscribe = (): (() => void) => {
     const auth = useAuthStore();
+    if (!auth.user) return () => {};
+
+    _refCount += 1;
+
     // Only show the skeleton on the first-ever load. Re-subscribing on
     // re-mount (e.g. returning from /settings) must not flash the skeleton
     // when the Pinia store already holds fresh data.
     if (lists.value.length === 0) {
       loading.value = true;
     }
-    return subscribeUserLists(
-      auth.user!.uid,
-      (incoming) => {
-        lists.value = incoming;
-        loading.value = false;
-        initialized.value = true;
-      },
-      (err) => {
-        error.value = err.message;
-        loading.value = false;
-        initialized.value = true;
-      },
-    );
+
+    if (!_unsub) {
+      _unsub = subscribeUserLists(
+        auth.user.uid,
+        (incoming) => {
+          lists.value = incoming;
+          loading.value = false;
+          initialized.value = true;
+        },
+        (err) => {
+          error.value = err.message;
+          loading.value = false;
+          initialized.value = true;
+        },
+      );
+    }
+
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      _refCount = Math.max(0, _refCount - 1);
+      if (_refCount === 0 && _unsub) {
+        _unsub();
+        _unsub = null;
+      }
+    };
   };
 
   const loadLastSeen = async (): Promise<void> => {
@@ -95,6 +121,14 @@ export const useListsStore = defineStore('lists', () => {
     initialized.value = false;
     lastSeenLists.value = 0;
     lastSeenListMap.value = {};
+    // Force-release the underlying firestore subscription on identity change.
+    // Holders still keep their refs (their onUnmounted will decrement to 0
+    // again), but the snapshot listener for the OLD user is dead immediately
+    // so we don't bleed a permission-denied error toward the new session.
+    if (_unsub) {
+      _unsub();
+      _unsub = null;
+    }
   };
 
   // Auto-clear cached lists whenever the signed-in identity changes. Done

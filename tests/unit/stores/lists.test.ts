@@ -50,12 +50,18 @@ describe('useListsStore', () => {
     expect(subscribeUserLists).toHaveBeenCalledWith('uid-1', expect.any(Function), expect.any(Function));
   });
 
-  it('subscribe returns the unsubscribe function', () => {
+  it('subscribe returns an unsubscribe that releases the underlying firestore listener when refcount reaches 0', () => {
     const unsub = vi.fn();
     vi.mocked(subscribeUserLists).mockReturnValue(unsub);
     const store = useListsStore();
-    const result = store.subscribe();
-    expect(result).toBe(unsub);
+    const release1 = store.subscribe();
+    const release2 = store.subscribe();
+    // Single underlying snapshot regardless of how many callers subscribe.
+    expect(subscribeUserLists).toHaveBeenCalledOnce();
+    release1();
+    expect(unsub).not.toHaveBeenCalled(); // ref still held by release2
+    release2();
+    expect(unsub).toHaveBeenCalledOnce();
   });
 
   it('populates lists when onChange fires', () => {

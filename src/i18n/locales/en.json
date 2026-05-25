@@ -111,7 +111,8 @@
     "lastAdminError": "A list must keep at least one admin.",
     "pendingBadge": "Pending",
     "inviteEmailSent": "Invite email sent to {email}.",
-    "inviteEmailFailed": "Invite email to {email} failed. The invite is still saved."
+    "inviteEmailFailed": "Invite email to {email} failed. The invite is still saved.",
+    "lookupFailed": "We couldn't check that email right now. Please try again."
   },
   "listSettings": {
     "title": "List settings",

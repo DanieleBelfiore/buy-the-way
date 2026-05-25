@@ -10,6 +10,9 @@ vi.mock('firebase/auth', () => ({
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn().mockReturnValue({ id: 'mock-ref' }),
   setDoc: vi.fn().mockResolvedValue(undefined),
+  getDoc: vi.fn().mockResolvedValue({ exists: () => false, data: () => ({}) }),
+  deleteDoc: vi.fn().mockResolvedValue(undefined),
+  deleteField: vi.fn().mockReturnValue({ __op: 'deleteField' }),
   collection: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
@@ -17,7 +20,19 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn(),
 }));
 
-import { signInWithGoogle, signOutCurrent, onAuthChanged } from '@/services/auth.service';
+// Stub users.service so the migration helper called by onAuthChanged is a
+// no-op in this test surface (the migration is exercised in its own suite).
+vi.mock('@/services/users.service', () => ({
+  migrateLegacyPrivateFields: vi.fn().mockResolvedValue([]),
+  deletePrivateState: vi.fn().mockResolvedValue(undefined),
+}));
+
+import {
+  signInWithGoogle,
+  signOutCurrent,
+  onAuthChanged,
+  __resetAuthLastSeenUid,
+} from '@/services/auth.service';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 
@@ -31,6 +46,9 @@ describe('auth.service', () => {
     vi.clearAllMocks();
     vi.mocked(doc).mockReturnValue({ id: 'mock-ref' } as any);
     mSetDoc.mockResolvedValue(undefined);
+    // Module-level uid tracker debounces "did the signed-in identity change?".
+    // Reset between tests so each callback invocation looks like a new sign-in.
+    __resetAuthLastSeenUid();
   });
 
   describe('signInWithGoogle', () => {
@@ -84,7 +102,7 @@ describe('auth.service', () => {
       expect(mSetDoc).not.toHaveBeenCalled();
     });
 
-    it('upserts user doc with normalized email on auth', async () => {
+    it('upserts public profile (top-level) with normalized email AND lastLoginAt in private subcollection', async () => {
       let capturedCb: ((u: any) => Promise<void>) | undefined;
       mOnAuthStateChanged.mockImplementation((_auth, cb) => {
         capturedCb = cb as any;
@@ -99,14 +117,26 @@ describe('auth.service', () => {
         displayName: 'Test User',
       });
 
-      expect(mSetDoc).toHaveBeenCalledOnce();
-      const [, data] = mSetDoc.mock.calls[0];
-      expect(data).toMatchObject({
+      // Two writes: public top-level + private subcollection.
+      expect(mSetDoc).toHaveBeenCalledTimes(2);
+
+      const publicPayloads = mSetDoc.mock.calls
+        .map((c) => c[1] as Record<string, unknown>)
+        .filter((p) => 'email' in p);
+      expect(publicPayloads.length).toBeGreaterThan(0);
+      expect(publicPayloads[0]).toMatchObject({
         uid: 'uid-1',
         email: 'test@example.com',
         displayName: 'Test User',
       });
-      expect((data as any).lastLoginAt).toBeTypeOf('number');
+      // Public payload must NOT carry lastLoginAt — that's PII now.
+      expect((publicPayloads[0] as any).lastLoginAt).toBeUndefined();
+
+      const privatePayloads = mSetDoc.mock.calls
+        .map((c) => c[1] as Record<string, unknown>)
+        .filter((p) => 'lastLoginAt' in p);
+      expect(privatePayloads.length).toBe(1);
+      expect((privatePayloads[0] as any).lastLoginAt).toBeTypeOf('number');
     });
 
     it('calls callback with AuthUser when authenticated', async () => {
@@ -143,8 +173,11 @@ describe('auth.service', () => {
 
       await capturedCb!({ uid: 'uid-2', email: 'x@y.com', displayName: null });
 
-      const [, data] = mSetDoc.mock.calls[0];
-      expect((data as any).displayName).toBe('');
+      // Find the public-profile call (the one carrying `email`).
+      const pub = mSetDoc.mock.calls
+        .map((c) => c[1] as Record<string, unknown>)
+        .find((p) => 'email' in p);
+      expect((pub as any)?.displayName).toBe('');
     });
 
     it('still calls callback even when setDoc throws', async () => {
@@ -180,8 +213,10 @@ describe('auth.service', () => {
 
       await capturedCb!({ uid: 'uid-3', email: null, displayName: 'No Email' });
 
-      const [, data] = mSetDoc.mock.calls[0];
-      expect((data as any).email).toBe('');
+      const pub = mSetDoc.mock.calls
+        .map((c) => c[1] as Record<string, unknown>)
+        .find((p) => 'email' in p);
+      expect((pub as any)?.email).toBe('');
     });
   });
 });

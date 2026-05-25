@@ -567,12 +567,13 @@ const handleEmptyList = async () => {
 
 let _listsUnsub: (() => void) | null = null;
 let _favsUnsub: (() => void) | null = null;
+let _catalogUnsub: (() => void) | null = null;
 
 onMounted(() => {
   _listsUnsub = listsStore.subscribe();
   itemsStore.setCurrentList(listId.value);
   if (authStore.user) {
-    catalogStore.subscribe(authStore.user.uid);
+    _catalogUnsub = catalogStore.subscribe(authStore.user.uid);
   }
   _favsUnsub = listFavoritesStore.subscribe(listId.value);
   // Ensure profile is loaded so the stale-default cleanup below can compare
@@ -590,6 +591,7 @@ onMounted(() => {
 onUnmounted(() => {
   _listsUnsub?.();
   _favsUnsub?.();
+  _catalogUnsub?.();
   itemsStore.setCurrentList(null);
   closeDontSuggest();
 });
@@ -714,6 +716,7 @@ watch(
         </div>
 
         <button
+          v-if="itemCount > 0"
           :aria-label="t('list.share')"
           data-testid="share-list"
           class="inline-flex items-center justify-center w-8 h-8 rounded-full text-charcoal bg-black/5 hover:bg-black/10 active:bg-black/15 transition-colors"

@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  setDoc,
   updateDoc,
   deleteDoc,
   deleteField,
@@ -65,13 +64,29 @@ export const addItem = async (params: {
   };
 
   const itemsCol = collection(db, 'lists', params.listId, 'items');
-  await setDoc(doc(itemsCol, id), item);
-  await updateDoc(doc(db, 'lists', params.listId), {
+
+  // Atomic: item write + parent itemCount bump succeed or fail together.
+  // Catalog + favorite upserts are denormalised caches; if they fail the row
+  // still exists and the user is unblocked. Errors are logged so the drift
+  // is observable rather than silent.
+  const batch = writeBatch(db);
+  batch.set(doc(itemsCol, id), item);
+  batch.update(doc(db, 'lists', params.listId), {
     itemCount: increment(1),
     updatedAt: now,
   });
-  await upsertCatalogEntry(params.createdByUid, name, params.category);
-  await upsertListFavorite(params.listId, name, params.category);
+  await batch.commit();
+
+  try {
+    await upsertCatalogEntry(params.createdByUid, name, params.category);
+  } catch (err) {
+    console.warn('[items] addItem: catalog upsert failed (item still added):', err);
+  }
+  try {
+    await upsertListFavorite(params.listId, name, params.category);
+  } catch (err) {
+    console.warn('[items] addItem: favorite upsert failed (item still added):', err);
+  }
 
   return id;
 };
@@ -211,19 +226,26 @@ export const moveItem = async (
   return newItem.id;
 };
 
-const EMPTY_LIST_BATCH_SIZE = 500;
+// Reserve one slot per batch for the parent-list update so each chunk is a
+// self-contained, atomic write. Firestore caps a batch at 500 ops.
+const EMPTY_LIST_BATCH_SIZE = 499;
 
 export const emptyList = async (listId: ULID, itemIds: ULID[]): Promise<void> => {
   if (itemIds.length === 0) return;
   const itemsCol = collection(db, 'lists', listId, 'items');
+  const listRef = doc(db, 'lists', listId);
   for (let i = 0; i < itemIds.length; i += EMPTY_LIST_BATCH_SIZE) {
     const chunk = itemIds.slice(i, i + EMPTY_LIST_BATCH_SIZE);
     const batch = writeBatch(db);
     for (const id of chunk) batch.delete(doc(itemsCol, id));
+    // Decrement by the chunk size in the SAME batch as the deletes — if the
+    // batch fails the count is untouched, if it succeeds the deletes and the
+    // counter move together. Avoids the previous "items still present but
+    // itemCount=0" inconsistency on partial failure.
+    batch.update(listRef, {
+      itemCount: increment(-chunk.length),
+      updatedAt: Date.now(),
+    });
     await batch.commit();
   }
-  await updateDoc(doc(db, 'lists', listId), {
-    itemCount: 0,
-    updatedAt: Date.now(),
-  });
 };
