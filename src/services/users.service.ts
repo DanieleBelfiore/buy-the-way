@@ -1,13 +1,8 @@
 import {
-  collection,
   doc,
-  documentId,
   getDoc,
-  getDocs,
-  query,
   setDoc,
   deleteDoc,
-  where,
   deleteField,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -194,42 +189,38 @@ export const deletePrivateState = async (uid: string): Promise<void> => {
   }
 };
 
-// Firestore caps `documentId() in [...]` at 30 values per query. Chunk and
-// run in parallel to fetch up to N profiles with ceil(N/30) round trips,
-// instead of N independent getDoc calls.
-const USERS_IN_CHUNK = 30;
-
+/**
+ * Look up multiple user profiles by uid.
+ *
+ * Uses parallel `getDoc` calls rather than a `documentId() in [...]` query:
+ * the C3 hardening (`allow list: if false` on `users`) deliberately blocks
+ * cross-user enumeration, and a `where(documentId(), 'in', […])` query is
+ * a `list` operation under Firestore rules — so it would be denied. Each
+ * `getDoc` is a `get` operation, which the rules permit.
+ *
+ * Returns ONLY the public profile fields. Activity metadata (lastLoginAt,
+ * lastSeenLists, lastSeenListMap, defaultListId) is stripped even when the
+ * underlying doc still carries legacy values from before the schema split.
+ */
 export const getUsersByUids = async (
   uids: readonly string[],
 ): Promise<UserProfile[]> => {
   if (uids.length === 0) return [];
   const unique = Array.from(new Set(uids));
-  const usersCol = collection(db, 'users');
-
-  const chunks: string[][] = [];
-  for (let i = 0; i < unique.length; i += USERS_IN_CHUNK) {
-    chunks.push(unique.slice(i, i + USERS_IN_CHUNK));
-  }
-
   const snaps = await Promise.all(
-    chunks.map((chunk) => getDocs(query(usersCol, where(documentId(), 'in', chunk)))),
+    unique.map((uid) => getDoc(doc(db, 'users', uid))),
   );
-
   const out: UserProfile[] = [];
   for (const snap of snaps) {
-    for (const d of snap.docs) {
-      const data = d.data() as UserProfile;
-      // Only the public profile is needed for collaborator avatars / cards.
-      // Activity metadata (lastLoginAt, lastSeenLists, lastSeenListMap,
-      // defaultListId) is intentionally NOT returned — see C3 hardening.
-      out.push({
-        uid: data.uid ?? d.id,
-        email: data.email ?? '',
-        displayName: data.displayName ?? '',
-        lastLoginAt: 0,
-        ...(data.photoURL ? { photoURL: data.photoURL } : {}),
-      });
-    }
+    if (!snap.exists()) continue;
+    const data = snap.data() as UserProfile;
+    out.push({
+      uid: data.uid ?? snap.id,
+      email: data.email ?? '',
+      displayName: data.displayName ?? '',
+      lastLoginAt: 0,
+      ...(data.photoURL ? { photoURL: data.photoURL } : {}),
+    });
   }
   return out;
 };

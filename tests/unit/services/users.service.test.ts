@@ -173,15 +173,17 @@ describe('users.service', () => {
       expect(getDoc).not.toHaveBeenCalled();
     });
 
-    it('deduplicates uids, batches with documentId() in [...] (I2 chunked), and only returns public fields (C3 hardening)', async () => {
-      // I2: getUsersByUids now uses a single chunked getDocs query per ≤30 uids
-      // instead of one getDoc per uid. C3: even if the docs in Firestore still
-      // carry legacy private fields (lastLoginAt > 0, lastSeenLists, …), the
-      // helper must strip them from the returned profile.
-      const { getDocs } = await import('firebase/firestore');
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: [
-          {
+    it('deduplicates uids, uses per-uid getDoc (C3-compatible), and returns only public fields', async () => {
+      // The C3 hardening sets `allow list: if false` on /users, so cross-user
+      // enumeration via `documentId() in [...]` queries is denied. This helper
+      // therefore fans out parallel `getDoc` calls (each is a `get`, which the
+      // rules permit) and must strip any legacy private fields the docs still
+      // carry from before the schema split.
+      vi.mocked(getDoc).mockImplementation((ref: any) => {
+        const id = ref?.id;
+        if (id === 'a') {
+          return Promise.resolve({
+            exists: () => true,
             id: 'a',
             data: () => ({
               uid: 'a',
@@ -192,9 +194,12 @@ describe('users.service', () => {
               defaultListId: 'L1', // legacy private — must NOT leak
               photoURL: 'https://x/a.png',
             }),
-          },
-        ],
-      } as any);
+          }) as any;
+        }
+        return Promise.resolve({ exists: () => false }) as any;
+      });
+      const { doc } = await import('firebase/firestore');
+      vi.mocked(doc).mockImplementation((_db: any, _col: any, uid: string) => ({ id: uid }) as any);
 
       const out = await getUsersByUids(['a', 'a', 'missing']);
       expect(out).toHaveLength(1);
