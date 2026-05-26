@@ -62,7 +62,7 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=(), payment=()"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     # Allow Firebase Auth popup (window.closed polling on cross-origin popup).
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"

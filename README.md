@@ -305,6 +305,18 @@ pnpm storage:cors
 
 Origins live in `firebase/storage.cors.json` (production + local Vite). Add a new deploy URL there, re-run the command above, then redeploy Netlify if CSP `img-src` also needs the host.
 
+### Storage rules + Firestore cross-service link
+
+Photo uploads are gated on list membership via `firestore.get()` inside `firebase/storage.rules`. The first time those rules are published, Firebase must link Storage to Firestore:
+
+```bash
+firebase deploy --only storage --project buy-the-way-2ac6e
+```
+
+Accept any prompt about granting Storage access to Firestore data. In the Console (Build → Storage → Rules), a banner may appear until you confirm.
+
+If uploads fail with `storage/unauthorized` while Firestore reads/writes for the same list work, this link is the usual cause - not the client code.
+
 ### Rules summary
 
 - `users/{uid}` public read for email-lookup; private state under `users/{uid}/private/state` owner-only.

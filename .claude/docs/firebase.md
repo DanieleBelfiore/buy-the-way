@@ -29,6 +29,7 @@ The parent-document `get()` is what restricts subcollection access to the parent
 Same per-task invariant applies:
 - New Storage path → update `storage.rules` in the same task. Current live paths: `lists/{listId}/items/{itemId}/{photo,thumb}.jpg`, collaborator-gated, content-type allow-list `image/jpeg | image/png | image/webp` (no SVG - blocks the one-tap XSS vector on a leaked download URL).
 - Browser uploads also need **bucket CORS** (`firebase/storage.cors.json` + `pnpm storage:cors` / `gsutil cors set`). `firebase deploy --only storage` does not apply CORS. A missing CORS config surfaces as a browser preflight failure on `firebasestorage.googleapis.com`, not as a rules unit-test failure.
+- Item-photo rules call `firestore.get()` / `firestore.exists()`. The first publish must enable the **Storage ↔ Firestore cross-service link** (Firebase Console banner, or accept the CLI prompt on `firebase deploy --only storage`). Without it, uploads fail with `storage/unauthorized` even for list owners.
 - After adding a production origin, update `netlify.toml` `img-src` if thumbnails load from a new host.
 - New RTDB path → update `database.rules.json` in the same task.
 - New Auth claim consumed by a rule → ensure the claim is actually set on the user before relying on it.

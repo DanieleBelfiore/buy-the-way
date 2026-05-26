@@ -13,11 +13,23 @@ service firebase.storage {
       return request.auth.uid;
     }
 
+    function listDocPath(listId) {
+      return /databases/(default)/documents/lists/$(listId);
+    }
+
+    // Collaborator gate mirrors Firestore: owner OR uid in collaboratorUids.
+    // Uses .get('collaboratorUids', []) so legacy docs without the field do
+    // not make the whole rule throw (which would deny as unauthorized).
+    // Requires the Storage <-> Firestore cross-service link (Firebase prompts
+    // the first time you publish rules that call firestore.get/exists).
     function isListCollaborator(listId) {
+      let path = listDocPath(listId);
       return isSignedIn()
-        && uid() in firestore.get(
-             /databases/(default)/documents/lists/$(listId)
-           ).data.collaboratorUids;
+        && firestore.exists(path)
+        && (
+          uid() == firestore.get(path).data.ownerUid
+          || uid() in firestore.get(path).data.get('collaboratorUids', [])
+        );
     }
 
     // S4.2: item photo + thumbnail. Anyone who collaborates on the parent
