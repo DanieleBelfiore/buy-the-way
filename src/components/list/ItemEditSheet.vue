@@ -286,12 +286,33 @@ watch(
               {{ t('item.photoRemove') }}
             </button>
             <div
-              class="relative mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-cream-soft bg-offwhite"
+              class="relative mx-auto h-28 w-28 overflow-hidden rounded-xl border border-cream-soft bg-offwhite"
             >
+              <button
+                v-if="photoSrc"
+                type="button"
+                data-testid="edit-photo-zoom-open"
+                :aria-label="t('item.photoZoom')"
+                :disabled="showPhotoSpinner"
+                class="absolute inset-0 disabled:cursor-default cursor-zoom-in"
+                @click="openPhotoZoom"
+              >
+                <img
+                  :src="photoSrc"
+                  alt=""
+                  data-testid="edit-photo-thumb"
+                  :class="[
+                    'h-full w-full object-cover transition-opacity',
+                    showPhotoSpinner ? 'opacity-0 pointer-events-none' : 'opacity-100',
+                  ]"
+                  @load="onPhotoLoad"
+                  @error="onPhotoError"
+                />
+              </button>
               <div
                 v-if="showPhotoSpinner"
                 data-testid="edit-photo-spinner"
-                class="flex flex-col items-center gap-1.5"
+                class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 pointer-events-none"
                 role="status"
                 :aria-label="t('item.photoLoading')"
               >
@@ -303,27 +324,6 @@ watch(
                   {{ t('item.photoLoading') }}
                 </span>
               </div>
-              <button
-                v-if="photoSrc"
-                type="button"
-                data-testid="edit-photo-zoom-open"
-                :aria-label="t('item.photoZoom')"
-                :disabled="showPhotoSpinner"
-                class="h-28 w-28 disabled:cursor-default cursor-zoom-in"
-                @click="openPhotoZoom"
-              >
-                <img
-                  :src="photoSrc"
-                  alt=""
-                  data-testid="edit-photo-thumb"
-                  :class="[
-                    'h-28 w-28 object-cover transition-opacity',
-                    showPhotoSpinner ? 'absolute inset-0 opacity-0 pointer-events-none' : 'opacity-100',
-                  ]"
-                  @load="onPhotoLoad"
-                  @error="onPhotoError"
-                />
-              </button>
             </div>
           </div>
           <div v-else class="flex flex-row gap-2">

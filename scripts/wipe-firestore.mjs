@@ -11,7 +11,7 @@
  *
  * Safety rails:
  *  1. Requires Firebase CLI installed and `firebase login` already done.
- *  2. Storage wipe requires gsutil (Google Cloud SDK).
+ *  2. Storage wipe requires gcloud (Google Cloud SDK).
  *  3. Prompts twice - once for confirmation, once to retype the project ID.
  *  4. Streams deletes per top-level collection so a Ctrl-C mid-run leaves a
  *     partially-wiped database (which is fine - restart resumes).
@@ -31,15 +31,17 @@ const yellow = (s) => `\x1b[33m${s}\x1b[0m`;
 const green = (s) => `\x1b[32m${s}\x1b[0m`;
 const dim = (s) => `\x1b[2m${s}\x1b[0m`;
 
-const runCommand = (cmd, args) =>
+const runCommand = (cmd, args, { stdio } = {}) =>
   new Promise((resolve, reject) => {
     let stderr = '';
     const child = spawn(cmd, args, {
-      stdio: ['inherit', 'inherit', 'pipe'],
+      stdio: stdio ?? ['inherit', 'inherit', 'pipe'],
     });
-    child.stderr?.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
+    if (child.stderr && typeof child.stderr.on === 'function') {
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+    }
     child.on('close', (code) => {
       if (code === 0) {
         resolve({ stderr });
@@ -53,12 +55,48 @@ const runCommand = (cmd, args) =>
 const runFirebase = (args) => runCommand('firebase', args);
 
 const isStorageAlreadyEmpty = (message) =>
-  /matched no objects|No URLs matched/i.test(message);
+  /matched no objects|No URLs matched|items matched 0 URLs|did not match any/i.test(message);
+
+/** Top-level ls is fast; avoids a long wildcard expansion when the bucket is empty. */
+const isStorageBucketEmpty = async () => {
+  return new Promise((resolve, reject) => {
+    const child = spawn('gcloud', ['storage', 'ls', STORAGE_GS_URI], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    child.stdout?.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout.trim() === '');
+        return;
+      }
+      reject(new Error(`gcloud storage ls ${STORAGE_GS_URI} exited with code ${code}`));
+    });
+    child.on('error', reject);
+  });
+};
 
 const wipeStorage = async () => {
   console.log(yellow(`\n→ Deleting all objects in ${STORAGE_GS_URI}…`));
   try {
-    await runCommand('gsutil', ['-m', 'rm', '-r', `${STORAGE_GS_URI}/**`]);
+    if (await isStorageBucketEmpty()) {
+      console.log(dim('Storage already empty.'));
+      return;
+    }
+    console.log(
+      dim(
+        'Listing and deleting objects (gcloud output below; large buckets can take several minutes)…',
+      ),
+    );
+    // Live object versions only (**). Do not use -r on the bucket root (that can delete the bucket).
+    // stdio inherit so auth prompts and progress are visible (piped stderr looked like a hang).
+    await runCommand(
+      'gcloud',
+      ['storage', 'rm', `${STORAGE_GS_URI}/**`, '--continue-on-error'],
+      { stdio: 'inherit' },
+    );
     console.log(green('✓ Storage wiped'));
   } catch (err) {
     if (isStorageAlreadyEmpty(err.message)) {
@@ -122,7 +160,7 @@ const main = async () => {
     await wipeStorage();
   } catch (err) {
     console.error(red(`✗ Storage failed: ${err.message}`));
-    console.log(dim('Firestore wipe finished. Fix gsutil/auth and re-run for Storage only if needed.'));
+    console.log(dim('Firestore wipe finished. Fix gcloud auth and re-run for Storage only if needed.'));
   }
 
   console.log(green('\n✓ Wipe complete.'));
