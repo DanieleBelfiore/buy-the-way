@@ -306,20 +306,20 @@ watch(
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="router.push({ name: 'stats' })"
       >
-        <BarChart3 :size="20" :stroke-width="2" aria-hidden="true" />
+        <BarChart3 :size="20" class="shrink-0" :stroke-width="2" aria-hidden="true" />
         <span class="text-sm font-medium">{{ t('stats.openButton') }}</span>
       </button>
       <button
         type="button"
         :aria-label="t('notifications.title')"
         data-testid="open-notifications"
-        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="openNotifications"
       >
-        <span class="relative inline-flex !overflow-visible mr-1">
+        <span class="relative inline-flex shrink-0 !overflow-visible mr-0.5 sm:mr-1">
           <Bell :size="20" :stroke-width="2" aria-hidden="true" />
           <span
             v-if="notifications.count.value > 0"
@@ -332,13 +332,13 @@ watch(
       </button>
       <button
         :aria-label="t('settings.title')"
-        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="router.push({ name: 'settings' })"
       >
-        <SettingsIcon :size="20" :stroke-width="2" aria-hidden="true" />
+        <SettingsIcon :size="20" class="shrink-0" :stroke-width="2" aria-hidden="true" />
         <span class="text-sm font-medium">{{ t('settings.title') }}</span>
       </button>
-      <LocaleSwitcher />
+      <LocaleSwitcher class="shrink-0" />
     </header>
 
     <!-- Hero brand block -->
