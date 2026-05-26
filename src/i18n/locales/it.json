@@ -104,7 +104,7 @@
     "voiceStart": "Inizia ad ascoltare",
     "voiceStop": "Smetti di ascoltare",
     "voiceListening": "In ascolto…",
-    "voicePermissionDenied": "Permesso microfono negato.",
+    "voicePermissionDenied": "Permesso microfono negato. Abilitalo nelle impostazioni del browser e ricarica la pagina.",
     "voiceNoSpeech": "Non ho capito. Riprova.",
     "voiceUnsupported": "Input vocale non disponibile su questo browser.",
     "voiceError": "Errore input vocale. Riprova.",

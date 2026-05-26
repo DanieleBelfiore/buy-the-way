@@ -88,9 +88,8 @@ export const setupInstallPrompt = (): InstallPromptState => {
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
+    // Let the browser show the native install banner.
     deferredPrompt = e as InstallPromptEvent;
-    canInstall.value = true;
   });
 
   window.addEventListener('appinstalled', () => {

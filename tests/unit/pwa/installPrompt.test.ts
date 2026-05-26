@@ -111,19 +111,19 @@ describe('installPrompt', () => {
     expect(state.showIOSHint.value).toBe(false);
   });
 
-  it('captures beforeinstallprompt and flags canInstall', () => {
+  it('captures beforeinstallprompt but does not flag canInstall', () => {
     const state = setupInstallPrompt();
     expect(state.canInstall.value).toBe(false);
     window.dispatchEvent(makeBeforeInstallPromptEvent());
-    expect(state.canInstall.value).toBe(true);
+    expect(state.canInstall.value).toBe(false);
   });
 
-  it('prevents the browser default on beforeinstallprompt', () => {
+  it('does not prevent the browser default on beforeinstallprompt', () => {
     setupInstallPrompt();
     const event = makeBeforeInstallPromptEvent();
     const spy = vi.spyOn(event, 'preventDefault');
     window.dispatchEvent(event);
-    expect(spy).toHaveBeenCalled();
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('promptInstall calls the captured prompt and returns outcome', async () => {
@@ -149,10 +149,10 @@ describe('installPrompt', () => {
     expect(outcome).toBe('unavailable');
   });
 
-  it('appinstalled event clears canInstall + sets isInstalled', () => {
+  it('appinstalled event sets isInstalled (canInstall remains false)', () => {
     const state = setupInstallPrompt();
     window.dispatchEvent(makeBeforeInstallPromptEvent());
-    expect(state.canInstall.value).toBe(true);
+    expect(state.canInstall.value).toBe(false);
     window.dispatchEvent(new Event('appinstalled'));
     expect(state.canInstall.value).toBe(false);
     expect(state.isInstalled.value).toBe(true);

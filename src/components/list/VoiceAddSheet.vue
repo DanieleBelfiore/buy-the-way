@@ -47,7 +47,21 @@ watch(
   },
 );
 
-const startListening = (): void => {
+const startListening = async (): Promise<void> => {
+  // Force an explicit microphone permission prompt (when the browser
+  // supports getUserMedia) so SpeechRecognition doesn't fail silently.
+  const mediaDevices = navigator.mediaDevices;
+  if (mediaDevices?.getUserMedia) {
+    try {
+      const stream = await mediaDevices.getUserMedia({ audio: true });
+      // We only need the permission; SpeechRecognition will use the mic
+      // internally afterwards.
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      // SpeechRecognition will surface 'not-allowed' through its own error.
+    }
+  }
+
   speech.start(recognitionLang.value);
 };
 

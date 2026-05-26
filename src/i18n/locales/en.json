@@ -104,7 +104,7 @@
     "voiceStart": "Start listening",
     "voiceStop": "Stop listening",
     "voiceListening": "Listening…",
-    "voicePermissionDenied": "Microphone permission denied.",
+    "voicePermissionDenied": "Microphone permission denied. Enable it in your browser settings and reload the page.",
     "voiceNoSpeech": "Didn't catch that. Try again.",
     "voiceUnsupported": "Voice input isn't available on this browser.",
     "voiceError": "Voice input error. Try again.",
