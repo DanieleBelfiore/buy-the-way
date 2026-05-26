@@ -113,7 +113,7 @@ describe('useThemeStore', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
-  it('does NOT flip when OS pref changes — user choice always wins', () => {
+  it('does NOT flip when OS pref changes - user choice always wins', () => {
     const mq = installMatchMedia(false);
     const store = useThemeStore();
     teardownInit = store.init();

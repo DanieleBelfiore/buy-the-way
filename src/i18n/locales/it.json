@@ -2,18 +2,36 @@
   "app": {
     "name": "Buy The Way",
     "tagline": "La tua lista della spesa intelligente",
-    "madeByPrefix": "Fatto da ",
-    "madeBySuffix": " con il ❤️"
+    "madeByPrefix": "Fatto da ",
+    "madeBySuffix": " con il ❤️"
   },
   "nav": {
     "lists": "Liste",
     "settings": "Impostazioni"
   },
+  "common": {
+    "undo": "Annulla"
+  },
   "auth": {
     "continueWithGoogle": "Accedi con Google",
     "signOut": "Esci",
     "signingIn": "Accesso in corso…",
-    "signInError": "Accesso fallito. Riprova."
+    "signInError": "Accesso fallito. Riprova.",
+    "magicLink": {
+      "show": "Accedi con email",
+      "emailLabel": "Indirizzo email",
+      "send": "Invia link",
+      "sending": "Invio in corso…",
+      "sentNotice": "Controlla {email} per il link di accesso.",
+      "verifying": "Accesso in corso…",
+      "confirmEmailTitle": "Conferma la tua email",
+      "confirmEmailHint": "Sembra che tu abbia aperto il link su un altro dispositivo. Inserisci l'email che hai usato per richiederlo.",
+      "complete": "Continua",
+      "completing": "In corso…",
+      "errorTitle": "Link di accesso non valido",
+      "backToLogin": "Torna all'accesso",
+      "cancel": "Annulla"
+    }
   },
   "list": {
     "new": "Nuova lista",
@@ -34,8 +52,9 @@
     "shareCopied": "Lista copiata negli appunti!",
     "shareError": "Errore durante la condivisione.",
     "shareTitle": "🛒 Lista: {name}",
-    "shareFooter": "Buy The Way — La Tua Lista Della Spesa Intelligente\nhttps://buy-the-way.danielebelfiore.dev",
-    "shareNoteLabel": "Nota"
+    "shareFooter": "Buy The Way - La Tua Lista Della Spesa Intelligente\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareNoteLabel": "Nota",
+    "deletedWithUndo": "Lista \"{name}\" eliminata"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
@@ -57,6 +76,9 @@
     "removeConfirmMessage": "\"{name}\" verrà rimosso dalla lista.\nQuesta azione è irreversibile.",
     "removeConfirm": "Elimina",
     "removeCancel": "Annulla",
+    "deletedWithUndo": "Articolo eliminato",
+    "bulkDeletedWithUndo": "nessun articolo eliminato | 1 articolo eliminato | {n} articoli eliminati",
+    "bulkSelectedCount": "nessuno selezionato | 1 selezionato | {n} selezionati",
     "pinFavorite": "Aggiungi ai preferiti",
     "unpinFavorite": "Rimuovi dai preferiti",
     "priority": "Priorità",
@@ -66,10 +88,35 @@
     "options": "Opzioni",
     "renameHint": "Rinomina per raggruppare articoli simili",
     "openSettings": "Modifica articolo",
+    "photo": "Foto",
+    "photoAdd": "Aggiungi foto",
+    "photoReplace": "Sostituisci",
+    "photoRemove": "Rimuovi",
+    "bulkPaste": "Incolla una lista",
+    "bulkPasteTitle": "Incolla più articoli",
+    "bulkPasteHint": "Un articolo per riga o separati da virgole.\nLa categoria verrà dedotta automaticamente.",
+    "bulkPastePlaceholder": "Latte\nPane\nMele, banane, arance",
+    "bulkPasteNoneFound": "Niente da aggiungere.",
+    "bulkPasteCount": "nessun articolo | Aggiungi 1 articolo | Aggiungi {n} articoli",
+    "voiceAdd": "Aggiungi a voce",
+    "voiceTitle": "Aggiungi a voce",
+    "voiceHint": "Tocca il microfono e detta gli articoli.\nSepara con virgole o con \"e\".",
+    "voiceStart": "Inizia ad ascoltare",
+    "voiceStop": "Smetti di ascoltare",
+    "voiceListening": "In ascolto…",
+    "voicePermissionDenied": "Permesso microfono negato.",
+    "voiceNoSpeech": "Non ho capito. Riprova.",
+    "voiceUnsupported": "Input vocale non disponibile su questo browser.",
+    "voiceError": "Errore input vocale. Riprova.",
     "moveOrCopy": "Sposta o copia",
     "copy": "Copia",
     "move": "Sposta",
-    "noOtherLists": "Nessun'altra lista disponibile"
+    "noOtherLists": "Nessun'altra lista disponibile",
+    "selectAll": "Seleziona tutti",
+    "bulkCheck": "Segna come comprati",
+    "bulkUncheck": "Segna come da comprare",
+    "bulkPriority": "Imposta priorità",
+    "bulkPin": "Aggiungi ai preferiti"
   },
   "emptyList": {
     "button": "Svuota lista",
@@ -137,6 +184,37 @@
     "cancel": "Annulla",
     "members": "Utenti"
   },
+  "onboarding": {
+    "skip": "Salta",
+    "next": "Avanti",
+    "done": "Inizia",
+    "back": "Indietro",
+    "step1": {
+      "title": "Liste condivise, in tempo reale",
+      "body": "Crea una lista, invita via email e tutto ciò che aggiungi si sincronizza istantaneamente su ogni dispositivo."
+    },
+    "step2": {
+      "title": "Aggiungi articoli al volo",
+      "body": "Digita, detta o incolla - autocompletamento e categorie intelligenti tengono in ordine la lista senza fatica."
+    },
+    "step3": {
+      "title": "Spunta, insieme",
+      "body": "Tocca per segnare gli articoli come comprati al supermercato. Tutti vedono l'aggiornamento subito."
+    }
+  },
+  "notifications": {
+    "button": "Notifiche",
+    "title": "Notifiche",
+    "close": "Chiudi notifiche",
+    "empty": "Nessuna notifica.",
+    "badgeAria": "Notifiche da leggere",
+    "body": {
+      "itemModifiedWith": "{sender} ha aggiornato {item}.",
+      "itemModifiedWithout": "{sender} ha aggiornato un articolo.",
+      "invitedToList": "{sender} ti ha invitato a partecipare alla sua lista {list}.",
+      "joinedYourList": "{user} si è unito alla tua lista {list}."
+    }
+  },
   "settings": {
     "title": "Impostazioni",
     "language": "Lingua",
@@ -145,9 +223,13 @@
     "themeLight": "Chiaro",
     "themeDark": "Scuro",
     "share": "Consiglia a un amico",
-    "shareMessage": "Buy The Way — La Tua Lista Della Spesa Intelligente",
+    "shareMessage": "Buy The Way - La Tua Lista Della Spesa Intelligente",
     "shareCopied": "Link copiato negli appunti",
     "feedback": "Invia feedback",
+    "exportData": "Esporta i miei dati",
+    "exportRunning": "Preparazione export…",
+    "exportDoneToast": "Export pronto: {filename}",
+    "exportFailedToast": "Export non riuscito. Riprova più tardi.",
     "feedbackTitle": "Manda un feedback",
     "feedbackHint": "Bug, idea, frustrazione: dimmi tutto.",
     "feedbackPlaceholder": "Scrivi qui il tuo messaggio…",
@@ -166,7 +248,7 @@
     "deleteAccountReauth": "Per sicurezza, accedi di nuovo per confermare la cancellazione.",
     "deleteAccountReauthBtn": "Accedi di nuovo",
     "deleteAccountError": "Eliminazione fallita. Riprova.",
-    "deleteAccountPartial": "Alcuni dati non sono stati rimossi. L'account è ancora attivo — riprova."
+    "deleteAccountPartial": "Alcuni dati non sono stati rimossi. L'account è ancora attivo - riprova."
   },
   "category": {
     "label": "Categoria",
@@ -182,7 +264,7 @@
     "other": "Altro"
   },
   "offline": {
-    "banner": "Offline — le modifiche saranno sincronizzate al rientro"
+    "banner": "Offline - le modifiche saranno sincronizzate al rientro"
   },
   "pwa": {
     "updateAvailable": "Nuova versione disponibile",
@@ -205,7 +287,7 @@
     "featuresTitle": "Funzionalità",
     "features": [
       "Sincronizzazione in tempo reale su tutti i dispositivi",
-      "Funziona offline — le modifiche si sincronizzano quando torni online",
+      "Funziona offline - le modifiche si sincronizzano quando torni online",
       "Condividi le liste con familiari o coinquilini",
       "Preferiti intelligenti basati su ciò che acquisti più spesso",
       "Statistiche sulle tue abitudini di acquisto",
@@ -235,7 +317,7 @@
       },
       {
         "q": "Esiste un'app nativa?",
-        "a": "È una PWA — installala dal browser alla schermata home e si comporta come un'app nativa."
+        "a": "È una PWA - installala dal browser alla schermata home e si comporta come un'app nativa."
       },
       {
         "q": "Posso eliminare il mio account?",
@@ -257,11 +339,11 @@
   },
   "seo": {
     "login": {
-      "title": "Accedi · Buy The Way",
+      "title": "Buy The Way",
       "description": "Accedi a Buy The Way e condividi le liste della spesa in tempo reale con la tua famiglia."
     },
     "about": {
-      "title": "Buy The Way — La tua lista della spesa intelligente",
+      "title": "Buy The Way - La tua lista della spesa intelligente",
       "description": "PWA mobile-first per liste della spesa condivise. Pronta offline, veloce, gratuita."
     },
     "privacy": {

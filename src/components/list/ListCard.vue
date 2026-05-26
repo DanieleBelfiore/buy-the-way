@@ -9,11 +9,10 @@ import type { List, UserProfile } from '@/domain/types';
 const props = withDefaults(
   defineProps<{
     list: List;
-    isNew?: boolean;
     isDefault?: boolean;
     members?: readonly UserProfile[];
   }>(),
-  { isNew: false, isDefault: false, members: () => [] },
+  { isDefault: false, members: () => [] },
 );
 const emit = defineEmits<{
   (e: 'open', id: string): void;
@@ -36,7 +35,7 @@ const initialFor = (m: UserProfile): string => {
 };
 
 const colorFor = (uid: string): string => {
-  // Light: pastel chip with dark ink. Dark: deep chip with pastel ink — both
+  // Light: pastel chip with dark ink. Dark: deep chip with pastel ink - both
   // hit WCAG AA contrast (4.5:1) for the single initial letter inside.
   const palette = [
     'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-100',
@@ -143,13 +142,6 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 min-w-0">
         <span :class="['font-medium truncate', hasWallpaper ? 'text-white' : 'text-charcoal']">{{ props.list.name }}</span>
-        <span
-          v-if="props.isNew"
-          data-testid="new-badge"
-          class="shrink-0 rounded-full bg-charcoal text-offwhite px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-        >
-          {{ t('badge.new') }}
-        </span>
       </div>
       <div :class="['flex items-center gap-1.5 text-xs mt-0.5', hasWallpaper ? 'text-white/85' : 'text-muted-gray']">
         <span v-if="itemCount > 0" data-testid="item-count">{{ itemCountLabel }}</span>

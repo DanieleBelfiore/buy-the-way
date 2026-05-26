@@ -7,10 +7,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci.yml"><img src="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
-  <a href="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/deploy.yml"><img src="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/deploy.yml/badge.svg?branch=main" alt="Deploy" /></a>
-  <img src="https://img.shields.io/badge/tests-641%20passing-brightgreen" alt="Tests" />
-  <img src="https://img.shields.io/badge/coverage-88.21%25-brightgreen" alt="Coverage" />
+  <a href="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci-cd.yml"><img src="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="CI/CD" /></a>
+  <img src="https://img.shields.io/badge/tests-1009%20passing-brightgreen" alt="Tests" />
+  <img src="https://img.shields.io/badge/coverage-80%25%20branches-brightgreen" alt="Coverage" />
   <img src="https://img.shields.io/badge/PWA-installable-blueviolet" alt="PWA" />
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT" />
 </p>
@@ -23,7 +22,7 @@
 
 ## Why
 
-Sharing a grocery list with someone usually means three things: a half-erased note on the fridge, a chat thread full of "did you buy milk?", or yet another generic todo app. Buy The Way is built around three calls only — **add an item**, **check it off**, **share the list** — and stays out of your way otherwise.
+Sharing a grocery list with someone usually means three things: a half-erased note on the fridge, a chat thread full of "did you buy milk?", or yet another generic todo app. Buy The Way is built around three calls only - **add an item**, **check it off**, **share the list** - and stays out of your way otherwise.
 
 The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellular.
 
@@ -32,57 +31,75 @@ The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellula
 ## Features
 
 ### Core
-- **Real-time sync** via Firestore — edits propagate to collaborators in under one second.
-- **Offline-first** — IndexedDB persistence keeps lists readable and editable without a connection; changes flush automatically when back online (last-write-wins).
-- **Installable PWA** — add to home screen on iOS and Android; works fullscreen with a service worker, app icons, and offline shell.
-- **Google sign-in only** — zero passwords to manage, no Apple sign-in, no email/password.
-- **Two languages** — Italian and English, switchable at runtime; every UI string is localized.
+- **Real-time sync** via Firestore - edits propagate to collaborators in under one second.
+- **Offline-first** - IndexedDB persistence keeps lists readable and editable without a connection; changes flush automatically when back online (last-write-wins).
+- **Installable PWA** - add to home screen on iOS and Android; works fullscreen with a service worker, app icons, and offline shell.
+- **Two sign-in methods** - Google one-tap **and** passwordless email magic link (Firebase Auth). No passwords, no Apple sign-in.
+- **Two languages** - Italian and English, switchable at runtime; every UI string is localized.
+- **Light + dark theme** - system-following by default, manual override persisted per user.
 
 ### Lists & items
 - Create lists with auto-uppercased names; duplicate names blocked per user (case-insensitive).
-- Item names also get an auto-capitalized first character on add and edit (shared `capitalizeInitial` helper).
+- Item names get an auto-capitalized first character on add and edit (shared `capitalizeInitial` helper).
 - Each list gets a **random wallpaper** picked from a curated set; admins can change it.
 - Add items via inline autocomplete that merges your personal catalog with a built-in public catalog (~200 entries).
-- Items are grouped by category, sorted alphabetically (locale-aware), with collapsible sections and a per-category `bought/total` counter.
-- **Priority cycle**: tap an item's priority chip to cycle `none → urgent → optional → none`; urgent items float to the top of the list, optional drift to the bottom.
-- **Long-press or settings shortcut** on an item opens the edit sheet (name, quantity, note, category, pin to favorites).
-- **Custom-item badge**: items not present in the built-in public catalog are flagged with a `UserPlus` icon next to the name and a one-tap "Remove from suggestions" action from the edit sheet (sets `excluded` in the personal catalog).
+- Items grouped by category, sorted alphabetically (locale-aware), with collapsible sections and a per-category `bought/total` counter.
+- **Custom category order per list** - drag-and-drop to reorder categories. Open to all collaborators (not admin-only); persisted in `lists/{listId}.categoryOrder`.
+- **Priority cycle**: tap an item's priority chip to cycle `none -> urgent -> optional -> none`; urgent items float to the top, optional drift to the bottom.
+- **Per-item photo** - take a picture or pick from library; client-side compressed to photo + thumb (800 px / 200 px JPEG), stored under `lists/{listId}/items/{itemId}/` in Cloud Storage with collaborator-gated rules.
+- **Long-press or settings shortcut** opens the edit sheet (name, quantity, note, category, photo, pin to favorites).
+- **Custom-item badge**: items not in the public catalog get a `UserPlus` icon and a one-tap "Remove from suggestions" action (sets `excluded` in personal catalog).
 - **Copy or Move** an item to another list via a bottom-sheet picker.
-- **Empty list** clears all items after confirmation; available when the list is non-empty. Custom items remain in the personal catalog so they keep showing up in autocomplete next time.
+- **Empty list** clears all items after confirmation; available when the list is non-empty.
+
+### Bulk + power-user input
+- **Bulk paste**: paste a free-form text block (one item per line); category is inferred from the public catalog. Sits inline with the autocomplete, no-background icon button.
+- **Bulk select**: long-press to enter selection mode, tap to multi-select, then bulk check / uncheck / move / delete.
+- **Voice input** (`useSpeechRecognition`): hold the mic, dictate a list of items, auto-parsed and inserted. Falls back gracefully where Web Speech API is unsupported.
+
+### Undo + safety nets
+- **Undo delete** for single and bulk item removal via a toast with countdown (`useUndoDelete`). Tasks chain: a new undo schedule waits for the in-flight commit to settle before starting.
+- **Confirm modal** for destructive list-level actions (empty, leave, delete).
+- **Account deletion cascade**: solo lists hard-deleted; shared lists transfer ownership to the next collaborator; guest memberships auto-left. Then catalog, profile, photos, FCM tokens, and Firebase Auth identity removed.
 
 ### Favorites & catalog
-- The **Favorites shelf** at the top of each list surfaces your most-used items (recency-weighted ranking with a 14-day half-life) for one-tap re-adding.
-- Grouped by category, with a stable order during a session — tapping a favorite does NOT rerank it under your finger.
+- **Favorites shelf** at the top surfaces your most-used items (recency-weighted, 14-day half-life) for one-tap re-adding.
+- Grouped by category, stable in-session order - tapping does NOT rerank under your finger.
 - Admin-only per-list toggle to hide the shelf.
 - Long-press a favorite to exclude it from suggestions; pin items explicitly from item edit.
 
 ### Collaboration
-- Add collaborators by email (must be a registered user); they see the list immediately and on home with a "new" badge.
-- Owners can rename, change wallpaper, toggle favorites, remove collaborators, and hard-delete the list (irreversible, items purged).
+- Add collaborators by email (must be a registered user); they see the list immediately, with a "new" badge on home.
+- Owners can rename, change wallpaper, toggle favorites, remove collaborators, and hard-delete the list (irreversible, items + Storage objects purged).
 - Collaborators can leave a list themselves.
-- **Account deletion cascade**: when a user deletes their account, owned **solo** lists are hard-deleted, owned **shared** lists transfer ownership to the next collaborator, and lists where the user is just a guest are auto-left. Then the catalog, user profile, and Firebase Auth identity are removed.
+- **In-app notifications inbox**: server fan-out (`notify-list-event`) writes one doc per recipient into `users/{uid}/notifications/{id}`; clicking the bell in the lists header opens an anchored popover that renders the rows and batch-deletes them in the same tick. No browser notification permission, no service worker. Bodies templated server-side from Firestore so payloads are tamper-proof. Inbox is FIFO-capped at 50 docs per user.
+
+### Settings + account
+- `/settings`: locale, theme, email-link sign-in toggle, GDPR data export, account deletion.
+- **GDPR data export**: one-tap JSON download of every doc the user owns or collaborates on (lists, items, catalog, profile). Generated client-side, no extra reads beyond what the user already has read-access to.
+- **Onboarding tour** for first-time users (`OnboardingTour.vue`), dismissable, persisted in `users/{uid}/private/state.hasSeenOnboarding`.
 
 ### Stats
-- A dedicated `/stats` page with **totals cards** (lists, unique collaborators, catalog entries, favorites, total purchases), a **bar chart** of top 10 most-used items, and a **donut chart** of category distribution. All computed client-side from the catalog — zero extra reads.
+- `/stats` with **totals cards** (lists, unique collaborators, catalog entries, favorites, total purchases), **bar chart** of top 10 items, **donut chart** of category distribution. Client-side from the catalog - zero extra reads.
 
 ### Public pages & SEO
-- Public routes — `/about`, `/privacy`, `/terms`, `/login` — reachable without authentication and not blocked for signed-in users either. Auth-bypass list lives in `src/router/meta.ts`.
-- `/about` renders a hero + features + 10-entry FAQ block, with `WebApplication` and `FAQPage` JSON-LD for rich results.
-- `/privacy` (9 sections) and `/terms` (6 sections), hand-written bilingual content split into `src/i18n/locales/legal.{it,en}.json` and merged at i18n init.
-- Per-route SEO via `@unhead/vue` + `useDocumentHead({titleKey, descriptionKey})` — `<title>`, `<meta description>`, `<html lang>`, OG + Twitter tags update reactively on locale change.
-- `public/robots.txt` allows public routes only and exposes `Sitemap: /sitemap.xml`.
+- Public routes - `/about`, `/privacy`, `/terms`, `/login` - reachable without auth and not blocked for signed-in users either. Auth-bypass list in `src/router/meta.ts`.
+- `/about` renders hero + features + 10-entry FAQ with `WebApplication` and `FAQPage` JSON-LD.
+- `/privacy` (9 sections) and `/terms` (6 sections), bilingual content in `src/i18n/locales/legal.{it,en}.json`.
+- Per-route SEO via `@unhead/vue` + `useDocumentHead({titleKey, descriptionKey})` - `<title>`, `<meta description>`, `<html lang>`, OG + Twitter tags update reactively on locale change.
+- `public/robots.txt` allows public routes only, exposes `Sitemap: /sitemap.xml`.
 
 ### Polish
-- Hero-logo bounce-in animation on `LoginView` and `ListsView` via `@vueuse/motion` — respects `prefers-reduced-motion`.
+- Hero-logo bounce-in on `LoginView` and `ListsView` via `@vueuse/motion` - respects `prefers-reduced-motion`.
 - Lottie celebrations: `success.lottie` plays once when a list is fully bought; `empty.lottie` and `cart_empty.lottie` animate empty states.
 - Haptic tick (10 ms vibrate) on add / check / remove on supported devices.
 - Skeleton loaders, slide-out animation on remove, auto-collapse when all items in a category are checked.
 - Update prompt when a new service worker is available.
 
 ### Privacy & data
-- Only data collected: Google account email + displayName + last login, list/item content you create, catalog usage counts. No analytics, no tracking pixels.
-- **Sentry error monitoring** in production only (`@sentry/vue`, guarded by `import.meta.env.PROD && VITE_SENTRY_DSN`). All input + text masked in session replays; offline / popup-closed errors filtered before they leave the browser. Listed as a sub-processor in the Privacy Policy.
-- **Self-service account deletion** (see above) — full GDPR right-to-erasure built into the UI.
+- Only data collected: account email + displayName + last login, list/item content, catalog usage counts. **No analytics, no third-party error monitoring** (Sentry was removed - see `CONTRIBUTING.md`).
+- **Self-service account deletion** with full cascade including the notifications inbox, Storage photos, and Auth identity.
+- **Private user state** lives in `users/{uid}/private/state` (onboarding flag, defaults) and is readable/writable only by the owner; the public `users/{uid}` doc keeps only the minimum needed for the email-lookup flow.
 
 ---
 
@@ -91,19 +108,21 @@ The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellula
 | Layer | Choice | Reason |
 |---|---|---|
 | Framework | Vue 3 + Composition API | Small bundle, ergonomic, strong TS support |
-| Language | TypeScript (`strict`) | Catches errors at compile time |
+| Language | TypeScript (`strict`) | Compile-time errors |
 | State | Pinia | Vue-native, no boilerplate |
 | Build | Vite | Fast HMR, ESM-first |
-| Routing | Vue Router 4 | Hash-free; auth guard on every route |
+| Routing | Vue Router 4 | Auth guard on every route |
 | Styling | Tailwind CSS + CSS variables | Design tokens in `src/styles/tokens.css` |
-| Icons | `@lucide/vue` | Consistent stroke icons across the UI |
-| Animation | `@vueuse/motion`, `@lottiefiles/dotlottie-vue` | Hero logo motion + decorative lotties |
+| Icons | `@lucide/vue` | Consistent stroke icons |
+| Animation | `@vueuse/motion`, `@lottiefiles/dotlottie-vue` | Hero motion + decorative lotties |
+| Drag-and-drop | `vue-draggable-plus` | Category reorder |
 | Charts | `chart.js` + `vue-chartjs` | Lazy-loaded only on `/stats` |
 | i18n | `vue-i18n` | Locale persisted to localStorage |
 | Head / SEO | `@unhead/vue` | Reactive `<title>`/`<meta>`/`<html lang>` per route + locale |
-| Error monitoring | `@sentry/vue` | Production-only, masked replays, filtered noise |
-| Backend | Firebase Auth + Firestore | Realtime + offline persistence + rules |
-| PWA | `vite-plugin-pwa` (Workbox) | Manifest + service worker + offline shell |
+| Backend | Firebase Auth + Firestore + Storage | Realtime + offline + rules |
+| Serverless | Netlify Functions + `firebase-admin` | Send-invite, find-user, notify-list-event |
+| Email | Resend | Transactional invites |
+| PWA | `vite-plugin-pwa` (Workbox) | Manifest, service worker, offline shell |
 | Tests | Vitest + Vue Test Utils + Playwright | Unit + component + E2E + Firestore rules |
 
 ---
@@ -111,8 +130,8 @@ The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellula
 ## Getting started
 
 ### Prerequisites
-- Node 20+ (Node 22 / 24 also work; the localStorage polyfill in `tests/setup.ts` handles the Node 22+ quirk).
-- `pnpm` (recommended): `npm i -g pnpm`.
+- Node 20+ (Node 22 / 24 / 26 also work; the localStorage polyfill in `tests/setup.ts` handles the Node 22+ quirk).
+- `pnpm`: `npm i -g pnpm`.
 - Firebase CLI for emulators and deploy: `npm i -g firebase-tools`.
 
 ### First-time setup
@@ -129,12 +148,7 @@ For local Firebase emulators (recommended for development):
 
 ```bash
 pnpm firebase:emulators           # Auth + Firestore on default ports
-```
-
-Then open the app in a second terminal:
-
-```bash
-pnpm dev
+pnpm dev                          # in a second terminal
 ```
 
 ---
@@ -150,7 +164,7 @@ pnpm dev
 | `pnpm typecheck` | `vue-tsc --noEmit` |
 | `pnpm test` | Vitest watch mode |
 | `pnpm test:run` | Single-shot unit + component tests |
-| `pnpm test:coverage` | Coverage report (V8) |
+| `pnpm test:coverage` | Coverage report (V8) - branches gate ≥ 80% |
 | `pnpm test:e2e` | Playwright against Firebase emulators |
 | `pnpm test:e2e:ui` | Playwright with the GUI runner |
 | `pnpm test:rules` | Firestore rules tests against the emulator |
@@ -166,49 +180,67 @@ pnpm dev
 ```
 src/
   components/         # Reusable Vue components, grouped by domain
-    list/             # ListCard, CategorySection, ListItemRow, ItemEditSheet, ...
+    collaborators/    # AddCollaboratorForm, CollaboratorList
+    list/             # ListCard, CategorySection, ListItemRow, ItemEditSheet,
+                      # BulkPasteSheet, VoiceAddSheet, PriorityPickerSheet,
+                      # ListPickerSheet, WallpaperPicker, MostUsedShelf, ...
+    onboarding/       # OnboardingTour
     stats/            # TopItemsChart, CategoryDonut
-    ui/               # ConfirmModal, Toast, OfflineBanner, CompletionCelebration, LegalFooter, ...
-  composables/        # useAuth, useHaptic, useReducedMotion, useLogoMotion, useDocumentHead, ...
+    ui/               # ConfirmModal, Toast, OfflineBanner, FAB,
+                      # UpdatePrompt, InstallPrompt, FeedbackModal, ...
+  composables/        # useAuth, useHaptic, useReducedMotion, useDocumentHead,
+                      # useBulkSelection, useUndoDelete, useSpeechRecognition,
+                      # useImageCompress, useShareApp, useSafeBack, ...
   domain/             # Pure functions + types (no Vue, no Firebase)
     categories.ts     # Category enum, icons, color tokens, migration
     public-catalog.ts # ~200 seeded items (it + en) + isCustomItemName, iconForName
-    ranking.ts        # Catalog recency-weighted ranking, 100% covered
+    ranking.ts        # Catalog recency-weighted ranking
     sort.ts           # Locale-aware category + item sorting
     stats.ts          # Top items, category breakdown, totals
-    text.ts           # capitalizeInitial helper (used by lists + items services)
+    text.ts           # capitalizeInitial helper
     types.ts          # List, Item, CatalogEntry, UserProfile, Locale
     wallpapers.ts     # Wallpaper allow-list + random picker
   i18n/               # vue-i18n + locales/{it,en}.json + locales/legal.{it,en}.json
   router/             # Routes + auth guard + meta.ts (per-route SEO metadata)
-  services/           # Firebase wrappers (auth, lists, items, catalog, users) + sentry.ts
-  stores/             # Pinia stores (auth, lists, items, catalog)
-  styles/             # tokens.css + global.css (global cursor rules)
-  views/              # Route-level components (LoginView, ListsView, ListDetailView, ListSettingsView, SettingsView, StatsView, AboutView, PrivacyView, TermsView)
+  services/           # Firebase wrappers:
+                      #   auth, lists, items, catalog, users,
+                      #   itemPhotos, notify, notifications, invites,
+                      #   listFavorites, export, firebase
+  stores/             # Pinia stores (auth, lists, items, catalog,
+                      #               listFavorites, theme)
+  styles/             # tokens.css + global.css
+  views/              # LoginView, ListsView, ListDetailView, ListSettingsView,
+                      # SettingsView, StatsView, AboutView, PrivacyView,
+                      # TermsView, EmailLinkCallbackView
+netlify/
+  functions/          # send-invite, find-user, notify-list-event
+  functions/_lib/     # Shared rate-limit + firestore-admin helpers
 tests/
-  rules/              # Firestore security-rule tests (45 against emulator)
-  unit/               # Vitest unit + component tests (641)
-  e2e/                # Playwright specs (20)
+  rules/              # Firestore security-rule tests (~75 against emulator)
+  unit/               # Vitest unit + component tests (~1009)
+  e2e/                # Playwright specs
 firebase/
   firestore.rules     # Server-side authorization rules
-  firestore.indexes.json # Composite index: lists.collaboratorUids array-contains + updatedAt desc
+  storage.rules       # Storage rules for per-item photos
+  firestore.indexes.json # Composite index: lists.collaboratorUids + updatedAt desc
 public/
   branding/           # Logos, wordmark, Google G mark
   animations/         # success.lottie, empty.lottie, cart_empty.lottie
   wallpapers/         # 10 list-card backgrounds
   robots.txt          # Allow public routes + Sitemap pointer
-  sitemap.xml         # 5 public URLs
-tasks/
-  plan.md             # Full implementation plan with acceptance criteria
-  todo.md             # Phase + task checklist
+  sitemap.xml         # Public URLs
 SPEC.md               # Product spec, scope decisions, success criteria
+TODO.md               # Sprint roadmap + delivery checklist
+CONTRIBUTING.md       # House rules + invariants
 ```
 
 ---
 
 ## Firebase
 
-The app uses Auth (Google provider only) and Firestore. No Cloud Functions yet. Required environment variables:
+Auth (Google + email magic link), Firestore, and Storage.
+
+### Required environment variables (build-time, shipped to client)
 
 ```bash
 VITE_FIREBASE_API_KEY=
@@ -217,30 +249,60 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-
-# Optional — Sentry (production builds only)
-VITE_SENTRY_DSN=
-VITE_RELEASE=
 ```
 
-See [.env.example](./.env.example) for the full template.
+Optional:
 
-Firestore data model (collections):
+```bash
+VITE_USE_EMULATOR=false           # point the SDK at local emulators
+VITE_USE_FIXTURES=0               # in-memory fixtures instead of Firestore
+```
+
+### Runtime env vars (Netlify-only, used by serverless functions)
+
+```bash
+FIREBASE_SERVICE_ACCOUNT          # JSON service account for firebase-admin
+RESEND_API_KEY                    # Transactional email for send-invite
+INVITE_FROM_ADDRESS               # e.g. "Buy The Way <noreply@example.com>"
+APP_URL                           # e.g. "https://buy-the-way.danielebelfiore.dev"
+```
+
+See [.env.example](./.env.example) for the client-side template.
+
+### Firestore data model
 
 | Path | Document |
 |---|---|
-| `users/{uid}` | `{ uid, email, displayName, lastLoginAt, lastSeenLists? }` |
-| `lists/{listId}` | `{ id, name, ownerUid, collaboratorUids[], itemCount?, showFavorites?, wallpaper?, createdAt, updatedAt }` |
-| `lists/{listId}/items/{itemId}` | `{ id, listId, name, quantity, category, note, checked, priority?, createdByUid, createdAt, updatedAt }` |
+| `users/{uid}` | `{ uid, email, displayName, lastLoginAt, lastSeenLists? }` (public read for email-lookup, owner-only write) |
+| `users/{uid}/private/state` | `{ onboardingSeen?, defaultListId?, lastSeenLists?, lastSeenListMap?, ... }` (owner-only) |
+| `users/{uid}/notifications/{id}` | `{ kind, listId, listName, body, senderUid, senderName, itemId?, itemName?, createdAt }` (owner read+delete; server-only write) |
+| `lists/{listId}` | `{ id, name, ownerUid, collaboratorUids[], itemCount?, showFavorites?, wallpaper?, categoryOrder?, createdAt, updatedAt }` |
+| `lists/{listId}/items/{itemId}` | `{ id, listId, name, quantity, category, note, checked, priority?, photoURL?, thumbURL?, createdByUid, createdAt, updatedAt }` |
 | `catalog/{uid}/entries/{entryId}` | `{ id, ownerUid, name, category, usageCount, lastUsedAt, pinned?, excluded? }` |
+| `rateLimits/{uid}_{funcName}` | `{ tokens, lastRefillMs }` (server-managed token bucket) |
 
-Rules summary: any signed-in user can read `users/{uid}` for the email-lookup flow (write only self); list `read`/`write` is gated on collaborator membership; only the owner mutates non-collaborator fields; owner can transfer ownership to an existing collaborator. Catalog entries are strictly per-user.
+### Storage layout
+
+```
+lists/{listId}/items/{itemId}/photo.jpg   # 800 px JPEG
+lists/{listId}/items/{itemId}/thumb.jpg   # 200 px JPEG
+```
+
+Rules in `firebase/storage.rules` restrict read/write/delete to list collaborators, cap upload size at 5 MiB, and allow only `image/jpeg | image/png | image/webp` (no SVG - blocks the one-tap XSS vector on a leaked download URL).
+
+### Rules summary
+
+- `users/{uid}` public read for email-lookup; private state under `users/{uid}/private/state` owner-only.
+- `lists/{listId}` read/write gated on collaborator membership; only owner mutates non-collaborator fields; owner can transfer ownership to an existing collaborator.
+- `lists/{listId}/items/{itemId}` inherits collaborator gate via parent `get()`.
+- `catalog/{uid}/entries/*` strictly per-user.
+- `rateLimits/*` deny all client access; only the serverless functions touch this via the admin SDK.
 
 ---
 
 ## Deployment
 
-CI/CD is one GitHub Actions workflow — `.github/workflows/ci-cd.yml` — that gates production on every check.
+CI/CD is one GitHub Actions workflow - `.github/workflows/ci-cd.yml` - that gates production on every check.
 
 ### Pipeline shape
 
@@ -250,12 +312,12 @@ CI/CD is one GitHub Actions workflow — `.github/workflows/ci-cd.yml` — that 
                   ├──────────────┤
 push / PR ───────▶│  rules       │  (firestore rules vs. emulator)
                   ├──────────────┤
-                  │  e2e         │  (playwright + axe, light + dark)
+                  │  e2e         │  (playwright + axe; optional gate)
                   └─────┬────────┘
                         │ all green AND push to main
                         ▼
             ┌──────────────────────────┐
-            │  deploy-firebase         │  (firestore rules + indices)
+            │  deploy-firebase         │  (firestore rules + storage rules + indices)
             ├──────────────────────────┤
             │  deploy-netlify          │  (uploads dist/ + functions)
             └──────────────────────────┘
@@ -263,6 +325,7 @@ push / PR ───────▶│  rules       │  (firestore rules vs. emu
 
 - Pull-request runs: only `quality`, `rules`, `e2e`. Deploy jobs are gated by `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`.
 - Push-to-main runs: every gate, then both deploys in parallel.
+- Deploy jobs include `!cancelled()` in their `if:` so an optionally-skipped `e2e` (gated by `vars.E2E_ENABLED`) does not silently block production. See `.claude/docs/workflow.md` for the rationale.
 - The Netlify deploy downloads the `dist/` artefact uploaded by `quality`, so the bytes that pass CI are exactly the bytes that ship.
 
 ### GitHub secrets
@@ -271,68 +334,51 @@ Repo → Settings → Secrets and variables → Actions.
 
 | Name | Purpose |
 |---|---|
-| `FIREBASE_TOKEN` | `firebase deploy` token for rules + indices |
+| `FIREBASE_TOKEN` | `firebase deploy` token for rules + indices + storage rules |
 | `NETLIFY_AUTH_TOKEN` | Netlify Personal Access Token, used by `netlify deploy` |
 | `NETLIFY_SITE_ID` | Netlify site API ID (Site settings → General → Site information) |
-| `VITE_FIREBASE_API_KEY` | Firebase web SDK config — baked into the build |
+| `VITE_FIREBASE_API_KEY` | Firebase web SDK config - baked into the build |
 | `VITE_FIREBASE_AUTH_DOMAIN` | ditto |
 | `VITE_FIREBASE_PROJECT_ID` | ditto |
 | `VITE_FIREBASE_STORAGE_BUCKET` | ditto |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | ditto |
 | `VITE_FIREBASE_APP_ID` | ditto |
-| `VITE_SENTRY_DSN` | Sentry DSN — only baked into production builds |
 
-`RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL` stay on **Netlify** — they are runtime env vars for the `send-invite` function, not build inputs.
+`RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL` stay on **Netlify** as runtime env vars for the serverless functions.
 
-### Netlify configuration changes (one-off)
+### Netlify configuration (one-off)
 
-Now that GitHub Actions is the single source of deploys, Netlify must stop auto-publishing on every git push.
+Since GitHub Actions is the single source of deploys, Netlify must not auto-publish on every git push.
 
 1. Netlify dashboard → Site → **Site settings** → **Build & deploy** → **Continuous deployment**.
-2. **Build settings** → click **Edit settings** → **Stop builds** (or set Build command to `# no-op` and Publish directory to `dist`). The GitHub Action uploads `dist/` directly; Netlify shouldn't try to build.
-3. Optional but recommended: **Deploy contexts** → **Deploy Previews** → off (we don't publish previews from this pipeline).
-4. Keep the Netlify env vars intact — the `send-invite` function still needs `RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL`.
-5. Generate a Netlify Personal Access Token: **User settings** → **Applications** → **Personal access tokens** → **New access token**. Copy it once, store as `NETLIFY_AUTH_TOKEN` in GitHub secrets.
-6. Copy the Site ID: Site settings → **General** → **Site information** → **API ID**. Save as `NETLIFY_SITE_ID` in GitHub secrets.
-
-After step 2, every Netlify-side build is disabled — the only path to production is the GitHub Action.
+2. **Build settings** → **Edit settings** → **Stop builds** (or set Build command to `# no-op` and Publish directory to `dist`).
+3. Optional: **Deploy contexts** → **Deploy Previews** → off.
+4. Keep the Netlify env vars intact for the serverless functions.
+5. Generate a Netlify PAT, store as `NETLIFY_AUTH_TOKEN`.
+6. Copy the Site ID, store as `NETLIFY_SITE_ID`.
 
 ---
 
 ## Release process
 
-End-to-end checklist for shipping a new version to production. The CI/CD pipeline above takes over once the tag lands on `main` — these steps cover what you do **before** the push.
+End-to-end checklist for shipping a new version to production.
 
 ### 1. Pre-release gates (run locally on `main`, working tree clean)
 
 ```bash
-pnpm install                        # in case lockfile changed
-pnpm run typecheck                  # vue-tsc --noEmit
-pnpm run lint                       # ESLint
-pnpm test:run                       # unit + component tests
-pnpm test:coverage                  # branches must be ≥ 80%
-pnpm test:rules                     # Firestore rules (needs `pnpm firebase:emulators` running)
-pnpm test:e2e                       # Playwright + emulators (slow)
+pnpm install
+pnpm run typecheck && pnpm run lint && pnpm test:run && pnpm test:coverage && pnpm test:rules && pnpm test:e2e
 ```
-
-If any gate fails: fix on a branch, PR, merge, then restart from step 1.
 
 ### 2. Bump the version
 
-Use the convenience scripts — they wrap `pnpm version` to add a Conventional Commits message and create an annotated tag in one shot.
-
 ```bash
-# Pick ONE depending on the kind of changes since the last tag:
-pnpm release:patch                  # bug fixes only        → v1.2.3 → v1.2.4
-pnpm release:minor                  # new features, backwards-compatible → v1.2.3 → v1.3.0
-pnpm release:major                  # breaking changes     → v1.2.3 → v2.0.0
+pnpm release:patch                  # bug fixes
+pnpm release:minor                  # new features, backwards-compatible
+pnpm release:major                  # breaking changes
 ```
 
-What `pnpm release:*` does, atomically:
-
-1. Bumps the `version` field in `package.json` (and `pnpm-lock.yaml` if needed).
-2. Creates a commit: `🦄 RELEASE: vX.Y.Z`.
-3. Creates an **annotated** Git tag `vX.Y.Z` pointing at that commit.
+Each `release:*` script bumps `package.json`, creates a `🦄 RELEASE: vX.Y.Z` commit, and adds an annotated tag.
 
 ### 3. Push commit + tag
 
@@ -340,84 +386,67 @@ What `pnpm release:*` does, atomically:
 git push --follow-tags
 ```
 
-`--follow-tags` pushes the new commit **and** the annotated tag it created in a single round-trip. Safer than `git push --tags` (which would also push any unrelated local tags).
-
 ### 4. CI/CD takes over
 
-GitHub Actions detects the push to `main` and runs:
-
-1. **CI workflow** (`.github/workflows/ci.yml`): lint, typecheck, build, unit tests, rules tests, E2E. Blocks the deploy if anything fails.
-2. **Deploy workflow** (`.github/workflows/deploy.yml`): builds the production bundle, runs `vite build`, pushes the `dist/` directory to Netlify, and uploads source maps to Sentry tagged with `VITE_RELEASE=vX.Y.Z`.
-3. **Firestore rules step**: if `firebase/firestore.rules` or `firebase/firestore.indexes.json` changed, deploys them with `firebase deploy --only firestore:rules,firestore:indexes` using `FIREBASE_TOKEN`.
-
-Watch the runs at <https://github.com/DanieleBelfiore/buy-the-way/actions>. Typical end-to-end time: 4–6 minutes.
+The `ci-cd.yml` workflow runs every gate then both deploy jobs. Watch at <https://github.com/DanieleBelfiore/buy-the-way/actions>. Typical end-to-end time: 4-6 minutes.
 
 ### 5. Verify in production
 
-- Open <https://buy-the-way.danielebelfiore.dev> in a private window (skip stale cache).
-- DevTools → Application → check **Service Worker** updated to the new version (visible in the SW URL hash).
-- Confirm the floating **"new version available"** prompt fires for already-installed clients within ~30 s.
-- Spot-check Sentry → **Releases** → the new `vX.Y.Z` should appear with the uploaded source maps.
+- Open <https://buy-the-way.danielebelfiore.dev> in a private window.
+- DevTools → Application → check the **Service Worker** updated (URL hash changes per build).
+- Confirm the floating "new version available" prompt fires for already-installed clients within ~30 s.
+- Smoke-test in-app notifications (add an item from a second account, confirm the bell badge on the lists view increments and the popover renders the row).
 
-### 6. Rollback (if something is on fire)
+### 6. Rollback
 
-> Always prefer **rolling forward** with a hotfix. Rollback is destructive; only use it within the first few minutes of a bad release before users have written meaningful data against the new schema.
+> Prefer **rolling forward** with a hotfix. Rollback is destructive; only use it within the first few minutes of a bad release.
 
 ```bash
-# Option A — Netlify "Publish previous deploy" button (UI, instant, recommended)
+# Option A - Netlify "Publish previous deploy" button (UI, instant, recommended)
 #   Site → Deploys → click the last green deploy → "Publish deploy"
 
-# Option B — Revert the release commit and ship a follow-up
-git revert <hash-of-🦄 RELEASE-commit>
-pnpm release:patch                  # ships e.g. vX.Y.(Z+1) with the revert
-git push --follow-tags
-```
-
-If Firestore rules changed and need rolling back:
-
-```bash
-git checkout v<previous-tag> -- firebase/firestore.rules firebase/firestore.indexes.json
-pnpm run firebase:deploy:rules
-git checkout main -- firebase/firestore.rules firebase/firestore.indexes.json
-```
-
-### 7. Hotfix workflow
-
-For an urgent fix that must skip the usual `develop` → `main` cycle:
-
-```bash
-git checkout -b hotfix/<short-name> main
-# make the fix, commit normally
-pnpm test:run && pnpm run typecheck && pnpm run lint
-git push -u origin hotfix/<short-name>
-# Open a PR targeting main; once merged, immediately:
-git checkout main && git pull
+# Option B - Revert the release commit and ship a follow-up
+git revert <hash-of-RELEASE-commit>
 pnpm release:patch
 git push --follow-tags
 ```
 
-### Cheat sheet (TL;DR)
+If rules changed and need rolling back:
 
 ```bash
-pnpm test:run && pnpm run typecheck && pnpm run lint        # gates
-pnpm release:patch                                          # or minor / major
-git push --follow-tags                                      # push commit + tag
-# → CI builds, deploys to Netlify, uploads source maps to Sentry
+git checkout v<previous-tag> -- firebase/firestore.rules firebase/storage.rules firebase/firestore.indexes.json
+pnpm run firebase:deploy:rules
+git checkout main -- firebase/firestore.rules firebase/storage.rules firebase/firestore.indexes.json
+```
+
+### 7. Hotfix workflow
+
+```bash
+git checkout -b hotfix/<short-name> main
+# fix, commit
+pnpm test:run && pnpm run typecheck && pnpm run lint
+git push -u origin hotfix/<short-name>
+# PR to main; once merged:
+git checkout main && git pull
+pnpm release:patch
+git push --follow-tags
 ```
 
 ---
 
 ## Contributing
 
-This is a personal project shipped as a portfolio piece. Issues and pull requests welcome — open one before starting large changes.
+This is a personal project shipped as a portfolio piece. Issues and pull requests welcome - open one before starting large changes.
 
-Local dev rules:
+House rules (see `CONTRIBUTING.md` for the full list):
 
-1. Run `pnpm test:run` before pushing.
+1. Run `pnpm test:run` before pushing; `pnpm test:coverage` before declaring a phase done (branches gate ≥ 80%).
 2. New features need at least unit tests covering the happy path.
-3. Domain logic stays pure (no Firebase, no Vue) — see `src/domain/*`.
+3. Domain logic stays pure (no Firebase, no Vue) - see `src/domain/*`.
 4. UI changes need a manual 375 px smoke note in the PR description.
 5. Never commit secrets, service accounts, or `.env.local`.
+6. **Never use the em-dash character `—` (U+2014)** anywhere in the repo. Plain ASCII hyphen `-`, colon `:`, or split the sentence.
+7. New Firestore collections / Storage paths ship with their rules in the same task (see `.claude/docs/firebase.md`).
 
 ---
 

@@ -85,7 +85,7 @@ beforeEach(async () => {
   await env.clearFirestore();
 });
 
-describe('firestore.rules — users/{uid}', () => {
+describe('firestore.rules - users/{uid}', () => {
   it('allows authenticated user to read any user profile', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'users', BOB), {
@@ -104,7 +104,7 @@ describe('firestore.rules — users/{uid}', () => {
     await assertFails(getDoc(doc(anonCtx() as any, 'users', BOB)));
   });
 
-  it('allows a user to write their own profile (public schema only — C4)', async () => {
+  it('allows a user to write their own profile (public schema only - C4)', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'users', ALICE), {
       uid: ALICE, email: 'a@example.com', displayName: 'A',
     }));
@@ -175,7 +175,53 @@ describe('firestore.rules — users/{uid}', () => {
   });
 });
 
-describe('firestore.rules — lists/{id} reads', () => {
+describe('firestore.rules - users/{uid}/notifications/{id}', () => {
+  it('allows owner to read their own notifications', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE, 'notifications', 'n1'), {
+        kind: 'item-modified', listId: 'L1', listName: 'Spesa',
+        body: 'Bob: x', senderUid: BOB, senderName: 'Bob', createdAt: 1,
+      });
+    });
+    await assertSucceeds(getDoc(doc(aliceCtx() as any, 'users', ALICE, 'notifications', 'n1')));
+  });
+
+  it('denies cross-user read of notifications', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE, 'notifications', 'n1'), {
+        kind: 'item-modified', listId: 'L1', listName: 'Spesa',
+        body: 'Bob: x', senderUid: BOB, senderName: 'Bob', createdAt: 1,
+      });
+    });
+    await assertFails(getDoc(doc(bobCtx() as any, 'users', ALICE, 'notifications', 'n1')));
+  });
+
+  it('allows owner to delete their own notification', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', ALICE, 'notifications', 'n1'), {
+        kind: 'item-modified', listId: 'L1', listName: 'Spesa',
+        body: 'Bob: x', senderUid: BOB, senderName: 'Bob', createdAt: 1,
+      });
+    });
+    await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'users', ALICE, 'notifications', 'n1')));
+  });
+
+  it('denies the client from writing into their own notifications inbox', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'users', ALICE, 'notifications', 'forged'), {
+      kind: 'item-modified', listId: 'L1', listName: 'Spesa',
+      body: 'forged', senderUid: ALICE, senderName: 'Alice', createdAt: 1,
+    }));
+  });
+
+  it('denies cross-user write into another user inbox', async () => {
+    await assertFails(setDoc(doc(bobCtx() as any, 'users', ALICE, 'notifications', 'forged'), {
+      kind: 'item-modified', listId: 'L1', listName: 'Spesa',
+      body: 'forged', senderUid: BOB, senderName: 'Bob', createdAt: 1,
+    }));
+  });
+});
+
+describe('firestore.rules - lists/{id} reads', () => {
   it('allows a collaborator to read the list', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertSucceeds(getDoc(doc(bobCtx() as any, 'lists', 'L1')));
@@ -192,7 +238,7 @@ describe('firestore.rules — lists/{id} reads', () => {
   });
 });
 
-describe('firestore.rules — lists/{id} create', () => {
+describe('firestore.rules - lists/{id} create', () => {
   it('allows owner-uid creator who is in collaboratorUids and admins=[self]', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
@@ -229,7 +275,7 @@ describe('firestore.rules — lists/{id} create', () => {
   });
 });
 
-describe('firestore.rules — lists/{id} update', () => {
+describe('firestore.rules - lists/{id} update', () => {
   it('allows owner to rename the list', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
@@ -336,7 +382,7 @@ describe('firestore.rules — lists/{id} update', () => {
   });
 });
 
-describe('firestore.rules — lists/{id} delete', () => {
+describe('firestore.rules - lists/{id} delete', () => {
   it('allows owner (sole admin via legacy fallback) to delete', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'lists', 'L1')));
@@ -358,7 +404,7 @@ describe('firestore.rules — lists/{id} delete', () => {
   });
 });
 
-describe('firestore.rules — items subcollection', () => {
+describe('firestore.rules - items subcollection', () => {
   it('allows a collaborator to read items', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await seedItem('L1', 'I1');
@@ -388,7 +434,7 @@ describe('firestore.rules — items subcollection', () => {
   });
 });
 
-describe('firestore.rules — favoriteState subcollection', () => {
+describe('firestore.rules - favoriteState subcollection', () => {
   it('allows a collaborator to read favoriteState entries', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await env.withSecurityRulesDisabled(async (ctx) => {
@@ -428,7 +474,7 @@ describe('firestore.rules — favoriteState subcollection', () => {
   });
 });
 
-describe('firestore.rules — catalog/{uid}/entries', () => {
+describe('firestore.rules - catalog/{uid}/entries', () => {
   it('allows owner to read/write their catalog', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'catalog', ALICE, 'entries', 'milk'), {
       id: 'milk', ownerUid: ALICE, name: 'Milk', category: 'dairy', usageCount: 1, lastUsedAt: 1,
@@ -452,7 +498,7 @@ describe('firestore.rules — catalog/{uid}/entries', () => {
   });
 });
 
-describe('firestore.rules — account-cascade self-deletes', () => {
+describe('firestore.rules - account-cascade self-deletes', () => {
   it('allows self to delete own users/{uid} doc', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'users', ALICE), {
@@ -500,7 +546,7 @@ describe('firestore.rules — account-cascade self-deletes', () => {
   });
 });
 
-describe('firestore.rules — admin promote / demote', () => {
+describe('firestore.rules - admin promote / demote', () => {
   it('allows admin to promote another collaborator into admins', async () => {
     await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
     await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
@@ -546,7 +592,7 @@ describe('firestore.rules — admin promote / demote', () => {
   });
 });
 
-describe('firestore.rules — pending email invites', () => {
+describe('firestore.rules - pending email invites', () => {
   const CARL_EMAIL = 'carl@example.com';
   const carlInvitedCtx = (): RulesTestContext =>
     env.authenticatedContext(CARL, { email: CARL_EMAIL }).firestore() as unknown as RulesTestContext;
@@ -586,7 +632,7 @@ describe('firestore.rules — pending email invites', () => {
   it('denies a self-claim that also removes an existing collaborator', async () => {
     await seedList('L1', ALICE, [ALICE, BOB], { pendingInviteEmails: [CARL_EMAIL] });
     await assertFails(updateDoc(doc(carlInvitedCtx() as any, 'lists', 'L1'), {
-      // Carl tries to drop Bob while claiming — forbidden.
+      // Carl tries to drop Bob while claiming - forbidden.
       collaboratorUids: [ALICE, CARL],
       pendingInviteEmails: [],
       updatedAt: 2,
@@ -632,7 +678,7 @@ describe('firestore.rules — pending email invites', () => {
   });
 });
 
-describe('firestore.rules — owner update field whitelist', () => {
+describe('firestore.rules - owner update field whitelist', () => {
   it('denies owner from writing an arbitrary unknown field', async () => {
     await seedList('L1', ALICE, [ALICE]);
     await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
@@ -642,7 +688,7 @@ describe('firestore.rules — owner update field whitelist', () => {
 
   // The owner-transfer-with-itemCount case used to be denied because the old
   // owner-transfer branch had a narrow whitelist. Under the new admin update
-  // rule, both fields share a whitelist, so this combination is now allowed —
+  // rule, both fields share a whitelist, so this combination is now allowed -
   // assert the new behaviour to lock the contract.
   it('allows admin to bundle ownerUid pivot + itemCount bump in a single write', async () => {
     await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE, BOB] });

@@ -262,15 +262,15 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'pannolini', name_it: 'Pannolini', name_en: 'Diapers', category: 'hygiene', icon: '👶' },
   { slug: 'profumo', name_it: 'Profumo', name_en: 'Perfume', category: 'hygiene', icon: '🌸' },
 
-  // other (minimal — non-food, no clean home)
+  // other (minimal - non-food, no clean home)
   { slug: 'pile-aa', name_it: 'Pile AA', name_en: 'AA batteries', category: 'other', icon: '🔋' },
   { slug: 'pile-aaa', name_it: 'Pile AAA', name_en: 'AAA batteries', category: 'other', icon: '🔋' },
   { slug: 'lampadina', name_it: 'Lampadina', name_en: 'Light bulb', category: 'other', icon: '💡' },
 
   // ============================================================================
-  // 2026 catalog expansion — common items stocked across Italian supermarkets
+  // 2026 catalog expansion - common items stocked across Italian supermarkets
   // (Conad, Eurospin, PAM, Emisfero, Coop, Esselunga, Lidl, Carrefour).
-  // Reserved-for-test names — DO NOT add here: "Babà", "Zarbo", "Tofu fritto".
+  // Reserved-for-test names - DO NOT add here: "Babà", "Zarbo", "Tofu fritto".
   // ============================================================================
 
   // --- fruit_vegetables (expansion)
@@ -530,7 +530,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'paté-acciughe', name_it: 'Paté di acciughe', name_en: 'Anchovy pâté', category: 'fish', icon: '🥫' },
   { slug: 'frutti-mare', name_it: 'Frutti di mare misti', name_en: 'Mixed seafood', category: 'fish', icon: '🦪' },
 
-  // --- bakery (expansion) — bread, pasta, rice, baking, sweets, condiments
+  // --- bakery (expansion) - bread, pasta, rice, baking, sweets, condiments
   { slug: 'pane-bianco', name_it: 'Pane bianco', name_en: 'White bread', category: 'bakery', icon: '🍞' },
   { slug: 'pane-rustico', name_it: 'Pane rustico', name_en: 'Rustic bread', category: 'bakery', icon: '🍞' },
   { slug: 'pane-arabo', name_it: 'Pane arabo', name_en: 'Pita bread', category: 'bakery', icon: '🫓' },
@@ -988,7 +988,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'disinfettante', name_it: 'Disinfettante', name_en: 'Disinfectant', category: 'hygiene', icon: '🧴' },
   { slug: 'repellente-zanzare', name_it: 'Repellente zanzare', name_en: 'Mosquito repellent (spray)', category: 'hygiene', icon: '🧴' },
 
-  // --- other (expansion) — pet, household, stationery, party, batteries, etc.
+  // --- other (expansion) - pet, household, stationery, party, batteries, etc.
   { slug: 'cibo-cane-secco', name_it: 'Cibo secco per cane', name_en: 'Dry dog food', category: 'other', icon: '🐕' },
   { slug: 'cibo-cane-umido', name_it: 'Cibo umido per cane', name_en: 'Wet dog food', category: 'other', icon: '🐕' },
   { slug: 'cibo-gatto-secco', name_it: 'Cibo secco per gatto', name_en: 'Dry cat food', category: 'other', icon: '🐈' },

@@ -42,6 +42,10 @@ vi.mock('@/services/users.service', () => ({
   deletePrivateState: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/services/notifications.service', () => ({
+  deleteAllNotifications: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   deleteAccount,
   RequiresRecentLoginError,

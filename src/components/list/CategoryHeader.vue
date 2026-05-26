@@ -33,7 +33,7 @@ const onClick = (): void => {
     :type="props.interactive ? 'button' : undefined"
     :aria-expanded="props.interactive ? !props.collapsed : undefined"
     :data-testid="props.interactive ? 'category-header' : undefined"
-    class="w-full flex items-center gap-2 px-5 py-3 text-left"
+    class="cat-drag-handle w-full flex items-center gap-2 px-5 py-3 text-left"
     :class="props.interactive ? 'select-none cursor-pointer' : ''"
     @click="onClick"
   >

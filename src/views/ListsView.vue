@@ -4,9 +4,16 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
-import { Plus, X, Settings as SettingsIcon, BarChart3 } from '@lucide/vue';
+import { Plus, X, Settings as SettingsIcon, BarChart3, Bell } from '@lucide/vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
+import OnboardingTour from '@/components/onboarding/OnboardingTour.vue';
+import NotificationsPopover from '@/components/notifications/NotificationsPopover.vue';
+import { useNotifications } from '@/composables/useNotifications';
+import type { NotificationDoc } from '@/domain/types';
 import ListCard from '@/components/list/ListCard.vue';
+import { VueDraggable } from 'vue-draggable-plus';
+import { reorderList, computeReorderedSortIndex } from '@/services/lists.service';
+import type { List } from '@/domain/types';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
@@ -80,7 +87,7 @@ const stopSub = () => {
 };
 
 onMounted(async () => {
-  // Run profile + lists init concurrently — neither blocks the other.
+  // Run profile + lists init concurrently - neither blocks the other.
   void authStore.ensureProfile();
   await listsStore.loadLastSeen();
   startSub();
@@ -144,7 +151,95 @@ const openList = (id: string) => {
 
 const defaultListId = computed(() => authStore.profile?.defaultListId ?? null);
 
-// Explainer toast — fires when the star toggles so the user understands what
+// Onboarding tour: shown once per account on first /lists mount.
+// Gate strictly on `onboardingSeen === false` (NOT `!onboardingSeen`) so the
+// overlay only appears after the profile has actually loaded - otherwise we'd
+// flash the tour at users who've already dismissed it during the brief window
+// where `authStore.profile` is still `null`.
+// In E2E runs we suppress the tour entirely: the bridge signs the user in
+// fresh each test, so without this gate every spec would have to dismiss the
+// overlay before interacting with the FAB.
+const isE2E = import.meta.env['VITE_E2E'] === 'true';
+const showOnboarding = computed(
+  () => !isE2E && authStore.profile !== null && authStore.profile.onboardingSeen !== true,
+);
+
+const dismissOnboarding = async (): Promise<void> => {
+  try {
+    await authStore.markOnboardingSeen();
+  } catch (err) {
+    console.warn('[ListsView] markOnboardingSeen failed:', err);
+  }
+};
+
+// S4.2: in-app notifications. The popover opens a snapshot of the current
+// inbox and immediately batch-deletes everything it shows (consume()). The
+// snapshot stays in `notificationsView` so the rows remain visible until
+// the user dismisses the popover; the live `count` drops to zero in the
+// same Firestore tick so the badge clears.
+const notifications = useNotifications();
+const notificationsOpen = ref(false);
+const notificationsView = ref<NotificationDoc[]>([]);
+
+const openNotifications = async (): Promise<void> => {
+  if (notificationsOpen.value) return;
+  notificationsOpen.value = true;
+  try {
+    notificationsView.value = await notifications.consume();
+  } catch (err) {
+    console.warn('[ListsView] consume notifications failed:', err);
+  }
+};
+
+const closeNotifications = (): void => {
+  notificationsOpen.value = false;
+  notificationsView.value = [];
+};
+
+const handleNotificationOpenList = (listId: string): void => {
+  closeNotifications();
+  router.push({ name: 'list-detail', params: { id: listId } });
+};
+
+// S3.4: drag-and-drop reorder. We bind the draggable to a LOCAL clone of the
+// lists array so the user can drag without waiting on the firestore round
+// trip; on drop, we compute the moved row's new sortIndex from its
+// neighbours (midpoint heuristic) and persist it. The realtime snapshot
+// catches up moments later and re-sorts identically.
+const draggableLists = computed<List[]>({
+  get: () => listsStore.lists,
+  set: () => {
+    // The Sortable lib mutates an internal copy; we ignore writes here and
+    // act only on the @end event so we can compute the exact sortIndex
+    // delta and persist it.
+  },
+});
+
+interface SortableEvent {
+  oldIndex?: number;
+  newIndex?: number;
+}
+
+const onReorder = async (e: SortableEvent): Promise<void> => {
+  const { oldIndex, newIndex } = e;
+  if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+  const arr = listsStore.lists;
+  const moved = arr[oldIndex];
+  if (!moved) return;
+
+  const post = [...arr];
+  post.splice(oldIndex, 1);
+  post.splice(newIndex, 0, moved);
+  const target = computeReorderedSortIndex(post, newIndex);
+
+  try {
+    await reorderList(moved.id, target);
+  } catch (err) {
+    console.warn('[ListsView] reorderList failed:', err);
+  }
+};
+
+// Explainer toast - fires when the star toggles so the user understands what
 // "default list" means the first time they tap it (and on every subsequent
 // flip for symmetry / discoverability).
 const toastOpen = ref(false);
@@ -186,7 +281,7 @@ watch(
     () => authStore.profile,
   ],
   ([initialized, lists, profile]) => {
-    // Wait until the Firestore subscription has delivered at least once —
+    // Wait until the Firestore subscription has delivered at least once -
     // otherwise `lists=[]` at first paint would look like "default deleted"
     // and we'd wipe the pref the user just set.
     if (!initialized) return;
@@ -216,6 +311,24 @@ watch(
       >
         <BarChart3 :size="20" :stroke-width="2" aria-hidden="true" />
         <span class="text-sm font-medium">{{ t('stats.openButton') }}</span>
+      </button>
+      <button
+        type="button"
+        :aria-label="t('notifications.title')"
+        data-testid="open-notifications"
+        class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        @click="openNotifications"
+      >
+        <span class="relative inline-flex !overflow-visible mr-1">
+          <Bell :size="20" :stroke-width="2" aria-hidden="true" />
+          <span
+            v-if="notifications.count.value > 0"
+            data-testid="notifications-badge"
+            :aria-label="t('notifications.badgeAria')"
+            class="block absolute -top-1 -left-1 w-2 h-2 rounded-full bg-primary shrink-0"
+          />
+        </span>
+        <span class="text-sm font-medium">{{ t('notifications.button') }}</span>
       </button>
       <button
         :aria-label="t('settings.title')"
@@ -322,18 +435,30 @@ watch(
           <p class="text-sm text-muted-gray">{{ t('list.noListsHint') }}</p>
         </div>
 
-        <TransitionGroup v-else key="cards" name="list-card" tag="div" class="space-y-3">
+        <VueDraggable
+          v-else
+          v-model="draggableLists"
+          key="cards"
+          tag="div"
+          class="space-y-3"
+          :animation="200"
+          :delay="300"
+          :delay-on-touch-only="true"
+          :touch-start-threshold="5"
+          :disabled="draggableLists.length <= 1"
+          ghost-class="list-card-ghost"
+          @end="onReorder"
+        >
           <ListCard
-            v-for="list in listsStore.lists"
+            v-for="list in draggableLists"
             :key="list.id"
             :list="list"
-            :is-new="authStore.user ? listsStore.isNewForUser(list, authStore.user.uid) : false"
             :is-default="defaultListId === list.id"
             :members="profilesFor(list.collaboratorUids)"
             @open="openList"
             @toggle-default="handleToggleDefault"
           />
-        </TransitionGroup>
+        </VueDraggable>
       </Transition>
     </section>
 
@@ -345,6 +470,15 @@ watch(
       :message="toastMessage"
       :duration-ms="3500"
       @close="toastOpen = false"
+    />
+
+    <OnboardingTour v-if="showOnboarding" @done="dismissOnboarding" />
+
+    <NotificationsPopover
+      :open="notificationsOpen"
+      :items="notificationsView"
+      @close="closeNotifications"
+      @open-list="handleNotificationOpenList"
     />
   </main>
 </template>
@@ -376,6 +510,12 @@ watch(
 .state-fade-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+/* S3.4: while a card is being dragged, the original slot keeps its shape but
+   fades to a low-contrast placeholder so the user sees where it will land. */
+.list-card-ghost {
+  opacity: 0.4;
+  transform: scale(0.98);
 }
 @media (prefers-reduced-motion: reduce) {
   .list-card-enter-active,

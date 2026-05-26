@@ -49,6 +49,28 @@ export const useCatalogStore = defineStore('catalog', () => {
     };
   };
 
+  /**
+   * Resolve a category from a raw, free-text item name. Used by the bulk-paste
+   * flow to give each pasted row a best-guess category without forcing the
+   * user to set one manually.
+   *
+   * Order of preference:
+   *  1. Exact (normalized) match in the user's catalog
+   *  2. Exact match in the public catalog for the given locale
+   *  3. Fallback to `other`
+   */
+  const inferCategoryForName = (name: string, locale: string): Category => {
+    const norm = normalizeName(name);
+    if (!norm) return 'other';
+    const userMatch = entries.value.find((e) => normalizeName(e.name) === norm);
+    if (userMatch) return userMatch.category;
+    const publicMatch = PUBLIC_CATALOG.find(
+      (e) => normalizeName(getPublicCatalogName(e, locale)) === norm,
+    );
+    if (publicMatch) return publicMatch.category;
+    return 'other';
+  };
+
   const suggestionsFor = (query: string, locale: string, limit = 12): Suggestion[] => {
     const normQ = normalizeName(query);
     const seen = new Set<string>();
@@ -111,5 +133,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     error,
     subscribe,
     suggestionsFor,
+    inferCategoryForName,
   };
 });

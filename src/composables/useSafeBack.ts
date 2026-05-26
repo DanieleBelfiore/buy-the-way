@@ -9,7 +9,7 @@ let committedInAppNavs = 0;
 
 /**
  * Register a router afterEach that counts only committed *in-app* navigations
- * (i.e. those where `from.name` is defined — not the synthetic START_LOCATION
+ * (i.e. those where `from.name` is defined - not the synthetic START_LOCATION
  * that Vue Router uses for the initial nav or for boot-redirect targets).
  *
  * Call this once in main.ts after `createRouter`.
@@ -23,7 +23,7 @@ export const installSafeBackTracker = (router: Router): void => {
 };
 
 /**
- * Test-only escape hatch — resets the module counter between tests so each
+ * Test-only escape hatch - resets the module counter between tests so each
  * `useSafeBack` run starts from a known state.
  */
 export const __resetSafeBackForTests = (): void => {
@@ -38,7 +38,7 @@ export const __resetSafeBackForTests = (): void => {
  * here via a deep link, a boot redirect (e.g. the default-list redirect that
  * fires on refresh), or any other entry that didn't go through an in-app
  * navigation, `router.back()` would pop the browser history back to whatever
- * the user had open before — typically the wrong page or even another site.
+ * the user had open before - typically the wrong page or even another site.
  * In that case we push the caller-supplied fallback route instead.
  *
  * Usage:

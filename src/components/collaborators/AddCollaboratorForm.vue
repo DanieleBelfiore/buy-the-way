@@ -13,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   added: [UserProfile];
-  /** Fired when the invited email isn't registered yet — host can show a share-the-app prompt. */
+  /** Fired when the invited email isn't registered yet - host can show a share-the-app prompt. */
   pending: [string];
 }>();
 

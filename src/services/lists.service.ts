@@ -20,7 +20,9 @@ import { newId } from '@/domain/id';
 import { findUserByEmail } from '@/services/users.service';
 import { isWallpaper, pickRandomWallpaper } from '@/domain/wallpapers';
 import { capitalizeInitial } from '@/domain/text';
-import type { List, UserProfile } from '@/domain/types';
+import { notifyListEvent } from '@/services/notify.service';
+import { purgeItemPhotoStorage } from '@/services/itemPhotos.service';
+import type { Category, List, UserProfile } from '@/domain/types';
 
 export class UserNotFoundError extends Error {
   constructor(email: string) {
@@ -95,11 +97,75 @@ export const createList = async (
     admins: [ownerUid],
     itemCount: 0,
     wallpaper: pickRandomWallpaper(),
+    // S3.4: seed with `now` so newly created lists float to the top of the
+    // user's overview by default. User-driven reorders override this.
+    sortIndex: now,
     createdAt: now,
     updatedAt: now,
   };
   await setDoc(doc(db, 'lists', id), listData);
   return id;
+};
+
+/**
+ * S3.4: update a list's sortIndex. Used by drag-and-drop reorder.
+ * Higher sortIndex sorts earlier; callers compute the target value based
+ * on neighbouring rows (midpoint between neighbors keeps inserts cheap).
+ */
+export const reorderList = async (
+  listId: string,
+  sortIndex: number,
+): Promise<void> => {
+  await updateDoc(doc(db, 'lists', listId), {
+    sortIndex,
+    updatedAt: Date.now(),
+  });
+};
+
+/**
+ * Persist the per-list category ordering preference. The full new order is
+ * sent (no per-row index math) - category sets are tiny (≤10) so the doc
+ * stays well under any size cap.
+ */
+export const setListCategoryOrder = async (
+  listId: string,
+  order: readonly Category[],
+): Promise<void> => {
+  await updateDoc(doc(db, 'lists', listId), {
+    categoryOrder: [...order],
+    updatedAt: Date.now(),
+  });
+};
+
+/**
+ * Pure helper for the drag-and-drop reorder math. Given the post-move array
+ * and the moved row's new index, returns the sortIndex value to persist.
+ *
+ * Strategy: midpoint between the new neighbours. If only one neighbour
+ * exists (edge of the list), step one above/below it. With no neighbours
+ * (single-list case), fall back to current time so concurrent edits don't
+ * collide.
+ */
+export const computeReorderedSortIndex = (
+  ordered: ReadonlyArray<List>,
+  newIndex: number,
+  now: number = Date.now(),
+): number => {
+  if (newIndex < 0 || newIndex >= ordered.length) return now;
+  const above = ordered[newIndex - 1];
+  const below = ordered[newIndex + 1];
+  const aboveIdx = above?.sortIndex ?? above?.updatedAt;
+  const belowIdx = below?.sortIndex ?? below?.updatedAt;
+
+  if (aboveIdx !== undefined && belowIdx !== undefined) {
+    let target = Math.floor((aboveIdx + belowIdx) / 2);
+    if (target >= aboveIdx) target = aboveIdx - 1;
+    if (target <= belowIdx) target = belowIdx + 1;
+    return target;
+  }
+  if (aboveIdx !== undefined) return aboveIdx - 1;
+  if (belowIdx !== undefined) return belowIdx + 1;
+  return now;
 };
 
 export const setListWallpaper = async (
@@ -123,6 +189,11 @@ export const subscribeUserLists = (
   onChange: (lists: List[]) => void,
   onError: (err: Error) => void,
 ): (() => void) => {
+  // S3.4: sort by `updatedAt desc` on the server. The user-controlled
+  // `sortIndex` is applied client-side after the snapshot arrives so we
+  // don't have to deploy a second composite index just for sorted reads;
+  // tiebreak on `updatedAt` keeps deterministic ordering when two lists
+  // share the same sortIndex (e.g. legacy docs with no sortIndex at all).
   const q = query(
     collection(db, 'lists'),
     where('collaboratorUids', 'array-contains', uid),
@@ -133,10 +204,18 @@ export const subscribeUserLists = (
   return onSnapshot(
     q,
     (snapshot) => {
-      const lists = snapshot.docs.map(
+      const raw = snapshot.docs.map(
         (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as List,
       );
-      onChange(lists);
+      // Stable secondary sort by sortIndex (falling back to updatedAt so
+      // legacy docs land in their original updatedAt-driven order).
+      const sorted = [...raw].sort((a, b) => {
+        const ai = a.sortIndex ?? a.updatedAt;
+        const bi = b.sortIndex ?? b.updatedAt;
+        if (bi !== ai) return bi - ai;
+        return b.updatedAt - a.updatedAt;
+      });
+      onChange(sorted);
     },
     (error) => onError(error as Error),
   );
@@ -168,10 +247,18 @@ export const addCollaborator = async (
       pendingInviteEmails: arrayRemove(normalized),
       updatedAt: Date.now(),
     });
+    // S4.1: notify the existing collaborators that the list has a new
+    // member. The server templates the body from `targetUid` (reading the
+    // new collaborator's displayName itself - we never pass strings).
+    void notifyListEvent({
+      listId,
+      kind: 'collaborator-added',
+      targetUid: profile.uid,
+    });
     return { profile, pending: false, email: normalized };
   }
 
-  // Not registered yet — queue the invite. The auth-side claim step will
+  // Not registered yet - queue the invite. The auth-side claim step will
   // promote this to a real collaboratorUid when the user signs up.
   await updateDoc(doc(db, 'lists', listId), {
     pendingInviteEmails: arrayUnion(normalized),
@@ -187,7 +274,7 @@ export const addCollaborator = async (
  * `pendingInviteEmails`, swaps it for their uid in `collaboratorUids`, and
  * removes the email from the pending array.
  *
- * Failures are logged but never thrown — the user can still use the app
+ * Failures are logged but never thrown - the user can still use the app
  * without their pending lists, and the claim retries on the next sign-in.
  */
 export const claimPendingInvites = async (
@@ -361,7 +448,7 @@ export const demoteAdmin = async (
 ): Promise<void> => {
   const snap = await loadListSnapshot(listId);
   const current = [...adminsOf(snap)];
-  if (!current.includes(targetUid)) return; // Already not an admin — no-op.
+  if (!current.includes(targetUid)) return; // Already not an admin - no-op.
   const remaining = current.filter((u) => u !== targetUid);
   if (remaining.length === 0) throw new LastAdminError();
 
@@ -385,11 +472,33 @@ export const demoteAdmin = async (
 const DELETE_BATCH_SIZE = 500;
 
 export const deleteList = async (listId: string): Promise<void> => {
-  // Delete the list document FIRST so a mid-cascade failure leaves orphan
-  // items that are unreachable via the UI (no parent list to navigate to)
-  // rather than a list doc that appears intact but is half-emptied. A
-  // maintenance sweep can purge orphans server-side; the user-facing state
-  // is consistent immediately.
+  // I1: Storage cascade has to run BEFORE the list doc disappears, because
+  // `storage.rules` consult the parent list's collaboratorUids to authorise
+  // deletes. After this step the items + list doc go in whatever order.
+  let itemIdsWithPhotos: string[] = [];
+  try {
+    const itemsCol = collection(db, 'lists', listId, 'items');
+    const snap = await getDocs(itemsCol);
+    itemIdsWithPhotos = snap.docs
+      .filter((d) => {
+        const data = d.data() as { photoURL?: string; thumbURL?: string };
+        return Boolean(data.photoURL || data.thumbURL);
+      })
+      .map((d) => d.id);
+    await Promise.all(
+      itemIdsWithPhotos.map((id) =>
+        purgeItemPhotoStorage(listId, id).catch((err) => {
+          console.warn('[lists] deleteList: storage cascade failed for', id, err);
+        }),
+      ),
+    );
+  } catch (err) {
+    console.warn('[lists] deleteList: photo discovery failed (continuing):', err);
+  }
+
+  // Delete the list document so a mid-cascade failure leaves orphan items
+  // that are unreachable via the UI (no parent list to navigate to) rather
+  // than a list doc that appears intact but is half-emptied.
   await deleteDoc(doc(db, 'lists', listId));
 
   try {

@@ -39,6 +39,10 @@ vi.mock('@/services/listFavorites.service', () => ({
 import {
   subscribeItems,
   addItem,
+  bulkAddItems,
+  bulkRemoveItems,
+  bulkCopyItems,
+  bulkMoveItems,
   toggleChecked,
   removeItem,
   emptyList,
@@ -192,7 +196,7 @@ describe('items.service', () => {
   });
 
   describe('addItem itemCount bump', () => {
-    it('increments list itemCount via batch.update on add (same batch as item write — I5)', async () => {
+    it('increments list itemCount via batch.update on add (same batch as item write - I5)', async () => {
       await addItem(defaultAddParams);
       expect(batchUpdate).toHaveBeenCalled();
       const payloads = batchUpdate.mock.calls.map(([, data]) => data as Record<string, unknown>);
@@ -356,7 +360,7 @@ describe('items.service', () => {
       expect(batchCommit).toHaveBeenCalledOnce();
     });
 
-    it('handles 500 items as two batches (499 + 1) — Firestore 500-op cap leaves no room', async () => {
+    it('handles 500 items as two batches (499 + 1) - Firestore 500-op cap leaves no room', async () => {
       const ids = mkIds(500);
       await emptyList(listId, ids);
       expect(writeBatchMock).toHaveBeenCalledTimes(2);
@@ -378,6 +382,195 @@ describe('items.service', () => {
       await emptyList(listId, ids);
       expect(writeBatchMock).toHaveBeenCalledTimes(3);
       expect(batchCommit).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('bulkAddItems (I5-style atomic batching)', () => {
+    const mkRows = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        name: `Item ${i}`,
+        category: 'other' as const,
+      }));
+
+    it('no-ops on empty input (no firestore writes)', async () => {
+      const ids = await bulkAddItems({ listId, rows: [], createdByUid: 'uid-1' });
+      expect(ids).toEqual([]);
+      expect(writeBatchMock).not.toHaveBeenCalled();
+    });
+
+    it('puts every item AND the itemCount bump into a single batch for ≤499 rows', async () => {
+      const ids = await bulkAddItems({
+        listId,
+        rows: mkRows(3),
+        createdByUid: 'uid-1',
+      });
+      expect(ids).toHaveLength(3);
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchSet).toHaveBeenCalledTimes(3);
+      expect(batchUpdate).toHaveBeenCalledOnce();
+      const [, payload] = batchUpdate.mock.calls[0]!;
+      expect((payload as any).itemCount).toEqual({ __increment: 3 });
+      expect(batchCommit).toHaveBeenCalledOnce();
+    });
+
+    it('splits exactly at the 499-row boundary into two batches', async () => {
+      await bulkAddItems({
+        listId,
+        rows: mkRows(500),
+        createdByUid: 'uid-1',
+      });
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
+      expect(batchSet).toHaveBeenCalledTimes(500);
+      expect(batchUpdate).toHaveBeenCalledTimes(2);
+      // First batch increments by 499, second by 1.
+      const increments = batchUpdate.mock.calls.map((c) => (c[1] as any).itemCount);
+      expect(increments).toEqual(
+        expect.arrayContaining([{ __increment: 499 }, { __increment: 1 }]),
+      );
+    });
+
+    it('capitalises names + notes', async () => {
+      await bulkAddItems({
+        listId,
+        rows: [
+          { name: 'pane', category: 'bakery', note: 'biologico' },
+          { name: 'Latte', category: 'dairy', note: 'Manitoba' },
+        ],
+        createdByUid: 'uid-1',
+      });
+      const writes = batchSet.mock.calls.map((c) => c[1] as any);
+      expect(writes[0].name).toBe('Pane');
+      expect(writes[0].note).toBe('Biologico');
+      expect(writes[1].name).toBe('Latte');
+      expect(writes[1].note).toBe('Manitoba');
+    });
+
+    it('forwards each row to catalog + favorite upserts after commit (best-effort)', async () => {
+      await bulkAddItems({
+        listId,
+        rows: [
+          { name: 'mela', category: 'fruit_vegetables' },
+          { name: 'pane', category: 'bakery' },
+        ],
+        createdByUid: 'uid-1',
+      });
+      expect(upsertCatalogEntry).toHaveBeenCalledTimes(2);
+      expect(upsertCatalogEntry).toHaveBeenCalledWith('uid-1', 'Mela', 'fruit_vegetables');
+      expect(upsertCatalogEntry).toHaveBeenCalledWith('uid-1', 'Pane', 'bakery');
+      expect(upsertListFavorite).toHaveBeenCalledTimes(2);
+    });
+
+    it('swallows catalog/favorite errors so item writes remain authoritative', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(upsertCatalogEntry).mockRejectedValueOnce(new Error('quota'));
+      vi.mocked(upsertListFavorite).mockRejectedValueOnce(new Error('quota'));
+      await expect(
+        bulkAddItems({
+          listId,
+          rows: [{ name: 'Mela', category: 'fruit_vegetables' }],
+          createdByUid: 'uid-1',
+        }),
+      ).resolves.toBeDefined();
+      warn.mockRestore();
+    });
+  });
+
+  describe('bulkRemoveItems (S3.2)', () => {
+    it('no-ops on empty input', async () => {
+      await bulkRemoveItems(listId, []);
+      expect(writeBatchMock).not.toHaveBeenCalled();
+    });
+
+    it('chunks at 499 deletes per batch and decrements itemCount in same batch', async () => {
+      const ids = Array.from({ length: 500 }, (_, i) => `01ARZ3NDEKTSV4RRFFQ69G5${String(i).padStart(3, '0')}`) as ULID[];
+      await bulkRemoveItems(listId, ids);
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
+      expect(batchDelete).toHaveBeenCalledTimes(500);
+      expect(batchUpdate).toHaveBeenCalledTimes(2);
+      const increments = batchUpdate.mock.calls.map((c) => (c[1] as any).itemCount);
+      expect(increments).toEqual(
+        expect.arrayContaining([{ __increment: -499 }, { __increment: -1 }]),
+      );
+    });
+  });
+
+  describe('bulkCopyItems (S3.2)', () => {
+    const baseItem: Item = {
+      id: '01SRC1' as ULID,
+      listId,
+      name: 'Latte',
+      quantity: '1L',
+      category: 'dairy',
+      note: '',
+      checked: false,
+      createdByUid: 'uid-1',
+      createdAt: 1,
+      updatedAt: 1,
+    };
+
+    it('no-ops on empty input', async () => {
+      const ids = await bulkCopyItems([], '01DST' as ULID, 'uid-1');
+      expect(ids).toEqual([]);
+      expect(writeBatchMock).not.toHaveBeenCalled();
+    });
+
+    it('writes one item per row + a single dst itemCount bump per batch', async () => {
+      const items: Item[] = [baseItem, { ...baseItem, id: '01SRC2' as ULID, name: 'Pane', category: 'bakery' }];
+      const ids = await bulkCopyItems(items, '01DST' as ULID, 'uid-1');
+      expect(ids).toHaveLength(2);
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchSet).toHaveBeenCalledTimes(2);
+      expect(batchUpdate).toHaveBeenCalledOnce();
+      const [, payload] = batchUpdate.mock.calls[0]!;
+      expect((payload as any).itemCount).toEqual({ __increment: 2 });
+    });
+
+    it('forwards every copied row to catalog + favorite upserts (best-effort)', async () => {
+      await bulkCopyItems([baseItem], '01DST' as ULID, 'uid-1');
+      expect(upsertCatalogEntry).toHaveBeenCalledWith('uid-1', 'Latte', 'dairy');
+      expect(upsertListFavorite).toHaveBeenCalledWith('01DST', 'Latte', 'dairy');
+    });
+  });
+
+  describe('bulkMoveItems (S3.2)', () => {
+    const src = '01SRCLIST' as ULID;
+    const dst = '01DSTLIST' as ULID;
+    const sample = (id: string): Item => ({
+      id: id as ULID,
+      listId: src,
+      name: 'X',
+      quantity: '',
+      category: 'other',
+      note: '',
+      checked: false,
+      createdByUid: 'uid-1',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+
+    it('no-ops on empty input', async () => {
+      const ids = await bulkMoveItems(src, [], dst, 'uid-1');
+      expect(ids).toEqual([]);
+      expect(writeBatchMock).not.toHaveBeenCalled();
+    });
+
+    it('per batch: N set + N delete + 2 list updates (src - / dst +)', async () => {
+      const items = [sample('01A'), sample('01B'), sample('01C')];
+      await bulkMoveItems(src, items, dst, 'uid-1');
+      expect(writeBatchMock).toHaveBeenCalledOnce();
+      expect(batchSet).toHaveBeenCalledTimes(3);
+      expect(batchDelete).toHaveBeenCalledTimes(3);
+      expect(batchUpdate).toHaveBeenCalledTimes(2);
+      const increments = batchUpdate.mock.calls.map((c) => (c[1] as any).itemCount);
+      expect(increments).toEqual(
+        expect.arrayContaining([{ __increment: 3 }, { __increment: -3 }]),
+      );
+    });
+
+    it('chunks at 249 items per batch to respect the 500-op cap', async () => {
+      const items = Array.from({ length: 250 }, (_, i) => sample(`01${String(i).padStart(4, '0')}`));
+      await bulkMoveItems(src, items, dst, 'uid-1');
+      expect(writeBatchMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -485,7 +678,7 @@ describe('items.service', () => {
     });
 
     it('copies even when an item with the same name already exists in destination (duplicates allowed)', async () => {
-      // No duplicate-check query is performed anymore — the call must succeed
+      // No duplicate-check query is performed anymore - the call must succeed
       // regardless of pre-existing items with the same name.
       await copyItem(sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
       expect(batchSet).toHaveBeenCalledOnce();

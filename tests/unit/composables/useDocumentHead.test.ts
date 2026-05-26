@@ -19,7 +19,7 @@ const buildI18n = (locale: 'it' | 'en' = 'it') =>
       it: {
         seo: {
           about: {
-            title: 'Buy The Way — Liste della spesa condivise',
+            title: 'Buy The Way - Liste della spesa condivise',
             description: 'Liste della spesa condivise in tempo reale.',
           },
         },
@@ -27,7 +27,7 @@ const buildI18n = (locale: 'it' | 'en' = 'it') =>
       en: {
         seo: {
           about: {
-            title: 'Buy The Way — Shared shopping lists',
+            title: 'Buy The Way - Shared shopping lists',
             description: 'Shared shopping lists in real time.',
           },
         },
@@ -58,7 +58,7 @@ describe('useDocumentHead', () => {
       meta: Array<{ name?: string; property?: string; content: () => string }>;
       htmlAttrs: { lang: () => string };
     };
-    expect(arg.title()).toBe('Buy The Way — Liste della spesa condivise');
+    expect(arg.title()).toBe('Buy The Way - Liste della spesa condivise');
     expect(arg.htmlAttrs.lang()).toBe('it');
     const desc = arg.meta.find((m) => m.name === 'description');
     expect(desc?.content()).toBe('Liste della spesa condivise in tempo reale.');
@@ -74,10 +74,10 @@ describe('useDocumentHead', () => {
       title: () => string;
       htmlAttrs: { lang: () => string };
     };
-    expect(arg.title()).toBe('Buy The Way — Liste della spesa condivise');
+    expect(arg.title()).toBe('Buy The Way - Liste della spesa condivise');
     (i18n.global.locale as { value: string }).value = 'en';
     await nextTick();
-    expect(arg.title()).toBe('Buy The Way — Shared shopping lists');
+    expect(arg.title()).toBe('Buy The Way - Shared shopping lists');
     expect(arg.htmlAttrs.lang()).toBe('en');
   });
 
@@ -89,9 +89,9 @@ describe('useDocumentHead', () => {
     const ogTitle = arg.meta.find((m) => m.property === 'og:title');
     const ogDesc = arg.meta.find((m) => m.property === 'og:description');
     const twTitle = arg.meta.find((m) => m.name === 'twitter:title');
-    expect(ogTitle?.content()).toBe('Buy The Way — Liste della spesa condivise');
+    expect(ogTitle?.content()).toBe('Buy The Way - Liste della spesa condivise');
     expect(ogDesc?.content()).toBe('Liste della spesa condivise in tempo reale.');
-    expect(twTitle?.content()).toBe('Buy The Way — Liste della spesa condivise');
+    expect(twTitle?.content()).toBe('Buy The Way - Liste della spesa condivise');
   });
 
   it('uses ogImage override when provided', () => {

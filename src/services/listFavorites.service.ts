@@ -113,7 +113,7 @@ export const findListFavoriteByName = async (
  * Ensure a per-list favorite doc exists for `name` and return its slug. If
  * the doc is missing (legacy list, or a row whose source row was created
  * before per-list favorites shipped) a fresh doc is created with
- * `usageCount: 0` — distinct from `upsertListFavorite`, which is the
+ * `usageCount: 0` - distinct from `upsertListFavorite`, which is the
  * add-item path and bumps the count. Use this when the user is acting on
  * the favorite directly (e.g. tapping the star) without adding a new row.
  */

@@ -31,7 +31,7 @@ service cloud.firestore {
     }
 
     // True when the signed-in user has been invited by email but hasn't yet
-    // claimed the list — used to grant the minimum read/update they need to
+    // claimed the list - used to grant the minimum read/update they need to
     // promote themselves into collaboratorUids on first sign-in.
     function isPendingInvitee(listData) {
       return isSignedIn()
@@ -44,7 +44,7 @@ service cloud.firestore {
     // Public top-level doc holds ONLY the fields cross-user reads need
     // (uid, email, displayName, photoURL). Activity metadata and
     // preferences (lastLoginAt, lastSeenLists, lastSeenListMap,
-    // defaultListId) live in `users/{userId}/private/state` — owner only.
+    // defaultListId) live in `users/{userId}/private/state` - owner only.
     //
     // The list of keys allowed in update affectedKeys() includes the legacy
     // private keys so the one-shot migration in auth.service.ts can strip
@@ -80,10 +80,20 @@ service cloud.firestore {
              ]);
       allow delete: if isSignedIn() && uid() == userId;
 
-      // Owner-only private state. No cross-user reads possible — closes the
+      // Owner-only private state. No cross-user reads possible - closes the
       // PII surface that the top-level `allow get` would otherwise expose.
       match /private/{docId} {
         allow read, write, delete: if isSignedIn() && uid() == userId;
+      }
+
+      // In-app notifications inbox. Server-only writes via the admin SDK
+      // (bypasses rules); the recipient can read + delete their own docs
+      // (the popover render-then-purge flow batch-deletes everything it
+      // shows). No client writes allowed - a collaborator can never spoof
+      // a notification into another user's inbox.
+      match /notifications/{notifId} {
+        allow read, delete: if isSignedIn() && uid() == userId;
+        allow write: if false;
       }
     }
 
@@ -107,17 +117,21 @@ service cloud.firestore {
         && request.resource.data.wallpaper is string
         && request.resource.data.createdAt is number
         && request.resource.data.updatedAt is number
-        && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'showFavorites']);
+        && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'showFavorites', 'sortIndex', 'categoryOrder']);
 
       allow update: if isSignedIn() && (
         // Admin update: may touch any of the privileged fields. createdAt is
         // immutable. After the write the list must keep at least one admin
-        // (drop-last-admin protection — enforced here so a buggy client can't
-        // brick a shared list).
+        // (drop-last-admin protection - enforced here so a buggy client can't
+        // brick a shared list). categoryOrder, when present, must be a list
+        // capped at 12 entries (the size of CATEGORY_ORDER).
         (
           isListAdmin(resource.data)
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.get('admins', [request.resource.data.ownerUid]).size() >= 1
+          && (!('categoryOrder' in request.resource.data.keys())
+              || (request.resource.data.categoryOrder is list
+                  && request.resource.data.categoryOrder.size() <= 12))
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly([
                'name',
@@ -128,7 +142,9 @@ service cloud.firestore {
                'itemCount',
                'updatedAt',
                'admins',
-               'ownerUid'
+               'ownerUid',
+               'sortIndex',
+               'categoryOrder'
              ])
         )
         // Non-admin self-leave: a collaborator may remove themself from
@@ -148,6 +164,18 @@ service cloud.firestore {
           uid() in resource.data.collaboratorUids
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['itemCount', 'updatedAt'])
+        )
+        // Any collaborator may reorder categories. Shared per-list ordering,
+        // intentionally open to all collaborators - shopping route is shared
+        // physical space and gating it behind admin would be friction. I2:
+        // categoryOrder must be a list with ≤12 entries (CATEGORY_ORDER size)
+        // so a tampered client can't write garbage / oversized payloads.
+        || (
+          uid() in resource.data.collaboratorUids
+          && request.resource.data.categoryOrder is list
+          && request.resource.data.categoryOrder.size() <= 12
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['categoryOrder', 'updatedAt'])
         )
         // Self-claim: an invited user (email in pendingInviteEmails) promotes
         // themselves into collaboratorUids and removes their own email from the
@@ -171,7 +199,7 @@ service cloud.firestore {
 
       allow delete: if isSignedIn() && isListAdmin(resource.data);
 
-      // Items — any collaborator on the parent list.
+      // Items - any collaborator on the parent list.
       match /items/{itemId} {
         // `priority` is optional. When present it must be a known enum value;
         // when absent the write still passes (hasOnly permits a subset).
@@ -196,7 +224,7 @@ service cloud.firestore {
           && request.resource.data.createdAt is number
           && request.resource.data.updatedAt is number
           && validPriority(request.resource.data)
-          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'createdByUid', 'createdAt', 'updatedAt']);
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt']);
         allow update: if isListCollaborator(listId)
           && request.resource.data.id == resource.data.id
           && request.resource.data.listId == resource.data.listId
@@ -211,14 +239,14 @@ service cloud.firestore {
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.createdByUid == resource.data.createdByUid
           && validPriority(request.resource.data)
-          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'createdByUid', 'createdAt', 'updatedAt']);
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt']);
       }
 
-      // Per-list favorite shelf state — any collaborator on the parent list.
+      // Per-list favorite shelf state - any collaborator on the parent list.
       // Holds usage counts + pinned/excluded/dismissedFavorite flags scoped
       // to this list only (no cross-list bleed).
       match /favoriteState/{slug} {
-        // Optional booleans — when present must be bools; when absent OK.
+        // Optional booleans - when present must be bools; when absent OK.
         function validOptionalBool(data, k) {
           return !(k in data.keys()) || data[k] is bool;
         }
@@ -239,7 +267,14 @@ service cloud.firestore {
       }
     }
 
-    // Per-user catalog — owner only.
+    // Rate-limit token buckets. Written only by netlify functions via the
+    // admin SDK (rules bypassed there). Clients must never read or write
+    // these docs directly - locks an attacker out of probing the limiter.
+    match /rateLimits/{docId} {
+      allow read, write: if false;
+    }
+
+    // Per-user catalog - owner only.
     match /catalog/{userId}/entries/{entryId} {
       allow read, delete: if isSignedIn() && uid() == userId;
       allow create, update: if isSignedIn() && uid() == userId

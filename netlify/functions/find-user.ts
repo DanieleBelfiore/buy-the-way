@@ -1,5 +1,6 @@
 import type { Context } from '@netlify/functions';
 import admin from 'firebase-admin';
+import { checkRateLimit, rateLimitedResponse, RATE_LIMITS } from './_lib/rate-limit';
 
 const initAdmin = (): void => {
   if (admin.apps.length > 0) return;
@@ -24,12 +25,31 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
   if (!token) return jsonResponse(401, { error: 'missing_token' });
 
+  let callerUid: string;
   try {
     initAdmin();
-    await admin.auth().verifyIdToken(token);
+    const decoded = await admin.auth().verifyIdToken(token);
+    callerUid = decoded.uid;
   } catch (err) {
     console.warn('[find-user] token verification failed:', err);
     return jsonResponse(401, { error: 'invalid_token' });
+  }
+
+  // S2.1: per-uid rate limit to slow email enumeration. Hard cap at 60/min.
+  // Spend cost is one Firestore transaction (1 read + 1 write on allow,
+  // 1 read on deny) per call, all under the Spark plan budget.
+  try {
+    const decision = await checkRateLimit(
+      callerUid,
+      RATE_LIMITS.findUser.funcName,
+      RATE_LIMITS.findUser.max,
+      RATE_LIMITS.findUser.windowMs,
+    );
+    if (!decision.allowed) return rateLimitedResponse(decision);
+  } catch (err) {
+    // Fail-open if the rate limiter itself is broken: better than wedging
+    // the invite flow for everyone. Logged so the regression is visible.
+    console.warn('[find-user] rate-limit check failed (allowing):', err);
   }
 
   const url = new URL(req.url);

@@ -10,6 +10,11 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     descriptionKey: 'seo.login.description',
     public: true,
   },
+  'email-link-callback': {
+    titleKey: 'seo.login.title',
+    descriptionKey: 'seo.login.description',
+    public: true,
+  },
   about: {
     titleKey: 'seo.about.title',
     descriptionKey: 'seo.about.description',

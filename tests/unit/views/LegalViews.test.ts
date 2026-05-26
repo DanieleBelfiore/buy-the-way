@@ -43,17 +43,18 @@ describe('PrivacyView', () => {
     });
     expect(wrapper.findAll('section[id]').length).toBe(9);
     expect(wrapper.text()).toContain('Data controller');
-    expect(wrapper.text()).toContain('Sentry');
+    expect(wrapper.text()).toContain('Firebase');
+    expect(wrapper.text()).not.toContain('Sentry');
     expect(wrapper.text()).toContain('Delete account');
   });
 
-  it('renders 9 privacy sections in Italian and lists Firebase + Sentry as processors', () => {
+  it('renders 9 privacy sections in Italian and lists Firebase as sole processor', () => {
     const wrapper = mount(PrivacyView, {
       global: { plugins: [buildI18n('it'), buildRouter()] },
     });
     expect(wrapper.findAll('section[id]').length).toBe(9);
     expect(wrapper.text()).toContain('Firebase');
-    expect(wrapper.text()).toContain('Sentry');
+    expect(wrapper.text()).not.toContain('Sentry');
     expect(wrapper.text()).toContain('Elimina account');
   });
 

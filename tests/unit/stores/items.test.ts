@@ -176,4 +176,43 @@ describe('useItemsStore', () => {
       expect(keys.indexOf('dairy')).toBeLessThan(keys.indexOf('other'));
     });
   });
+
+  describe('pending-delete buffer (S3.1)', () => {
+    it('marked item disappears from visibleItems while remaining in items', () => {
+      const store = useItemsStore();
+      store.setCurrentList(listId);
+      capturedOnChange([
+        makeItem({ id: '01A' as ULID, name: 'Latte' }),
+        makeItem({ id: '01B' as ULID, name: 'Pane', category: 'bakery' }),
+      ]);
+      expect(store.visibleItems).toHaveLength(2);
+
+      store.markPendingDelete('01A' as ULID);
+      expect(store.visibleItems).toHaveLength(1);
+      expect(store.visibleItems.map((i) => i.id)).toEqual(['01B']);
+      // Underlying firestore snapshot is untouched.
+      expect(store.items).toHaveLength(2);
+    });
+
+    it('itemsByCategory filters through the buffer', () => {
+      const store = useItemsStore();
+      store.setCurrentList(listId);
+      capturedOnChange([
+        makeItem({ id: '01A' as ULID, category: 'dairy', name: 'Latte' }),
+        makeItem({ id: '01B' as ULID, category: 'dairy', name: 'Burro' }),
+      ]);
+      store.markPendingDelete('01A' as ULID);
+      expect(store.itemsByCategory.get('dairy')?.map((i) => i.id)).toEqual(['01B']);
+    });
+
+    it('unmarkPendingDelete restores the row to visibleItems', () => {
+      const store = useItemsStore();
+      store.setCurrentList(listId);
+      capturedOnChange([makeItem({ id: '01A' as ULID, name: 'Latte' })]);
+      store.markPendingDelete('01A' as ULID);
+      expect(store.visibleItems).toHaveLength(0);
+      store.unmarkPendingDelete('01A' as ULID);
+      expect(store.visibleItems).toHaveLength(1);
+    });
+  });
 });

@@ -41,8 +41,11 @@ const makeItem = (overrides: Partial<Item> = {}): Item => ({
   ...overrides,
 });
 
-const mountRow = (item: Item) =>
-  mount(ListItemRow, { props: { item }, global: { plugins: [i18n] } });
+const mountRow = (item: Item, extraProps: Record<string, unknown> = {}) =>
+  mount(ListItemRow, {
+    props: { item, ...extraProps },
+    global: { plugins: [i18n] },
+  });
 
 describe('ListItemRow', () => {
   it('renders item name', () => {
@@ -122,7 +125,7 @@ describe('ListItemRow', () => {
   describe('long-press removed', () => {
     // Long-press to open the edit sheet was dropped because the per-row
     // Settings icon already covers the same intent visibly. Hold should be
-    // a plain click — no extra emit.
+    // a plain click - no extra emit.
     it('does not emit open-edit on a hold', async () => {
       vi.useFakeTimers();
       const wrapper = mountRow(makeItem());
@@ -130,6 +133,67 @@ describe('ListItemRow', () => {
       await toggle.trigger('pointerdown', { pointerType: 'touch' });
       vi.advanceTimersByTime(1000);
       expect(wrapper.emitted('open-edit')).toBeFalsy();
+      vi.useRealTimers();
+    });
+  });
+
+  describe('S3.2: long-press → select-enter', () => {
+    // jsdom does not let `trigger()` set clientX/clientY on the synthesised
+    // event (the MouseEvent dictionary fields are read-only post-construction).
+    // Dispatch a hand-built PointerEvent so coordinates land in the handler.
+    const firePointer = (el: Element, type: string, x: number, y: number): void => {
+      const ev = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+      el.dispatchEvent(ev);
+    };
+
+    it('emits select-enter after 500ms hold without movement', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountRow(makeItem({ id: '01A' as ULID }));
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      firePointer(toggle.element, 'pointerdown', 100, 100);
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('select-enter')).toBeTruthy();
+      expect((wrapper.emitted('select-enter')![0]![0] as any).id).toBe('01A');
+      vi.useRealTimers();
+    });
+
+    it('cancels the long-press when pointer moves more than 8px', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountRow(makeItem());
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      firePointer(toggle.element, 'pointerdown', 100, 100);
+      firePointer(toggle.element, 'pointermove', 120, 100);
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('select-enter')).toBeFalsy();
+      vi.useRealTimers();
+    });
+
+    it('does not arm the long-press timer when already in selection mode', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountRow(makeItem(), { selectionMode: true });
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      firePointer(toggle.element, 'pointerdown', 100, 100);
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('select-enter')).toBeFalsy();
+      vi.useRealTimers();
+    });
+
+    it('in selection mode, click emits select-toggle (not toggle-checked)', async () => {
+      const wrapper = mountRow(makeItem({ id: '01B' as ULID }), { selectionMode: true });
+      await wrapper.get('[data-testid="row-toggle"]').trigger('click');
+      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
+      expect(wrapper.emitted('select-toggle')).toBeTruthy();
+      expect((wrapper.emitted('select-toggle')![0]![0] as any).id).toBe('01B');
+    });
+
+    it('pointerup clears the timer before it fires', async () => {
+      vi.useFakeTimers();
+      const wrapper = mountRow(makeItem());
+      const toggle = wrapper.get('[data-testid="row-toggle"]');
+      firePointer(toggle.element, 'pointerdown', 100, 100);
+      firePointer(toggle.element, 'pointerup', 100, 100);
+      vi.advanceTimersByTime(500);
+      expect(wrapper.emitted('select-enter')).toBeFalsy();
       vi.useRealTimers();
     });
   });

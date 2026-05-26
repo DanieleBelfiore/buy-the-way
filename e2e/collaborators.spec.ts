@@ -35,7 +35,7 @@ test('add collaborator: unregistered email queues a pending invite', async ({ pa
 
   await page.getByPlaceholder('Email address').fill('ghost@nowhere.test');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
-  // The unregistered email goes into pendingInviteEmails — the chip surfaces
+  // The unregistered email goes into pendingInviteEmails - the chip surfaces
   // it back to the owner. The send-invite email function isn't reachable
   // under the e2e emulator, so we don't assert on the toast outcome here.
   await expect(page.getByTestId('pending-ghost@nowhere.test')).toBeVisible();

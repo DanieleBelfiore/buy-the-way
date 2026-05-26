@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   createList as serviceCreateList,
   subscribeUserLists,
@@ -22,18 +22,35 @@ export const useListsStore = defineStore('lists', () => {
    */
   const lastSeenLists = ref<number>(0);
   const lastSeenListMap = ref<Record<string, number>>({});
+  // S3.1: pending-delete buffer. Same pattern as items store.
+  const pendingDeleteIds = ref<Set<string>>(new Set());
+  const visibleLists = computed(() =>
+    lists.value.filter((l) => !pendingDeleteIds.value.has(l.id)),
+  );
+
+  const markPendingDelete = (id: string): void => {
+    const next = new Set(pendingDeleteIds.value);
+    next.add(id);
+    pendingDeleteIds.value = next;
+  };
+  const unmarkPendingDelete = (id: string): void => {
+    if (!pendingDeleteIds.value.has(id)) return;
+    const next = new Set(pendingDeleteIds.value);
+    next.delete(id);
+    pendingDeleteIds.value = next;
+  };
   /**
    * True once the Firestore subscription has delivered at least one snapshot
    * (success OR failure) in this session. Lets stale-default-list cleanup
    * distinguish "no lists exist" (clear pref) from "we just haven't loaded
-   * yet" (do nothing) — without this, an immediate-mode watch would
+   * yet" (do nothing) - without this, an immediate-mode watch would
    * incorrectly clear the default on the first paint after a refresh.
    */
   const initialized = ref(false);
 
   // Ref-counted singleton subscription. Multiple views can call subscribe()
   // (ListsView, ListDetailView, ListSettingsView, StatsView) but only ONE
-  // Firestore onSnapshot is opened — torn down when the last caller invokes
+  // Firestore onSnapshot is opened - torn down when the last caller invokes
   // its returned unsub. Avoids 3–4x redundant snapshot listens on the same
   // query during normal navigation.
   let _refCount = 0;
@@ -144,11 +161,15 @@ export const useListsStore = defineStore('lists', () => {
 
   return {
     lists,
+    visibleLists,
     loading,
     error,
     lastSeenLists,
     lastSeenListMap,
     initialized,
+    pendingDeleteIds,
+    markPendingDelete,
+    unmarkPendingDelete,
     subscribe,
     loadLastSeen,
     markSeen,

@@ -62,7 +62,7 @@ Rules:
 
 ## Pull requests
 
-- Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md) — it is pre-filled when you open a PR.
+- Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md) - it is pre-filled when you open a PR.
 - Target branch: `main`.
 - Keep PRs focused. One feature or fix per PR.
 - All CI checks must be green before review is requested.
@@ -85,7 +85,7 @@ Rules:
 - Reviews are expected within one working day for PRs marked `ready for review`.
 - Address all `BLOCK` (critical) comments before merging.
 - `WARN` (high) comments should be resolved or explicitly acknowledged.
-- `NOTE` (low/style) comments are optional — the author decides.
+- `NOTE` (low/style) comments are optional - the author decides.
 - Approving a PR means you are comfortable shipping it.
 
 ---
@@ -117,27 +117,50 @@ Match exactly what production code uses: spy on `console.warn` if the code calls
 
 ---
 
-## Firestore rules invariant
+## Firestore + Storage rules invariant
 
-Every task that introduces a new Firestore collection or subcollection must update `firebase/firestore.rules` in the same commit. Firestore is default-deny: a missing rule silently blocks all reads/writes at runtime and is invisible to unit tests.
+Every task that introduces a new Firestore collection / subcollection **or** a new Cloud Storage path must update `firebase/firestore.rules` (or `firebase/storage.rules`) in the same commit. Both backends are default-deny: a missing rule silently blocks all reads/writes at runtime and is invisible to unit tests that mock the SDK. See `.claude/docs/firebase.md` for the per-task checklist.
 
 ---
 
 ## View self-containment
 
-Any view reachable via direct URL (e.g. `/lists/:id`) must subscribe to all required Pinia stores in its own `onMounted`. Never assume a parent view has already mounted and populated shared state — the user may have hard-refreshed or navigated directly.
+Any view reachable via direct URL (e.g. `/lists/:id`) must subscribe to all required Pinia stores in its own `onMounted`. Never assume a parent view has already mounted and populated shared state - the user may have hard-refreshed or navigated directly.
 
 ---
 
 ## Design constraints
 
-These constraints are fixed for v1 and must not be relaxed:
+These constraints are fixed and must not be relaxed:
 
-- **No dark mode** — single direction A (Editorial Cream) only
-- **No Apple sign-in** — Google CTA only
-- **No analytics** — not in v1 or v1.x
-- **No error tracking** — deferred to v1.x
-- **Trash auto-purge: NO** — soft-deleted lists persist indefinitely
+- **No Apple sign-in** - Google + email magic link are the only two providers.
+- **No analytics** - never in v1 or v1.x.
+- **No third-party error monitoring** - Sentry was tried and rolled back; do not reintroduce without an explicit decision.
+- **No soft-delete for lists** - list deletion is immediate hard-delete from List Settings, gated by an irreversible-action confirm modal. Items support Undo via toast countdown, lists do not.
+- **No em-dash `—` (U+2014) anywhere in the repo** - source, tests, i18n strings, comments, docs, commit messages, PR bodies. Use a plain ASCII hyphen `-`, a colon `:`, or split the sentence. Pre-commit check:
+
+  ```bash
+  grep -r "—" --include="*.{ts,vue,json,md,yml,toml,html,css}" . \
+    | grep -v node_modules | grep -v /dist/ | grep -v /coverage/
+  ```
+
+  Must return empty.
+
+- **Free-tier only** - infrastructure choices must stay inside Firebase Spark + Netlify free + Resend free tiers. No paid services without an explicit decision.
+
+### What shipped after the original v1 spec
+
+The following items were initially listed as "out of scope" or "rejected for v1" and are now part of the product. Don't try to remove them based on stale docs:
+
+- Dark theme (system-following default, manual override).
+- Push notifications (FCM Web Push).
+- GDPR data export (JSON download).
+- Item photos (Storage with collaborator-gated rules, client-side compression).
+- Voice + bulk-paste input.
+- Drag-and-drop category reorder, open to all collaborators.
+- Undo delete for single + bulk item removal.
+- Onboarding tour for first-time users.
+- Email magic-link sign-in alongside Google.
 
 ---
 

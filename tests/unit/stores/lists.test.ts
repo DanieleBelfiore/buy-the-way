@@ -263,4 +263,34 @@ describe('useListsStore', () => {
       expect(store.isNewForUser(list, 'uid-1')).toBe(true);
     });
   });
+
+  describe('pending-delete buffer (S3.1)', () => {
+    it('marked id disappears from visibleLists while remaining in lists', () => {
+      const store = useListsStore();
+      store.lists = [
+        { id: 'L1', name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 1 } as any,
+        { id: 'L2', name: 'B', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 1 } as any,
+      ];
+      expect(store.visibleLists).toHaveLength(2);
+      store.markPendingDelete('L1');
+      expect(store.visibleLists.map((l) => l.id)).toEqual(['L2']);
+      expect(store.lists).toHaveLength(2);
+    });
+
+    it('unmarkPendingDelete restores the row', () => {
+      const store = useListsStore();
+      store.lists = [{ id: 'L1', name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 1 } as any];
+      store.markPendingDelete('L1');
+      expect(store.visibleLists).toHaveLength(0);
+      store.unmarkPendingDelete('L1');
+      expect(store.visibleLists).toHaveLength(1);
+    });
+
+    it('unmarkPendingDelete is a no-op when the id is not pending (avoids spurious set churn)', () => {
+      const store = useListsStore();
+      const before = store.pendingDeleteIds;
+      store.unmarkPendingDelete('never-seen');
+      expect(store.pendingDeleteIds).toBe(before);
+    });
+  });
 });

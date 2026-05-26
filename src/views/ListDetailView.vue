@@ -10,6 +10,7 @@ import { useCatalogStore } from '@/stores/catalog';
 import { useListFavoritesStore } from '@/stores/listFavorites';
 import {
   addItem,
+  bulkAddItems,
   toggleChecked,
   removeItem,
   emptyList,
@@ -17,6 +18,9 @@ import {
   setItemPriority,
   copyItem,
   moveItem,
+  bulkRemoveItems,
+  bulkCopyItems,
+  bulkMoveItems,
 } from '@/services/items.service';
 import {
   setListFavoriteExcluded,
@@ -27,11 +31,17 @@ import {
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { CATEGORIES } from '@/domain/categories';
 import { isCustomItemName } from '@/domain/public-catalog';
-import { sortCategoriesByLabel } from '@/domain/sort';
+import { sortCategoriesWithPreference } from '@/domain/sort';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
-import { ArrowLeft, Settings as SettingsIcon, Share2 } from '@lucide/vue';
+import { ArrowLeft, Settings as SettingsIcon, Share2, ClipboardPaste, Mic } from '@lucide/vue';
 import { getUsersByUids } from '@/services/users.service';
+import { notifyListEvent } from '@/services/notify.service';
 import { useSafeBack } from '@/composables/useSafeBack';
+import { useUndoDelete } from '@/composables/useUndoDelete';
+import { useBulkSelection } from '@/composables/useBulkSelection';
+import { VueDraggable } from 'vue-draggable-plus';
+import { setListCategoryOrder } from '@/services/lists.service';
+import { Undo2, X as XIcon, Trash2 as Trash2Icon, ArrowRightLeft as MoveIcon, Flag as FlagIcon } from '@lucide/vue';
 import type { UserProfile } from '@/domain/types';
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import CategorySection from '@/components/list/CategorySection.vue';
@@ -40,6 +50,8 @@ import EmptyListButton from '@/components/list/EmptyListButton.vue';
 import ItemEditSheet from '@/components/list/ItemEditSheet.vue';
 import ListPickerSheet from '@/components/list/ListPickerSheet.vue';
 import PriorityPickerSheet from '@/components/list/PriorityPickerSheet.vue';
+import BulkPasteSheet from '@/components/list/BulkPasteSheet.vue';
+import VoiceAddSheet from '@/components/list/VoiceAddSheet.vue';
 import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import Toast from '@/components/ui/Toast.vue';
@@ -48,6 +60,7 @@ import {
   deleteCatalogEntry,
   findCatalogEntryByName,
 } from '@/services/catalog.service';
+import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import type { Category, Item, ItemPriority, ListFavoriteState } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -65,17 +78,69 @@ const list = computed(() => listsStore.lists.find((l) => l.id === listId.value))
 const itemsByCategory = computed<[Category, Item[]][]>(() => {
   const map = itemsStore.itemsByCategory;
   const present = [...map.keys()];
-  const sorted = sortCategoriesByLabel(present, (c) => t(CATEGORIES[c].labelKey), locale.value);
+  // Per-list preferred ordering (admin-set drag-and-drop) wins; unfamiliar
+  // categories tail-append in alphabetic order so newly-introduced
+  // categories never disappear when the preferred order pre-dates them.
+  const sorted = sortCategoriesWithPreference(
+    present,
+    list.value?.categoryOrder,
+    (c) => t(CATEGORIES[c].labelKey),
+    locale.value,
+  );
   return sorted.map((c) => [c, map.get(c)!] as [Category, Item[]]);
 });
-const hasItems = computed(() => itemsStore.items.length > 0);
+// S3.1: count from visibleItems (excludes pending-delete buffer) so the
+// header counters reflect what the user sees, not the raw firestore snapshot.
+const hasItems = computed(() => itemsStore.visibleItems.length > 0);
 const shelfEntries = computed(() => listFavoritesStore.rankedEntries);
 const shelfTopSlugs = computed<Set<string>>(
   () => new Set(listFavoritesStore.rankedEntries.slice(0, 2).map((e) => e.slug)),
 );
-const itemCount = computed(() => itemsStore.items.length);
-const boughtCount = computed(() => itemsStore.items.filter((i) => i.checked).length);
+const itemCount = computed(() => itemsStore.visibleItems.length);
+const boughtCount = computed(() => itemsStore.visibleItems.filter((i) => i.checked).length);
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
+
+// Category-reorder is intentionally open to every collaborator (shared
+// per-list ordering, mirrors itemCount writes). The firestore rule mirrors
+// this on the server.
+const canReorderCategories = computed(() =>
+  authStore.user
+    ? (list.value?.collaboratorUids ?? []).includes(authStore.user.uid)
+    : false,
+);
+
+// VueDraggable mutates an internal copy. We surface the model via a getter
+// that always reflects the latest derived order; writes are ignored - the
+// `@end` handler computes the new order and persists it instead.
+const draggableCategoryPairs = computed<[Category, Item[]][]>({
+  get: () => itemsByCategory.value,
+  set: () => {
+    // No-op: order persisted server-side via onCategoryReorder.
+  },
+});
+
+interface CategorySortableEvent {
+  oldIndex?: number;
+  newIndex?: number;
+}
+
+const onCategoryReorder = async (e: CategorySortableEvent): Promise<void> => {
+  if (!canReorderCategories.value) return;
+  const { oldIndex, newIndex } = e;
+  if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+  const current = itemsByCategory.value.map(([c]) => c);
+  if (newIndex < 0 || newIndex >= current.length) return;
+  const moved = current[oldIndex];
+  if (!moved) return;
+  const post = [...current];
+  post.splice(oldIndex, 1);
+  post.splice(newIndex, 0, moved);
+  try {
+    await setListCategoryOrder(listId.value, post);
+  } catch (err) {
+    console.warn('[ListDetailView] setListCategoryOrder failed:', err);
+  }
+};
 
 // Collaborator avatars (loaded lazily as list resolves)
 const profileMap = ref<Map<string, UserProfile>>(new Map());
@@ -215,7 +280,7 @@ const handleShareList = async (): Promise<void> => {
 
 const celebrationKey = ref(0);
 const wasComplete = ref(false);
-// Armed once we observe a non-complete state with items present — prevents
+// Armed once we observe a non-complete state with items present - prevents
 // celebrating on initial load when a list happens to already be all-checked.
 const everHadIncompleteItems = ref(false);
 watch(
@@ -235,7 +300,12 @@ const { isCollapsed, toggle: toggleCollapsed, expandIfCollapsed } = useCollapsed
   computed(() => String(listId.value)),
 );
 
-const editingItem = ref<Item | null>(null);
+const editingItemId = ref<string | null>(null);
+const editingItem = computed<Item | null>(() => {
+  const id = editingItemId.value;
+  if (!id) return null;
+  return itemsStore.items.find((i) => i.id === id) ?? null;
+});
 const editSheetOpen = computed(() => editingItem.value !== null);
 const editingPinned = ref(false);
 
@@ -263,27 +333,36 @@ const handleRequestPriority = (item: Item): void => {
   priorityItem.value = item;
 };
 
-const handlePrioritySelect = async (priority: ItemPriority | null): Promise<void> => {
-  const target = priorityItem.value;
+const handlePrioritySelect = async (p: ItemPriority | null): Promise<void> => {
+  const item = priorityItem.value;
   priorityItem.value = null;
-  if (!target) return;
-  try {
-    await setItemPriority(listId.value, target.id, priority);
+  if (bulkPriorityMode.value) {
+    bulkPriorityMode.value = false;
+    const targets = bulkSel.snapshot();
+    bulkSel.exit();
     pulse();
-  } catch (err) {
-    console.error('[ListDetailView] setItemPriority failed:', err);
+    await Promise.all(targets.map((id) => setItemPriority(listId.value, id, p)));
+  } else {
+    if (!item) return;
+    try {
+      await setItemPriority(listId.value, item.id, p);
+      pulse();
+    } catch (err) {
+      console.error('[ListDetailView] setItemPriority failed:', err);
+    }
   }
 };
 
 const handlePriorityCancel = (): void => {
   priorityItem.value = null;
+  bulkPriorityMode.value = false;
 };
 
 const handleTogglePinned = async (item: Item): Promise<void> => {
   try {
     // Guarantee a favoriteState doc exists before flipping flags. Covers the
     // case where the row's row predates per-list favorites or the doc was
-    // never created (defensive — addItem upserts, but legacy lists won't).
+    // never created (defensive - addItem upserts, but legacy lists won't).
     const slug = await ensureListFavorite(listId.value, item.name, item.category);
     const currentlyFavorite = pinnedNames.value.has(item.name);
     await setListFavoriteState(listId.value, slug, !currentlyFavorite);
@@ -357,14 +436,33 @@ watch(
 );
 
 const handleOpenItemEdit = async (item: Item): Promise<void> => {
-  editingItem.value = item;
-  // Per-list favorite shelf state already lives in the local store — no
+  editingItemId.value = item.id;
+  // Per-list favorite shelf state already lives in the local store - no
   // round-trip needed. The shelf pinnedNames set is the authoritative source.
   editingPinned.value = pinnedNames.value.has(item.name);
 };
 
 const handleEditCancel = (): void => {
-  editingItem.value = null;
+  editingItemId.value = null;
+};
+
+// S4.2: photo upload/remove. We DON'T close the edit sheet on upload so the
+// user immediately sees the thumbnail land in place; remove keeps the same
+// behavior. Failures surface in the console but don't surface a UI toast
+// today (could be added once we have a per-item busy state).
+const handleEditUploadPhoto = async (item: Item, file: File): Promise<void> => {
+  try {
+    await uploadItemPhoto(listId.value, item.id, file);
+  } catch (err) {
+    console.error('[ListDetailView] uploadItemPhoto failed:', err);
+  }
+};
+const handleEditRemovePhoto = async (item: Item): Promise<void> => {
+  try {
+    await removeItemPhoto(listId.value, item.id);
+  } catch (err) {
+    console.error('[ListDetailView] removeItemPhoto failed:', err);
+  }
 };
 
 const handleEditSave = async (patch: {
@@ -378,7 +476,7 @@ const handleEditSave = async (patch: {
   const id = editingItem.value.id;
   const itemName = editingItem.value.name;
   const previousPinned = editingPinned.value;
-  editingItem.value = null;
+  editingItemId.value = null;
   try {
     await updateItem(listId.value, id, {
       name: patch.name,
@@ -435,6 +533,66 @@ const handleShelfAdd = async (entry: ListFavoriteState) => {
   }
 };
 
+// Bulk paste sheet state.
+const bulkPasteOpen = ref(false);
+
+const openBulkPaste = (): void => {
+  bulkPasteOpen.value = true;
+};
+
+const closeBulkPaste = (): void => {
+  bulkPasteOpen.value = false;
+};
+
+const inferCategoryForBulk = (name: string): Category =>
+  catalogStore.inferCategoryForName(name, locale.value);
+
+// S3.3: voice input. Same sheet pattern as bulk paste; reuses the bulk-add
+// handler so transcript → multi-item add inherits batching + atomicity.
+const voiceAddOpen = ref(false);
+const openVoiceAdd = (): void => {
+  voiceAddOpen.value = true;
+};
+const closeVoiceAdd = (): void => {
+  voiceAddOpen.value = false;
+};
+const handleVoiceAddSubmit = async (
+  rows: Array<{ name: string; category: Category }>,
+): Promise<void> => {
+  voiceAddOpen.value = false;
+  await handleBulkPasteSubmit(rows);
+};
+
+const handleBulkPasteSubmit = async (
+  rows: Array<{ name: string; category: Category }>,
+): Promise<void> => {
+  if (!authStore.user || rows.length === 0) {
+    bulkPasteOpen.value = false;
+    return;
+  }
+  try {
+    await bulkAddItems({
+      listId: listId.value,
+      rows: rows.map((r) => ({ name: r.name, category: r.category })),
+      createdByUid: authStore.user.uid,
+    });
+    // Expand every touched category so the freshly-pasted rows are visible.
+    const seenCats = new Set<Category>();
+    for (const r of rows) {
+      if (!seenCats.has(r.category)) {
+        expandIfCollapsed(r.category);
+        previouslyAllChecked.delete(r.category);
+        seenCats.add(r.category);
+      }
+    }
+    pulse();
+  } catch (err) {
+    console.error('[ListDetailView] bulkAddItems failed:', err);
+  } finally {
+    bulkPasteOpen.value = false;
+  }
+};
+
 const handleAddItem = async (params: {
   name: string;
   category: Category;
@@ -471,7 +629,7 @@ const maybeShowFirstCheckTutorial = (markingBought: boolean): void => {
     if (localStorage.getItem(FIRST_CHECK_FLAG) === '1') return;
     localStorage.setItem(FIRST_CHECK_FLAG, '1');
   } catch {
-    // Storage unavailable — skip the toast rather than fire it every time.
+    // Storage unavailable - skip the toast rather than fire it every time.
     return;
   }
   toggleToastMessage.value = t('item.firstCheckTutorialToast');
@@ -504,7 +662,7 @@ const cancelRemove = (): void => {
 
 // "Don't suggest again?" follow-up after a custom-item trash. Holds the
 // candidate the user is being asked about; the template binds two
-// ConfirmModal buttons — Don't-suggest = delete catalog entry, Continue =
+// ConfirmModal buttons - Don't-suggest = delete catalog entry, Continue =
 // no-op (close).
 const dontSuggestCandidate = ref<{ name: string; entryId: ULID } | null>(null);
 
@@ -543,17 +701,140 @@ const handleDontSuggestConfirm = async (): Promise<void> => {
   }
 };
 
+// S3.1: undo-delete orchestrator. Owned by this view so the timer + the
+// optimistic-hide buffer share a lifecycle (onBeforeUnmount flushes any
+// in-flight delete so navigating away never silently swallows the action).
+const undoItemDelete = useUndoDelete();
+
+// S3.2: bulk selection mode + selected IDs.
+const bulkSel = useBulkSelection();
+
+const handleSelectEnter = (item: Item): void => {
+  bulkSel.enter(item.id);
+};
+const handleSelectToggle = (item: Item): void => {
+  bulkSel.toggle(item.id);
+};
+const cancelBulkSelection = (): void => bulkSel.exit();
+
+const selectedItemsSnapshot = (): Item[] => {
+  const ids = new Set(bulkSel.snapshot());
+  return itemsStore.items.filter((i) => ids.has(i.id));
+};
+
+const handleBulkDelete = async (): Promise<void> => {
+  const targets = selectedItemsSnapshot();
+  if (targets.length === 0) return;
+  // Optimistic hide via the same buffer S3.1 uses for single-item delete.
+  for (const it of targets) itemsStore.markPendingDelete(it.id);
+  const targetIds = targets.map((i) => i.id);
+  bulkSel.exit();
+  pulse();
+  undoItemDelete.schedule({
+    id: targetIds.join(','),
+    message: t('item.bulkDeletedWithUndo', { n: targets.length }, targets.length),
+    durationMs: 6000,
+    commit: async () => {
+      try {
+        await bulkRemoveItems(listId.value, targetIds);
+      } catch (err) {
+        console.error('[ListDetailView] bulkRemoveItems failed:', err);
+      } finally {
+        for (const id of targetIds) itemsStore.unmarkPendingDelete(id);
+      }
+    },
+    onUndo: () => {
+      for (const id of targetIds) itemsStore.unmarkPendingDelete(id);
+    },
+  });
+};
+
+
+const bulkPriorityMode = ref(false);
+const handleBulkPriority = (): void => {
+  const targets = selectedItemsSnapshot();
+  if (targets.length === 0) return;
+  priorityItem.value = { ...targets[0] };
+  bulkPriorityMode.value = true;
+};
+
+// Reuse the existing single-item picker sheet for bulk move/copy. The sheet
+// emits `copy` or `move` per chosen destination; we dispatch to the matching
+// bulk service here. A single `open` boolean is enough - the user picks the
+// action per destination row inside the sheet.
+const bulkPickerOpen = ref(false);
+const bulkPickerLabel = computed(() =>
+  bulkSel.count.value > 0
+    ? t('item.bulkSelectedCount', { n: bulkSel.count.value }, bulkSel.count.value)
+    : '',
+);
+
+const openBulkPicker = (_mode: 'move' | 'copy'): void => {
+  if (bulkSel.count.value === 0) return;
+  bulkPickerOpen.value = true;
+};
+
+const closeBulkPicker = (): void => {
+  bulkPickerOpen.value = false;
+};
+
+const handleBulkPickerMove = async (dstListId: ULID): Promise<void> => {
+  if (!authStore.user) return;
+  const targets = selectedItemsSnapshot();
+  closeBulkPicker();
+  bulkSel.exit();
+  if (targets.length === 0) return;
+  try {
+    await bulkMoveItems(listId.value, targets, dstListId, authStore.user.uid);
+    pulse();
+  } catch (err) {
+    console.error('[ListDetailView] bulkMoveItems failed:', err);
+  }
+};
+
+const handleBulkPickerCopy = async (dstListId: ULID): Promise<void> => {
+  if (!authStore.user) return;
+  const targets = selectedItemsSnapshot();
+  closeBulkPicker();
+  bulkSel.exit();
+  if (targets.length === 0) return;
+  try {
+    await bulkCopyItems(targets, dstListId, authStore.user.uid);
+    pulse();
+  } catch (err) {
+    console.error('[ListDetailView] bulkCopyItems failed:', err);
+  }
+};
+
 const confirmRemove = async (): Promise<void> => {
   const target = removeCandidate.value;
   removeCandidate.value = null;
   if (!target) return;
-  try {
-    await removeItem(listId.value, target.id);
-    pulse();
-    void maybeOfferDontSuggest(target.name);
-  } catch (err) {
-    console.error('[ListDetailView] removeItem failed:', err);
-  }
+  // Hide optimistically: filter the row out of `visibleItems` BEFORE the
+  // firestore call. Counter + section regroup react instantly; the user
+  // sees the row disappear with no waiting on the network.
+  itemsStore.markPendingDelete(target.id);
+  pulse();
+  undoItemDelete.schedule({
+    id: target.id,
+    message: t('item.deletedWithUndo'),
+    durationMs: 5000,
+    commit: async () => {
+      try {
+        await removeItem(listId.value, target.id);
+        void maybeOfferDontSuggest(target.name);
+      } catch (err) {
+        console.error('[ListDetailView] removeItem failed:', err);
+      } finally {
+        // Whether the commit succeeded or failed, drop the buffer entry so
+        // firestore is once again the single source of truth.
+        itemsStore.unmarkPendingDelete(target.id);
+      }
+    },
+    onUndo: () => {
+      itemsStore.unmarkPendingDelete(target.id);
+    },
+  });
 };
 
 const handleEmptyList = async () => {
@@ -580,10 +861,35 @@ onMounted(() => {
   // listId.value to authStore.profile.defaultListId.
   void authStore.ensureProfile();
   // Per-list NEW badge: load the user's per-list seen map, then mark THIS
-  // list as seen. Runs in the background — the badge clears as soon as the
+  // list as seen. Runs in the background - the badge clears as soon as the
   // optimistic local update propagates to ListsView.
+  //
+  // First-view side-effect: if the user has never opened this list before
+  // AND they're not the owner (i.e. they were invited), fan out a
+  // `collaborator-joined` notification to the existing collaborators so
+  // they see "Carol joined your list <name>" in their inbox. We wait for
+  // the list snapshot to populate before reading ownerUid; the watcher
+  // self-stops on first non-null tick.
   void (async () => {
     await listsStore.loadLastSeen();
+    const seenBefore = listsStore.lastSeenListMap[listId.value] != null;
+    if (!seenBefore && authStore.user) {
+      const callerUid = authStore.user.uid;
+      const stop = watch(
+        () => list.value,
+        (l) => {
+          if (!l) return;
+          stop();
+          if (l.ownerUid !== callerUid && l.collaboratorUids.includes(callerUid)) {
+            void notifyListEvent({
+              listId: listId.value,
+              kind: 'collaborator-joined',
+            });
+          }
+        },
+        { immediate: true },
+      );
+    }
     await listsStore.markSeen(listId.value);
   })();
 });
@@ -607,7 +913,7 @@ watch(
     () => authStore.profile,
   ],
   ([initialized, lists, profile]) => {
-    // Wait until the Firestore subscription has delivered at least once —
+    // Wait until the Firestore subscription has delivered at least once -
     // an immediate fire with `lists=[]` would otherwise mistake "not loaded
     // yet" for "list deleted" and prematurely clear the default-list pref
     // (the exact bug that fired after refresh when the boot-redirect landed
@@ -654,7 +960,7 @@ watch(
       </button>
     </header>
 
-    <!-- Stats strip — two rows on every viewport: row 1 covers the at-a-glance
+    <!-- Stats strip - two rows on every viewport: row 1 covers the at-a-glance
          counts (items / bought / users), row 2 reserves a dedicated line for
          the "updated" timestamp which would otherwise wrap awkwardly on
          narrow phones. -->
@@ -719,7 +1025,7 @@ watch(
           v-if="itemCount > 0"
           :aria-label="t('list.share')"
           data-testid="share-list"
-          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-charcoal bg-black/5 hover:bg-black/10 active:bg-black/15 transition-colors"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10 transition-colors"
           @click="handleShareList"
         >
           <Share2 :size="14" :stroke-width="2.5" aria-hidden="true" />
@@ -734,20 +1040,41 @@ watch(
       </span>
     </div>
 
-    <!-- Sticky autocomplete: stays above the scroll region so the user can
-         add items at any scroll position. shrink-0 prevents the flex parent
-         from squeezing it out when the items list grows. -->
-    <div class="px-0 shrink-0">
+    <!-- Sticky autocomplete row: input on the left, bulk-paste affordance on
+         the right. shrink-0 prevents the flex parent from squeezing this
+         block when the items list grows. Padding (px-5, py-2) lives on this
+         wrapper so the input keeps its visual gutter symmetric with the
+         button on the right edge of the row. -->
+    <div class="px-5 py-2 shrink-0 flex items-center gap-2">
       <ItemAutocomplete
+        class="flex-1 min-w-0"
         @add-item="handleAddItem"
         @active-change="(v) => (autocompleteActive = v)"
       />
+      <button
+        type="button"
+        :aria-label="t('item.voiceAdd')"
+        data-testid="open-voice-add"
+        class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10 transition-colors"
+        @click="openVoiceAdd"
+      >
+        <Mic :size="18" :stroke-width="2.25" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        :aria-label="t('item.bulkPaste')"
+        data-testid="open-bulk-paste"
+        class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10 transition-colors"
+        @click="openBulkPaste"
+      >
+        <ClipboardPaste :size="18" :stroke-width="2.25" aria-hidden="true" />
+      </button>
     </div>
 
     <!-- Scrollable item list region. `min-h-0` is required for the flex
          child to shrink below its intrinsic content height so the inner
          overflow-y-auto can actually scroll instead of pushing the parent.
-         The favorites shelf scrolls with the items — only the header /
+         The favorites shelf scrolls with the items - only the header /
          stats / autocomplete stay pinned at the top. -->
     <div
       data-testid="list-items-scroll"
@@ -780,15 +1107,33 @@ watch(
         <p class="text-xs text-muted-gray mt-1">{{ t('list.emptyHint') }}</p>
       </div>
 
-      <div v-else>
+      <!-- Drag-and-drop reorder of category groups. Touch-only long-press
+           (300ms) matches the lists-overview reorder gesture. Open to every
+           collaborator - shared per-list ordering, no admin gate. -->
+      <VueDraggable
+        v-else
+        v-model="draggableCategoryPairs"
+        tag="div"
+        item-key="0"
+        :animation="200"
+        :delay="300"
+        :delay-on-touch-only="true"
+        :touch-start-threshold="5"
+        :disabled="!canReorderCategories || itemsByCategory.length <= 1"
+        ghost-class="cat-section-ghost"
+        handle=".cat-drag-handle"
+        @end="onCategoryReorder"
+      >
         <CategorySection
-          v-for="[category, items] in itemsByCategory"
+          v-for="[category, items] in draggableCategoryPairs"
           :key="category"
           :category="category"
           :items="items"
           :collapsed="isCollapsed(category)"
           :can-move-copy="canMoveCopy"
           :pinned-names="pinnedNames"
+          :selection-mode="bulkSel.active.value"
+          :selected-ids="bulkSel.selected.value"
           @toggle-checked="(id, val) => handleToggleChecked(id, val)"
           @remove-item="(id) => handleRemoveItem(id)"
           @toggle-collapse="(c) => toggleCollapsed(c)"
@@ -796,20 +1141,83 @@ watch(
           @request-priority="handleRequestPriority"
           @move-copy="handleOpenMoveCopy"
           @toggle-pinned="handleTogglePinned"
+          @select-enter="handleSelectEnter"
+          @select-toggle="handleSelectToggle"
         />
-      </div>
+      </VueDraggable>
     </div>
 
     <!-- Sticky footer: "Svuota lista" stays visible regardless of list
          length. Hidden only while the autocomplete is active to avoid
-         covering the keyboard-driven flow. -->
+         covering the keyboard-driven flow, AND while bulk-selection is on
+         (the bulk toolbar replaces it). -->
     <footer
-      v-if="hasItems && !autocompleteActive"
+      v-if="hasItems && !autocompleteActive && !bulkSel.active.value"
       data-testid="list-detail-footer"
       class="shrink-0 border-t border-cream-soft bg-cream"
       style="padding-bottom: max(0px, env(safe-area-inset-bottom));"
     >
       <EmptyListButton :count="itemCount" @empty="handleEmptyList" />
+    </footer>
+
+    <!-- S3.2: bulk-selection toolbar. Replaces the regular footer while
+         selection mode is active. Lives outside the scroll area so it
+         stays pinned regardless of list length. -->
+    <footer
+      v-if="bulkSel.active.value"
+      data-testid="bulk-action-toolbar"
+      class="shrink-0 border-t border-cream-soft bg-cream"
+      style="padding-bottom: max(0px, env(safe-area-inset-bottom));"
+    >
+      <div class="px-4 py-3 flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="bulk-cancel"
+          :aria-label="t('list.cancel')"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
+          @click="cancelBulkSelection"
+        >
+          <XIcon :size="18" :stroke-width="2" aria-hidden="true" />
+        </button>
+        <span
+          data-testid="bulk-selected-count"
+          class="flex-1 text-sm font-medium text-charcoal"
+        >
+          {{ t('item.bulkSelectedCount', { n: bulkSel.count.value }, bulkSel.count.value) }}
+        </span>
+        <button
+          type="button"
+          data-testid="bulk-priority"
+          :aria-label="t('item.bulkPriority')"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
+          :disabled="bulkSel.isEmpty.value"
+          @click="handleBulkPriority"
+        >
+          <FlagIcon :size="18" :stroke-width="2" aria-hidden="true" />
+        </button>
+
+        <button
+          v-if="canMoveCopy"
+          type="button"
+          data-testid="bulk-move"
+          :aria-label="t('item.move')"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
+          :disabled="bulkSel.isEmpty.value"
+          @click="openBulkPicker('move')"
+        >
+          <MoveIcon :size="18" :stroke-width="2" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          data-testid="bulk-delete"
+          :aria-label="t('item.delete')"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-red-700 hover:bg-red-50 active:bg-red-100"
+          :disabled="bulkSel.isEmpty.value"
+          @click="handleBulkDelete"
+        >
+          <Trash2Icon :size="18" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </div>
     </footer>
 
     <ItemEditSheet
@@ -818,6 +1226,8 @@ watch(
       :pinned="editingPinned"
       @save="handleEditSave"
       @cancel="handleEditCancel"
+      @upload-photo="handleEditUploadPhoto"
+      @remove-photo="handleEditRemovePhoto"
     />
 
     <ConfirmModal
@@ -855,6 +1265,19 @@ watch(
       @cancel="handlePickerCancel"
     />
 
+    <!-- S3.2: bulk picker. Reuses the single-item ListPickerSheet UI by
+         passing a synthetic "item" whose name is the selection count. -->
+    <ListPickerSheet
+      :open="bulkPickerOpen"
+      :item="bulkPickerOpen ? { name: bulkPickerLabel } : null"
+      :lists="otherLists"
+      :busy="false"
+      :error-message="null"
+      @copy="handleBulkPickerCopy"
+      @move="handleBulkPickerMove"
+      @cancel="closeBulkPicker"
+    />
+
     <PriorityPickerSheet
       :open="priorityOpen"
       :item="priorityItem"
@@ -878,6 +1301,21 @@ watch(
       @close="shareToastOpen = false"
     />
 
+    <!-- S3.1: undo toast. Auto-dismisses after the same window the composable
+         uses (5s) - when it closes, the composable's timer also fires and
+         the firestore commit runs. Action button hands control back to the
+         composable's undo path. -->
+    <Toast
+      :open="undoItemDelete.pending.value !== null"
+      :message="undoItemDelete.pending.value?.message ?? ''"
+      :action-label="t('common.undo')"
+      :action-icon="Undo2"
+      :duration-ms="undoItemDelete.pending.value?.durationMs ?? 5000"
+      auto-dismiss-with-action
+      @close="undoItemDelete.commitCurrent"
+      @action="undoItemDelete.undoCurrent"
+    />
+
     <ConfirmModal
       v-if="dontSuggestCandidate"
       :open="dontSuggestCandidate !== null"
@@ -889,5 +1327,28 @@ watch(
       @confirm="handleDontSuggestConfirm"
       @cancel="closeDontSuggest"
     />
+
+    <BulkPasteSheet
+      v-if="bulkPasteOpen"
+      :open="bulkPasteOpen"
+      :infer-category="inferCategoryForBulk"
+      @cancel="closeBulkPaste"
+      @submit="handleBulkPasteSubmit"
+    />
+
+    <VoiceAddSheet
+      v-if="voiceAddOpen"
+      :open="voiceAddOpen"
+      :infer-category="inferCategoryForBulk"
+      @cancel="closeVoiceAdd"
+      @submit="handleVoiceAddSubmit"
+    />
   </main>
 </template>
+
+<style scoped>
+.cat-section-ghost {
+  opacity: 0.4;
+  transform: scale(0.99);
+}
+</style>

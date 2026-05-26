@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   sortCategoriesByLabel,
+  sortCategoriesWithPreference,
   sortItemsByName,
   sortItemsCheckedThenName,
   sortItemsByPriorityThenName,
@@ -243,5 +244,56 @@ describe('groupCatalogByCategory', () => {
     const snapshot = entries.map((e) => e.id);
     groupCatalogByCategory(entries, (c) => labels[c], 'it');
     expect(entries.map((e) => e.id)).toEqual(snapshot);
+  });
+});
+
+describe('sortCategoriesWithPreference', () => {
+  const labels: Record<Category, string> = {
+    fruit_vegetables: 'Frutta',
+    dairy: 'Latticini',
+    meat: 'Carne',
+    fish: 'Pesce',
+    bakery: 'Pane',
+    beverages: 'Bevande',
+    frozen: 'Surgelati',
+    cleaning: 'Pulizie',
+    hygiene: 'Igiene',
+    other: 'Altro',
+  };
+
+  it('falls back to alphabetic when preferredOrder is empty/missing', () => {
+    const cats: Category[] = ['fruit_vegetables', 'bakery', 'dairy'];
+    const out = sortCategoriesWithPreference(cats, undefined, (c) => labels[c], 'it');
+    expect(out.map((c) => labels[c])).toEqual(['Frutta', 'Latticini', 'Pane']);
+  });
+
+  it('respects preferred order for categories that appear in both lists', () => {
+    const cats: Category[] = ['fruit_vegetables', 'bakery', 'dairy'];
+    const pref: Category[] = ['bakery', 'fruit_vegetables', 'dairy'];
+    const out = sortCategoriesWithPreference(cats, pref, (c) => labels[c], 'it');
+    expect(out).toEqual(['bakery', 'fruit_vegetables', 'dairy']);
+  });
+
+  it('drops preferred entries that are not present in `categories`', () => {
+    const cats: Category[] = ['bakery', 'dairy'];
+    const pref: Category[] = ['fish', 'bakery', 'meat', 'dairy'];
+    const out = sortCategoriesWithPreference(cats, pref, (c) => labels[c], 'it');
+    expect(out).toEqual(['bakery', 'dairy']);
+  });
+
+  it('tail-appends unfamiliar categories alphabetically after the preferred block', () => {
+    // Preference covers only dairy + meat; bakery + other are tail and
+    // should land in alphabetic order (Altro < Pane in Italian).
+    const cats: Category[] = ['bakery', 'dairy', 'meat', 'other'];
+    const pref: Category[] = ['dairy', 'meat'];
+    const out = sortCategoriesWithPreference(cats, pref, (c) => labels[c], 'it');
+    expect(out).toEqual(['dairy', 'meat', 'other', 'bakery']);
+  });
+
+  it('ignores duplicates in preferredOrder (first occurrence wins)', () => {
+    const cats: Category[] = ['bakery', 'dairy'];
+    const pref: Category[] = ['dairy', 'bakery', 'dairy'];
+    const out = sortCategoriesWithPreference(cats, pref, (c) => labels[c], 'it');
+    expect(out).toEqual(['dairy', 'bakery']);
   });
 });

@@ -183,7 +183,7 @@ const handleBack = (): void => safeBack({ name: 'list-detail', params: { id: lis
 
 const onCollaboratorPending = async (email: string): Promise<void> => {
   // Fire-and-forget transactional email via the Netlify send-invite function.
-  // The pending invite is already in Firestore — a delivery failure here just
+  // The pending invite is already in Firestore - a delivery failure here just
   // means the invitee won't get the heads-up email; nothing else breaks.
   if (!list.value || !authStore.user) return;
   const inviterName =
@@ -271,7 +271,7 @@ const confirmDemote = async (): Promise<void> => {
 };
 
 // Clear the default-list pref if it points to the list we're about to walk
-// away from. Errors are non-fatal — the lazy cleanup in ListsView will retry.
+// away from. Errors are non-fatal - the lazy cleanup in ListsView will retry.
 const clearDefaultIfMatches = async (): Promise<void> => {
   if (authStore.profile?.defaultListId === listId.value) {
     try {

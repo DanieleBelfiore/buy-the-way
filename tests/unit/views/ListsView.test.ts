@@ -7,6 +7,14 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }));
 vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
 
+vi.mock('@/composables/useNotifications', () => ({
+  useNotifications: () => ({
+    items: { value: [] },
+    count: { value: 0 },
+    consume: vi.fn().mockResolvedValue([]),
+  }),
+}));
+
 import ListsView from '@/views/ListsView.vue';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
@@ -30,6 +38,13 @@ const i18n = createI18n({
       badge: { new: 'New' },
       settings: { title: 'Settings' },
       stats: { title: 'Statistics', openButton: 'Statistics' },
+      notifications: {
+        title: 'Notifications',
+        button: 'Notifications',
+        close: 'Close',
+        empty: 'No notifications.',
+        badgeAria: 'Unread',
+      },
     },
   },
 });
@@ -230,7 +245,7 @@ describe('ListsView', () => {
     expect(mockMarkSeen).not.toHaveBeenCalled();
   });
 
-  it('passes isNew=true to ListCard when isNewForUser returns true', async () => {
+  it('never renders the per-list "new" badge (removed in S4.2)', async () => {
     mockIsNewForUser.mockImplementation((list: any) => list.id === '01NEW');
     vi.mocked(useListsStore).mockReturnValue({
       lists: [
@@ -250,8 +265,7 @@ describe('ListsView', () => {
 
     const wrapper = mountView();
     await flushPromises();
-    const badges = wrapper.findAll('[data-testid="new-badge"]');
-    expect(badges).toHaveLength(1);
+    expect(wrapper.findAll('[data-testid="new-badge"]')).toHaveLength(0);
   });
 
   describe('default-list star', () => {
@@ -365,7 +379,7 @@ describe('ListsView', () => {
         loading: false,
         error: null,
         lastSeenLists: 0,
-        // Subscription has not delivered yet — clearing now would be a
+        // Subscription has not delivered yet - clearing now would be a
         // spurious clear of the user's freshly-set default.
         initialized: false,
         subscribe: mockSubscribe,

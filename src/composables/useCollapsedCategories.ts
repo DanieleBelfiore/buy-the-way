@@ -36,7 +36,7 @@ export const useCollapsedCategories = (
     try {
       localStorage.setItem(storageKey(id), JSON.stringify([...s]));
     } catch {
-      // Quota exceeded / Safari private mode — keep in-memory state, accept
+      // Quota exceeded / Safari private mode - keep in-memory state, accept
       // loss on reload rather than crashing the toggle handler.
     }
   };

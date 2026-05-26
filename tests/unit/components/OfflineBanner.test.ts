@@ -9,7 +9,7 @@ const i18n = createI18n({
   locale: 'en',
   fallbackLocale: 'en',
   messages: {
-    en: { offline: { banner: 'Offline — changes will sync when back online' } },
+    en: { offline: { banner: 'Offline - changes will sync when back online' } },
   },
 });
 

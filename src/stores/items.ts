@@ -11,20 +11,42 @@ export const useItemsStore = defineStore('items', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const currentListId = ref<ULID | null>(null);
+  // S3.1: optimistic-delete buffer. Items whose IDs are in here have been
+  // "deleted" from the user's perspective but the firestore call is still
+  // pending in the undo window. They stay in `items` (firestore snapshot is
+  // authoritative) but are filtered out of everything user-facing.
+  const pendingDeleteIds = ref<Set<ULID>>(new Set());
 
   let _unsubscribe: (() => void) | null = null;
+
+  const visibleItems = computed(() =>
+    items.value.filter((i) => !pendingDeleteIds.value.has(i.id)),
+  );
 
   const itemsByCategory = computed((): Map<Category, Item[]> => {
     const map = new Map<Category, Item[]>();
     for (const cat of CATEGORY_ORDER) {
       const catItems = sortItemsByPriorityThenName(
-        items.value.filter((i) => migrateCategory(i.category) === cat),
+        visibleItems.value.filter((i) => migrateCategory(i.category) === cat),
         'en',
       );
       if (catItems.length > 0) map.set(cat, catItems);
     }
     return map;
   });
+
+  const markPendingDelete = (id: ULID): void => {
+    const next = new Set(pendingDeleteIds.value);
+    next.add(id);
+    pendingDeleteIds.value = next;
+  };
+
+  const unmarkPendingDelete = (id: ULID): void => {
+    if (!pendingDeleteIds.value.has(id)) return;
+    const next = new Set(pendingDeleteIds.value);
+    next.delete(id);
+    pendingDeleteIds.value = next;
+  };
 
   const setCurrentList = (listId: ULID | null): void => {
     _unsubscribe?.();
@@ -49,5 +71,16 @@ export const useItemsStore = defineStore('items', () => {
     );
   };
 
-  return { items, loading, error, currentListId, itemsByCategory, setCurrentList };
+  return {
+    items,
+    visibleItems,
+    loading,
+    error,
+    currentListId,
+    itemsByCategory,
+    pendingDeleteIds,
+    markPendingDelete,
+    unmarkPendingDelete,
+    setCurrentList,
+  };
 });

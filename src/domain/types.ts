@@ -20,7 +20,7 @@ export interface List {
   /**
    * Creator-of-record. Kept stable for cascade-delete pivot logic and as a
    * fallback for legacy lists that pre-date `admins`. Permissions are now
-   * driven by `admins` — `ownerUid` alone does not grant any privilege beyond
+   * driven by `admins` - `ownerUid` alone does not grant any privilege beyond
    * what membership in `admins` already implies.
    */
   ownerUid: string;
@@ -41,6 +41,20 @@ export interface List {
   itemCount?: number;
   showFavorites?: boolean;
   wallpaper?: string;
+  /**
+   * S3.4: user-controlled ordering. Higher value = earlier in the lists
+   * overview. Seeded to `createdAt` on list creation so brand-new lists land
+   * at the top; legacy docs missing this field fall back to `updatedAt` at
+   * read time so they don't all collapse to a single index of 0.
+   */
+  sortIndex?: number;
+  /**
+   * Per-list ordering of the category groups inside ListDetailView. Earlier
+   * in the array = appears first. Categories present in the items list but
+   * absent here fall back to alphabetic order by translated label.
+   * Shared across collaborators (lives on the list doc); admin-only writes.
+   */
+  categoryOrder?: Category[];
   createdAt: number;
   updatedAt: number;
 }
@@ -56,6 +70,13 @@ export interface Item {
   note: string;
   checked: boolean;
   priority?: ItemPriority;
+  /**
+   * S4.2: optional photo attachment. Compressed JPEG stored in Firebase
+   * Storage at `lists/{listId}/items/{itemId}/photo.jpg`. The download URL
+   * is persisted here; thumbURL is a smaller variant for row display.
+   */
+  photoURL?: string;
+  thumbURL?: string;
   createdByUid: string;
   createdAt: number;
   updatedAt: number;
@@ -73,7 +94,7 @@ export interface CatalogEntry {
 /**
  * Per-list favorite state. Stored under `lists/{listId}/favoriteState/{slug}`
  * with `slug` (normalized name) as the document id. Each list maintains its
- * own usage counts and favorite/exclude/dismiss flags — favorites in list A
+ * own usage counts and favorite/exclude/dismiss flags - favorites in list A
  * are independent of favorites in list B even if both share the same item
  * names.
  */
@@ -110,7 +131,39 @@ export interface UserProfile {
   lastSeenListMap?: Record<string, number>;
   /**
    * Optional list ID the user wants opened automatically when the app boots.
-   * `null` (or absent) means no default — user lands on the lists overview.
+   * `null` (or absent) means no default - user lands on the lists overview.
    */
   defaultListId?: string | null;
+  /**
+   * Set to `true` after the user has completed or skipped the onboarding
+   * tour. Stored in the private subcollection - not readable by other users.
+   * Missing / `false` triggers the tour on the next `/lists` mount.
+   */
+  onboardingSeen?: boolean;
+}
+
+/**
+ * S4.2: in-app notification doc. Server-templated (see notify-list-event)
+ * and written to `users/{uid}/notifications/{id}`. Render-then-purge: the
+ * popover batch-deletes every doc it displays when it opens.
+ */
+export type NotificationKind = 'item-modified' | 'collaborator-added' | 'collaborator-joined';
+
+export interface NotificationDoc {
+  id: string;
+  kind: NotificationKind;
+  listId: string;
+  listName: string;
+  senderUid: string;
+  senderName: string;
+  /** Sender's UI locale at the time of the event - drives popover rendering. */
+  locale: 'it' | 'en';
+  itemId?: string;
+  /**
+   * For `item-modified`: the item's name at the time of the event.
+   * For `collaborator-added`: the new collaborator's displayName.
+   * Used as the second bold slot in the popover body template.
+   */
+  itemName?: string;
+  createdAt: number;
 }

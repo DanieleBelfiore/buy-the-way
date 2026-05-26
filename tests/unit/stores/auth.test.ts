@@ -7,11 +7,15 @@ vi.mock('@/services/auth.service', () => ({
   onAuthChanged: vi.fn(),
   deleteAccount: vi.fn(),
   reauthenticateGoogle: vi.fn(),
+  sendMagicLink: vi.fn(),
+  completeMagicLinkSignIn: vi.fn(),
+  isMagicLinkCallback: vi.fn(),
 }));
 
 vi.mock('@/services/users.service', () => ({
   getUserProfile: vi.fn(),
   setUserDefaultList: vi.fn(),
+  setOnboardingSeen: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { useAuthStore } from '@/stores/auth';
@@ -275,4 +279,5 @@ describe('useAuthStore', () => {
       expect(store.profile?.defaultListId).toBe('01XYZ');
     });
   });
+
 });

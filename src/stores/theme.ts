@@ -16,7 +16,7 @@ const readStoredMode = (): ThemeMode => {
     // Legacy 'system' value (or any junk) maps back to the default 'light'.
     return isThemeMode(raw) ? raw : 'light';
   } catch {
-    // Storage unavailable (Safari private mode, etc.) — fall back to default.
+    // Storage unavailable (Safari private mode, etc.) - fall back to default.
     return 'light';
   }
 };
@@ -80,7 +80,7 @@ export const useThemeStore = defineStore('theme', () => {
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // Storage write failed — keep in-memory value, accept loss on reload.
+      // Storage write failed - keep in-memory value, accept loss on reload.
     }
     applyToDocument();
   };

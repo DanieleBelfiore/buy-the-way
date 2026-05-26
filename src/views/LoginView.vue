@@ -7,6 +7,7 @@ import { useLogoMotion } from '@/composables/useLogoMotion';
 import { useDocumentHead } from '@/composables/useDocumentHead';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
+import { Send, X } from '@lucide/vue';
 import pkg from '../../package.json';
 
 const APP_VERSION = pkg.version;
@@ -45,6 +46,34 @@ const handleSignIn = async () => {
     loading.value = false;
   }
 };
+
+// S2.3: magic-link sign-in. Shown collapsed behind a toggle so the Google
+// CTA stays primary; users who can't / don't want Google get an alternative
+// without extra friction at first paint.
+const showMagicLink = ref(false);
+const magicLinkEmail = ref('');
+const magicLinkSending = ref(false);
+const magicLinkSent = ref(false);
+
+const toggleMagicLink = (): void => {
+  showMagicLink.value = !showMagicLink.value;
+  if (showMagicLink.value) magicLinkSent.value = false;
+};
+
+const handleMagicLink = async (): Promise<void> => {
+  const email = magicLinkEmail.value.trim();
+  if (!email || magicLinkSending.value) return;
+  magicLinkSending.value = true;
+  error.value = null;
+  try {
+    await auth.sendMagicLink(email);
+    magicLinkSent.value = true;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : t('auth.signInError');
+  } finally {
+    magicLinkSending.value = false;
+  }
+};
 </script>
 
 <template>
@@ -79,6 +108,7 @@ const handleSignIn = async () => {
       <!-- CTA -->
       <div class="space-y-3">
         <button
+          v-if="!showMagicLink"
           data-testid="sign-in-btn"
           :disabled="loading || undefined"
           class="w-full h-12 px-5 bg-primary text-white text-base font-medium rounded-full
@@ -112,6 +142,78 @@ const handleSignIn = async () => {
         >
           {{ error }}
         </p>
+
+        <!-- Magic-link alternative. Toggle replaces Google button while the form is open. -->
+        <button
+          v-if="!showMagicLink"
+          type="button"
+          data-testid="magic-link-toggle"
+          class="w-full h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
+                 border border-charcoal/15
+                 hover:bg-cream active:bg-cream
+                 flex items-center justify-center gap-3
+                 focus:outline-none"
+          @click="toggleMagicLink"
+        >
+          {{ t('auth.magicLink.show') }}
+        </button>
+
+        <div v-if="showMagicLink" data-testid="magic-link-form" class="space-y-2">
+          <input
+            v-model="magicLinkEmail"
+            type="email"
+            autocomplete="email"
+            spellcheck="false"
+            :aria-label="t('auth.magicLink.emailLabel')"
+            :placeholder="t('auth.magicLink.emailLabel')"
+            class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
+            :disabled="magicLinkSending"
+            @keydown.enter="handleMagicLink"
+          />
+          <div class="flex gap-2">
+            <button
+              type="button"
+              data-testid="magic-link-cancel"
+              :disabled="magicLinkSending"
+              class="flex-1 h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
+                     border border-charcoal/15
+                     hover:bg-cream active:bg-cream
+                     flex items-center justify-center gap-3
+                     focus:outline-none
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="toggleMagicLink"
+            >
+              <X class="w-5 h-5" aria-hidden="true" />
+              <span>{{ t('auth.magicLink.cancel') }}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="magic-link-send"
+              :disabled="magicLinkSending || !magicLinkEmail.trim()"
+              class="flex-1 h-12 px-5 bg-primary text-white text-base font-medium rounded-full
+                     hover:bg-primary-hover active:bg-primary-active
+                     flex items-center justify-center gap-3
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="handleMagicLink"
+            >
+              <span
+                v-if="magicLinkSending"
+                class="w-5 h-5 border-2 border-offwhite/30 border-t-offwhite rounded-full animate-spin"
+                aria-hidden="true"
+              />
+              <Send v-else class="w-5 h-5" aria-hidden="true" />
+              <span>{{ magicLinkSending ? t('auth.magicLink.sending') : t('auth.magicLink.send') }}</span>
+            </button>
+          </div>
+          <p
+            v-if="magicLinkSent"
+            data-testid="magic-link-sent"
+            role="status"
+            class="text-xs text-center text-muted-gray"
+          >
+            {{ t('auth.magicLink.sentNotice', { email: magicLinkEmail.trim() }) }}
+          </p>
+        </div>
       </div>
     </div>
     <div class="w-full pb-3">
@@ -124,7 +226,7 @@ const handleSignIn = async () => {
           href="https://www.linkedin.com/in/danielebelfiore/"
           target="_blank"
           rel="noopener noreferrer"
-          class="underline inline-block min-h-[44px] px-2 py-2 align-middle"
+          class="underline"
         >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
       </p>
       <footer

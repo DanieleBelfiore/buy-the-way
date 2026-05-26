@@ -42,36 +42,36 @@
 }
 
 /*
- * Dark theme — overrides every CSS custom property so any component styled
+ * Dark theme - overrides every CSS custom property so any component styled
  * through a token (bg-cream, text-charcoal, etc.) automatically follows.
  * Selector mirrors the value the theme store writes to <html>.
  *
  * Contrast targets: text on surface ≥ 4.5:1 (WCAG AA), accents ≥ 3:1.
  */
 [data-theme='dark'] {
-  /* Surfaces — warm dark to mirror the cream warmth of light mode */
+  /* Surfaces - warm dark to mirror the cream warmth of light mode */
   --cream: #15151a;
   --cream-soft: #22222a;
   --offwhite: #1c1c22;
 
-  /* Ink — inverted, slightly warm to feel less clinical */
+  /* Ink - inverted, slightly warm to feel less clinical */
   --charcoal: #ece8de;
   --muted-gray: #9d9d9b;
 
-  /* Primary brand — darker than the light-mode #113261 cousin so that white
+  /* Primary brand - darker than the light-mode #113261 cousin so that white
      CTAs on top still hit WCAG AA contrast (≥ 4.5:1) in dark mode. */
   --primary: #2d5aa0;
   --primary-hover: #3a6abc;
   --primary-active: #234884;
 
-  /* Favorites accent (gold) — desaturated for dark; soft tinted */
+  /* Favorites accent (gold) - desaturated for dark; soft tinted */
   --favorite-gold: #d8b54a;
   --favorite-gold-soft: #3a3220;
 
-  /* Focus — keep blue ring visible on dark */
+  /* Focus - keep blue ring visible on dark */
   --ring-blue: rgba(96, 165, 250, 0.6);
 
-  /* Ink opacity variants — switch base to the new light ink */
+  /* Ink opacity variants - switch base to the new light ink */
   --ink-04: rgba(236, 232, 222, 0.06);
   --ink-03: rgba(236, 232, 222, 0.05);
   --ink-40: rgba(236, 232, 222, 0.4);
@@ -79,7 +79,7 @@
   --ink-83: rgba(236, 232, 222, 0.83);
   --ink-100: rgba(236, 232, 222, 1);
 
-  /* Category icon hues — brighter so they read against dark cards */
+  /* Category icon hues - brighter so they read against dark cards */
   --cat-fruit: #7eb878;
   --cat-dairy: #7da3d3;
   --cat-meat: #d68080;

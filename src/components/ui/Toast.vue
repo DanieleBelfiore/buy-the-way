@@ -23,6 +23,8 @@ const props = withDefaults(
 const emit = defineEmits<{ close: []; action: [] }>();
 
 const visible = ref(props.open);
+const progressKey = ref(0);
+const showProgress = ref(false);
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 const clear = (): void => {
@@ -38,7 +40,9 @@ watch(
     clear();
     visible.value = open;
     const autoDismiss = open && (!props.actionLabel || props.autoDismissWithAction);
+    showProgress.value = autoDismiss;
     if (autoDismiss) {
+      progressKey.value += 1;
       timer = setTimeout(() => {
         visible.value = false;
         emit('close');
@@ -70,6 +74,7 @@ const onAction = (): void => {
         props.actionLabel
           ? 'rounded-2xl px-4 py-3'
           : 'rounded-full px-4 py-2',
+        'overflow-hidden',
       ]"
     >
       <div class="flex items-center gap-3 w-full">
@@ -112,6 +117,13 @@ const onAction = (): void => {
         </span>
         {{ props.actionLabel }}
       </button>
+      <div
+        v-if="showProgress"
+        :key="progressKey"
+        data-testid="toast-progress"
+        class="toast__progress"
+        :style="{ animationDuration: props.durationMs + 'ms' }"
+      />
     </div>
   </Transition>
 </template>
@@ -125,5 +137,25 @@ const onAction = (): void => {
 .toast-leave-to {
   opacity: 0;
   transform: translate(-50%, 8px);
+}
+.toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: inherit;
+  transform-origin: left;
+  animation: toast-shrink linear forwards;
+}
+@keyframes toast-shrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast__progress {
+    animation: none;
+  }
 }
 </style>

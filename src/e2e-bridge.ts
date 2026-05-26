@@ -1,5 +1,5 @@
 /**
- * E2E test bridge — exposes Firebase auth helpers on `window.__btw`
+ * E2E test bridge - exposes Firebase auth helpers on `window.__btw`
  * so Playwright specs can bypass the Google sign-in popup.
  *
  * Loaded only when `VITE_E2E=true`. Never bundled in production.
@@ -17,7 +17,7 @@ if (!import.meta.env.DEV) {
 }
 
 // Firebase emulator accepts this literal as a super-user bearer token. Only
-// usable against the local emulator — non-emulator Firestore rejects it.
+// usable against the local emulator - non-emulator Firestore rejects it.
 const EMULATOR_OWNER_TOKEN = 'owner';
 const EMULATOR_FIRESTORE_URL =
   'http://localhost:8080/v1/projects/buy-the-way/databases/(default)/documents:runQuery';
@@ -85,6 +85,105 @@ window.fetch = async (input, init) => {
 
   if (typeof input === 'string' && input.includes('/.netlify/functions/send-invite')) {
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // Mirror the production notify-list-event function: write one notification
+  // doc into every recipient's subcollection. We bypass rules with the
+  // emulator owner-bearer trick (rules deny client writes; in prod the
+  // server uses firebase-admin which also bypasses rules).
+  if (typeof input === 'string' && input.includes('/.netlify/functions/notify-list-event')) {
+    try {
+      const bodyStr = typeof init?.body === 'string' ? init.body : '';
+      const payload = JSON.parse(bodyStr) as {
+        listId: string;
+        kind: 'item-modified' | 'collaborator-added' | 'collaborator-joined';
+        itemId?: string;
+        targetUid?: string;
+        locale?: 'it' | 'en';
+      };
+      const caller = auth.currentUser;
+      if (!caller) return new Response('Unauthorized', { status: 401 });
+
+      const listSnap = await getDoc(doc(db, 'lists', payload.listId));
+      if (!listSnap.exists()) return new Response('Not Found', { status: 404 });
+      const listData = listSnap.data() as { collaboratorUids?: string[]; name?: string };
+      const collaborators = listData.collaboratorUids ?? [];
+      if (!collaborators.includes(caller.uid)) return new Response('Forbidden', { status: 403 });
+
+      const recipients = payload.kind === 'collaborator-added'
+        ? (payload.targetUid && payload.targetUid !== caller.uid
+           && collaborators.includes(payload.targetUid)
+            ? [payload.targetUid]
+            : [])
+        : collaborators.filter((u) => u !== caller.uid);
+      if (recipients.length === 0) {
+        return new Response(JSON.stringify({ ok: true, sent: 0 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const now = Date.now();
+      const senderName = caller.displayName ?? '';
+      const locale = payload.locale === 'en' ? 'en' : 'it';
+
+      let subjectName = '';
+      if (payload.kind === 'item-modified' && payload.itemId) {
+        try {
+          const itemSnap = await getDoc(doc(db, 'lists', payload.listId, 'items', payload.itemId));
+          if (itemSnap.exists()) {
+            subjectName = String((itemSnap.data() as { name?: string }).name ?? '').trim().slice(0, 80);
+          }
+        } catch {
+          /* swallow - e2e best-effort */
+        }
+      }
+
+      const writes = recipients.map((uid) => {
+        const docId = `e2e-${now}-${Math.random().toString(36).slice(2, 10)}`;
+        const fields: Record<string, unknown> = {
+          kind: { stringValue: payload.kind },
+          listId: { stringValue: payload.listId },
+          listName: { stringValue: listData.name ?? '' },
+          senderUid: { stringValue: caller.uid },
+          senderName: { stringValue: senderName },
+          locale: { stringValue: locale },
+          createdAt: { integerValue: String(now) },
+        };
+        if (payload.itemId) fields.itemId = { stringValue: payload.itemId };
+        if (subjectName) fields.itemName = { stringValue: subjectName };
+        return {
+          update: {
+            name: `projects/buy-the-way/databases/(default)/documents/users/${uid}/notifications/${docId}`,
+            fields,
+          },
+        };
+      });
+
+      const commitRes = await originalFetch(
+        'http://localhost:8080/v1/projects/buy-the-way/databases/(default)/documents:commit',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${EMULATOR_OWNER_TOKEN}`,
+          },
+          body: JSON.stringify({ writes }),
+        },
+      );
+      if (!commitRes.ok) {
+        const text = await commitRes.text();
+        console.warn('[E2E Bridge] notify commit failed', commitRes.status, text);
+      }
+
+      return new Response(JSON.stringify({ ok: true, sent: recipients.length }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      console.warn('[E2E Bridge] notify-list-event mock failed:', e);
+      return new Response(JSON.stringify({ ok: false }), { status: 500 });
+    }
   }
 
   return originalFetch(input, init);

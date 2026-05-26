@@ -30,6 +30,7 @@ import {
   touchLastSeenLists,
   touchLastSeenList,
   setUserDefaultList,
+  setOnboardingSeen,
   getUsersByUids,
   migrateLegacyPrivateFields,
   deletePrivateState,
@@ -189,9 +190,9 @@ describe('users.service', () => {
               uid: 'a',
               email: 'a@x',
               displayName: 'A',
-              lastLoginAt: 999, // legacy private — must NOT leak
-              lastSeenLists: 12345, // legacy private — must NOT leak
-              defaultListId: 'L1', // legacy private — must NOT leak
+              lastLoginAt: 999, // legacy private - must NOT leak
+              lastSeenLists: 12345, // legacy private - must NOT leak
+              defaultListId: 'L1', // legacy private - must NOT leak
               photoURL: 'https://x/a.png',
             }),
           }) as any;
@@ -368,6 +369,51 @@ describe('users.service', () => {
     });
   });
 
+  describe('setOnboardingSeen', () => {
+    it('writes onboardingSeen=true to the private subcollection with merge', async () => {
+      await setOnboardingSeen('uid-1');
+      expect(setDoc).toHaveBeenCalledOnce();
+      const [, data, opts] = vi.mocked(setDoc).mock.calls[0];
+      expect(data).toEqual({ onboardingSeen: true });
+      expect(opts).toMatchObject({ merge: true });
+    });
+
+    it('accepts explicit false (e.g. for tests / reset flows)', async () => {
+      await setOnboardingSeen('uid-1', false);
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      expect(data).toEqual({ onboardingSeen: false });
+    });
+  });
+
+  describe('getUserProfile (onboardingSeen passthrough)', () => {
+    it('includes onboardingSeen when present in private subcollection', async () => {
+      vi.mocked(getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: 'uid-1',
+          data: () => ({ uid: 'uid-1', email: 'a@b.com', displayName: 'A' }),
+        } as any)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({ onboardingSeen: true }),
+        } as any);
+      const out = await getUserProfile('uid-1');
+      expect(out?.onboardingSeen).toBe(true);
+    });
+
+    it('omits onboardingSeen when absent from both top-level and private', async () => {
+      vi.mocked(getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: 'uid-1',
+          data: () => ({ uid: 'uid-1', email: 'a@b.com', displayName: 'A' }),
+        } as any)
+        .mockResolvedValueOnce({ exists: () => false } as any);
+      const out = await getUserProfile('uid-1');
+      expect(out).not.toHaveProperty('onboardingSeen');
+    });
+  });
+
   describe('migrateLegacyPrivateFields (C3 one-shot migration)', () => {
     it('no-ops when top-level doc has no legacy private fields', async () => {
       vi.mocked(getDoc).mockResolvedValueOnce({
@@ -421,7 +467,7 @@ describe('users.service', () => {
     });
   });
 
-  describe('findUserByEmail (FindUserError typed — I8)', () => {
+  describe('findUserByEmail (FindUserError typed - I8)', () => {
     let originalFetch: typeof global.fetch;
     beforeEach(() => {
       originalFetch = global.fetch;

@@ -71,8 +71,8 @@ const chartOptions = computed(() => ({
             const value = ds.data[i] ?? 0;
             const pct = total === 0 ? 0 : Math.round((value / total) * 100);
             return {
-              text: `${label} — ${pct}%`,
-              // Per-item fontColor overrides labels.color in Chart.js v4 — set
+              text: `${label} - ${pct}%`,
+              // Per-item fontColor overrides labels.color in Chart.js v4 - set
               // it so the legend text follows the theme even when we hand-roll
               // entries via generateLabels.
               fontColor: inkColor.value,

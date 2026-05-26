@@ -150,12 +150,44 @@ describe('useCatalogStore', () => {
       const store = useCatalogStore();
       store.subscribe('uid-1');
       // Cast accommodates legacy docs that may still carry the flag in
-      // Firestore — the store must ignore them now that favorites are per-list.
+      // Firestore - the store must ignore them now that favorites are per-list.
       capturedOnChange([
         makeEntry({ id: '01EX' as ULID, name: 'Zarbo', usageCount: 5, ...({ excluded: true } as object) } as CatalogEntry),
       ]);
       const results = store.suggestionsFor('zarb', 'it');
       expect(results.some((s) => s.name === 'Zarbo')).toBe(true);
+    });
+  });
+
+  describe('inferCategoryForName (bulk-paste helper)', () => {
+    it('matches an entry from the user catalog and returns its category', () => {
+      const store = useCatalogStore();
+      store.subscribe('uid-1');
+      capturedOnChange([
+        makeEntry({ id: '01USR' as ULID, name: 'Mela rossa', category: 'fruit_vegetables' }),
+      ]);
+      expect(store.inferCategoryForName('Mela rossa', 'it')).toBe('fruit_vegetables');
+    });
+
+    it('falls back to the public catalog when no user entry matches', () => {
+      const store = useCatalogStore();
+      // `Latte` is a known public-catalog entry in the dairy category.
+      expect(store.inferCategoryForName('Latte', 'it')).toBe('dairy');
+    });
+
+    it('returns "other" when no match exists in either catalog', () => {
+      const store = useCatalogStore();
+      expect(store.inferCategoryForName('Quaglie marinate', 'it')).toBe('other');
+    });
+
+    it('returns "other" for empty input', () => {
+      const store = useCatalogStore();
+      expect(store.inferCategoryForName('', 'it')).toBe('other');
+    });
+
+    it('matches case-insensitively via normalize', () => {
+      const store = useCatalogStore();
+      expect(store.inferCategoryForName('  LATTE  ', 'it')).toBe('dairy');
     });
   });
 });

@@ -26,7 +26,7 @@ export interface SendInviteEmailParams {
  *
  * Network errors and non-2xx responses surface as {@link InviteEmailError};
  * the pending invite is already persisted in Firestore by `addCollaborator`,
- * so a failure here is recoverable — the caller can retry or just warn.
+ * so a failure here is recoverable - the caller can retry or just warn.
  */
 export const sendInviteEmail = async (params: SendInviteEmailParams): Promise<void> => {
   const auth = getAuth();

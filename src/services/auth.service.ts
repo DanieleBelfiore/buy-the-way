@@ -4,6 +4,9 @@ import {
   signOut,
   reauthenticateWithPopup,
   onAuthStateChanged as _onAuthStateChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
 } from 'firebase/auth';
 import {
   doc,
@@ -18,6 +21,7 @@ import {
 import { auth, db } from '@/services/firebase';
 import { claimPendingInvites, deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
 import { migrateLegacyPrivateFields, deletePrivateState } from '@/services/users.service';
+import { deleteAllNotifications } from '@/services/notifications.service';
 import type { AuthUser } from '@/composables/useAuth';
 
 export class RequiresRecentLoginError extends Error {
@@ -44,6 +48,76 @@ export class PartialDeletionError extends Error {
 export const signInWithGoogle = async (): Promise<void> => {
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
+};
+
+// localStorage key used by Firebase's recommended magic-link flow to remember
+// which email requested the link, so the callback page can complete sign-in
+// without re-prompting (and without trusting the URL alone).
+const MAGIC_LINK_EMAIL_STORAGE_KEY = 'btw:magicLinkEmail';
+
+/**
+ * Compute the URL Firebase should send the user back to after they click the
+ * magic-link in their inbox. Anchored on `window.location.origin` so it works
+ * for both dev (localhost:5173) and prod without hardcoding hosts.
+ */
+const magicLinkContinueUrl = (): string =>
+  `${window.location.origin}/auth/email-link-callback`;
+
+/**
+ * S2.3: request a sign-in link by email. Firebase sends the actual email via
+ * its own infra (no Resend dep), the user clicks the link and is bounced to
+ * `magicLinkContinueUrl` which completes sign-in via
+ * `completeMagicLinkSignIn`. Persists the email locally so we don't have to
+ * trust the link's query string to identify the recipient.
+ */
+export const sendMagicLink = async (email: string): Promise<void> => {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) throw new Error('sendMagicLink: empty email');
+  await sendSignInLinkToEmail(auth, normalized, {
+    url: magicLinkContinueUrl(),
+    handleCodeInApp: true,
+  });
+  try {
+    window.localStorage.setItem(MAGIC_LINK_EMAIL_STORAGE_KEY, normalized);
+  } catch {
+    // Storage unavailable (Safari private mode, quota) - sign-in still works
+    // because the callback page will fall back to asking for the email again.
+  }
+};
+
+/** True when the current URL is a Firebase magic-link callback. */
+export const isMagicLinkCallback = (url: string = window.location.href): boolean =>
+  isSignInWithEmailLink(auth, url);
+
+/**
+ * Complete the sign-in started by `sendMagicLink`. Reads the requesting email
+ * from localStorage; if missing (e.g. the link was opened on a different
+ * device than the one that requested it), the caller must pass `emailHint`.
+ *
+ * Returns the freshly authenticated user's uid so the caller can finish the
+ * navigation flow.
+ */
+export const completeMagicLinkSignIn = async (
+  url: string = window.location.href,
+  emailHint?: string,
+): Promise<string> => {
+  let email = emailHint?.trim().toLowerCase() ?? '';
+  if (!email) {
+    try {
+      email = window.localStorage.getItem(MAGIC_LINK_EMAIL_STORAGE_KEY) ?? '';
+    } catch {
+      email = '';
+    }
+  }
+  if (!email) throw new Error('completeMagicLinkSignIn: missing email');
+
+  const credential = await signInWithEmailLink(auth, email, url);
+  try {
+    window.localStorage.removeItem(MAGIC_LINK_EMAIL_STORAGE_KEY);
+  } catch {
+    // Best-effort cleanup.
+  }
+  return credential.user.uid;
 };
 
 const DELETE_BATCH_SIZE = 500;
@@ -122,10 +196,11 @@ export const deleteAccount = async (uid: string): Promise<void> => {
     failures.push('catalog');
   }
 
-  // 5a. Purge private subcollection (lastLoginAt + activity state).
-  // Best-effort: continues on failure so a missing/orphan doc doesn't block
-  // the rest of the cascade.
+  // 5a. Purge private subcollection (lastLoginAt + activity state) and the
+  // in-app notifications inbox. Best-effort: continues on failure so a
+  // missing/orphan doc doesn't block the rest of the cascade.
   await deletePrivateState(uid);
+  await deleteAllNotifications(uid);
 
   // 5b. Delete user doc.
   try {
@@ -141,7 +216,7 @@ export const deleteAccount = async (uid: string): Promise<void> => {
     throw new PartialDeletionError(failures);
   }
 
-  // 7. Delete Firebase Auth user — hard requirement, only when data is gone.
+  // 7. Delete Firebase Auth user - hard requirement, only when data is gone.
   try {
     await current.delete();
   } catch (err) {
@@ -170,7 +245,7 @@ export const onAuthChanged = (
 
       // Only do the heavyweight work (profile upsert with lastLoginAt + invite
       // claim) on actual sign-in transitions. Token refreshes / focus events
-      // fire the same callback but with the same uid — skip the writes there.
+      // fire the same callback but with the same uid - skip the writes there.
       if (isNewSignIn) {
         const publicProfile = {
           uid: firebaseUser.uid,
@@ -181,7 +256,7 @@ export const onAuthChanged = (
         try {
           await setDoc(doc(db, 'users', firebaseUser.uid), publicProfile, { merge: true });
         } catch (err) {
-          // Non-fatal — profile upsert fails if Firestore is unavailable,
+          // Non-fatal - profile upsert fails if Firestore is unavailable,
           // but auth state is still valid and the guard must resolve.
           console.warn('[auth] Failed to upsert user profile:', err);
         }

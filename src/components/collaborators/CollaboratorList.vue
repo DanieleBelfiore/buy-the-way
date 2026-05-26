@@ -37,7 +37,7 @@ const initialFor = (m: UserProfile): string => {
 };
 
 // Same hashing scheme used by ListCard so the same uid always maps to the
-// same hue across views — visual consistency.
+// same hue across views - visual consistency.
 const colorFor = (uid: string): string => {
   const palette = [
     'bg-rose-200 text-rose-900 dark:bg-rose-900 dark:text-rose-100',

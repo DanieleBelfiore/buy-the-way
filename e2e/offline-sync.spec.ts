@@ -32,7 +32,7 @@ test('add item while offline → reconnect → item persists', async ({ page, co
   await expect(page.getByTestId('offline-banner')).toBeVisible();
 
   await addItem(page, 'Olives');
-  // Optimistic write — Firestore writes are queued by SDK; UI reflects via local cache.
+  // Optimistic write - Firestore writes are queued by SDK; UI reflects via local cache.
   await expect(page.getByText('Olives').first()).toBeVisible();
 
   // Reconnect; item must still be there after a hard reload.

@@ -1,13 +1,14 @@
 import type { Context } from '@netlify/functions';
 import { Resend } from 'resend';
 import admin from 'firebase-admin';
+import { checkRateLimit, rateLimitedResponse, RATE_LIMITS } from './_lib/rate-limit';
 
 /**
  * Netlify Function: send-invite
  *
  * Sends a transactional "you've been invited" email to a non-registered user
  * via Resend. Called by the client when a list owner adds a collaborator whose
- * email is not yet in our `users/{uid}` collection — the pending invite is
+ * email is not yet in our `users/{uid}` collection - the pending invite is
  * already persisted in Firestore, this function is only the notification leg.
  *
  * Auth: requires a Firebase ID token in the `Authorization: Bearer …` header.
@@ -15,10 +16,10 @@ import admin from 'firebase-admin';
  * without a valid signed-in identity is rejected with 401.
  *
  * Env vars required (Netlify dashboard → Site → Environment variables):
- *   RESEND_API_KEY              — Resend API key
- *   FIREBASE_SERVICE_ACCOUNT    — full service-account JSON (one line, escaped)
- *   INVITE_FROM_ADDRESS         — sender, e.g. "Buy The Way <noreply@buy-the-way.danielebelfiore.dev>"
- *   APP_URL                     — public app URL, defaults to the prod host
+ *   RESEND_API_KEY              - Resend API key
+ *   FIREBASE_SERVICE_ACCOUNT    - full service-account JSON (one line, escaped)
+ *   INVITE_FROM_ADDRESS         - sender, e.g. "Buy The Way <noreply@buy-the-way.danielebelfiore.dev>"
+ *   APP_URL                     - public app URL, defaults to the prod host
  */
 
 interface InviteBody
@@ -53,7 +54,7 @@ const TEMPLATES = {
     body: 'Buy The Way is a free, mobile-first app for organising groceries with family or housemates: add, check off and sync in real time.',
     cta: 'Sign in and open the list',
     footer:
-      "Sign in with your Google account — the list will be waiting for you. If you don't recognise this invite, simply ignore this email.",
+      "Sign in with your Google account - the list will be waiting for you. If you don't recognise this invite, simply ignore this email.",
     ignore: 'Buy The Way · Made with ❤️',
   },
 } as const;
@@ -198,6 +199,24 @@ export default async (req: Request, _ctx: Context): Promise<Response> =>
   {
     console.warn('[send-invite] token verification failed:', err);
     return jsonResponse(401, { error: 'invalid_token' });
+  }
+
+  // S2.1: per-uid rate limit. Hard cap at 20 sends per hour. Prevents an
+  // attacker with a stolen ID token from blasting Resend invoice + the
+  // recipient's inbox; legit sharing flows stay comfortably under the cap.
+  try
+  {
+    const decision = await checkRateLimit(
+      inviterUid,
+      RATE_LIMITS.sendInvite.funcName,
+      RATE_LIMITS.sendInvite.max,
+      RATE_LIMITS.sendInvite.windowMs,
+    );
+    if (!decision.allowed) return rateLimitedResponse(decision);
+  } catch (err)
+  {
+    // Fail-open mirrors find-user: don't let a flaky limiter wedge invites.
+    console.warn('[send-invite] rate-limit check failed (allowing):', err);
   }
 
   // 2. Parse + validate

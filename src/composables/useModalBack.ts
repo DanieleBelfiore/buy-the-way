@@ -6,7 +6,7 @@ import type { Ref } from 'vue';
  * closes the modal instead of navigating the underlying route.
  *
  * Each call owns a unique token that is written into `history.state`. Only
- * history entries we pushed ourselves are popped on close — this lets stacked
+ * history entries we pushed ourselves are popped on close - this lets stacked
  * modals coexist and prevents stale `modalOpen` flags left in history.state by
  * earlier navigation from triggering spurious `history.back()` calls.
  *

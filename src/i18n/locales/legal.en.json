@@ -28,7 +28,7 @@
         {
           "id": "processors",
           "heading": "4. Data processors",
-          "body": "We rely on the following sub-processors: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) — hosting, authentication and storage of all application data; Functional Software Inc. — Sentry, for error monitoring on the production environment only. Both processors have signed standard contractual clauses for data transfers outside the EEA where applicable. Sentry session replays are configured to mask all input and text content; no list items or emails are captured."
+          "body": "We rely on the following sub-processor: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) - hosting, authentication and storage of all application data. The processor has signed standard contractual clauses for data transfers outside the EEA where applicable."
         },
         {
           "id": "retention",
@@ -79,7 +79,7 @@
         {
           "id": "liability",
           "heading": "4. Liability",
-          "body": "The service is provided \"as is\" and \"as available\". To the maximum extent permitted by law, we exclude all warranties and limit our liability to the amount you have paid for the service in the previous twelve months — which, since the service is free, is zero."
+          "body": "The service is provided \"as is\" and \"as available\". To the maximum extent permitted by law, we exclude all warranties and limit our liability to the amount you have paid for the service in the previous twelve months - which, since the service is free, is zero."
         },
         {
           "id": "law",

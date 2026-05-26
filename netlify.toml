@@ -2,7 +2,7 @@
 # Build is performed in GitHub Actions; Netlify serves the pre-built `dist/`.
 
 [build]
-  # Netlify is no longer git-connected — the Netlify CLI deploy in the
+  # Netlify is no longer git-connected - the Netlify CLI deploy in the
   # GitHub Actions `deploy-netlify` job uploads the dist/ artefact built
   # in `quality`. This `publish` line just tells the CLI which directory
   # to ship when `--dir` isn't passed explicitly.
@@ -32,7 +32,7 @@
     "node_modules/firebase/**",
   ]
 
-# SPA fallback — Vue Router uses HTML5 history; all unmatched paths serve index.html.
+# SPA fallback - Vue Router uses HTML5 history; all unmatched paths serve index.html.
 [[redirects]]
   from = "/*"
   to = "/index.html"

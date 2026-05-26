@@ -28,7 +28,7 @@
         {
           "id": "processors",
           "heading": "4. Responsabili del trattamento",
-          "body": "Ci avvaliamo dei seguenti responsabili: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) — hosting, autenticazione e memorizzazione di tutti i dati applicativi; Functional Software Inc. — Sentry, per il monitoraggio degli errori solo nell'ambiente di produzione. Entrambi i responsabili hanno sottoscritto le clausole contrattuali standard per i trasferimenti di dati al di fuori dello SEE, ove applicabile. Le session replay di Sentry sono configurate per mascherare tutti i contenuti dei campi di input e del testo; non vengono raccolti articoli delle liste né email."
+          "body": "Ci avvaliamo del seguente responsabile: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) - hosting, autenticazione e memorizzazione di tutti i dati applicativi. Il responsabile ha sottoscritto le clausole contrattuali standard per i trasferimenti di dati al di fuori dello SEE, ove applicabile."
         },
         {
           "id": "retention",
@@ -79,7 +79,7 @@
         {
           "id": "liability",
           "heading": "4. Responsabilità",
-          "body": "Il servizio è fornito \"così com'è\" e \"secondo disponibilità\". Nei limiti consentiti dalla legge, escludiamo ogni garanzia e limitiamo la nostra responsabilità all'importo da te corrisposto nei dodici mesi precedenti — che, essendo il servizio gratuito, è pari a zero."
+          "body": "Il servizio è fornito \"così com'è\" e \"secondo disponibilità\". Nei limiti consentiti dalla legge, escludiamo ogni garanzia e limitiamo la nostra responsabilità all'importo da te corrisposto nei dodici mesi precedenti - che, essendo il servizio gratuito, è pari a zero."
         },
         {
           "id": "law",

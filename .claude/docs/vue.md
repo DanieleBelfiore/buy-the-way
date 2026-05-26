@@ -1,4 +1,4 @@
-# Vue 3 + Vitest — Test Hygiene Rules
+# Vue 3 + Vitest - Test Hygiene Rules
 
 Patterns required in Vue test files to avoid spurious warnings and flaky tests. Activate this doc by adding `@~/.claude/docs/vue.md` to the project's CLAUDE.md when working on a Vue 3 + Vitest stack.
 
@@ -17,7 +17,7 @@ Patterns required in Vue test files to avoid spurious warnings and flaky tests. 
 
 4. **Click events on dropdown/autocomplete options.** Use `@click` on interactive list options, not `@mousedown.prevent`. Vue Test Utils `trigger('click')` does not simulate real browser blur/focus, so `@mousedown.prevent` never fires in tests. If you must keep `@mousedown.prevent` for production UX (preventing input blur), add a parallel `@click` handler that tests can drive.
 
-## Vitest + Node 26 — localStorage polyfill
+## Vitest + Node 26 - localStorage polyfill
 
 Node 26 ships an experimental native `localStorage` that requires the `--localstorage-file` flag, otherwise it shadows jsdom's localStorage and `localStorage.clear()` throws `Cannot read properties of undefined`. Sessions/sessionStorage are not affected the same way.
 

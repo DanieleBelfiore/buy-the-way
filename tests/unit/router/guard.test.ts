@@ -134,7 +134,7 @@ describe('authGuard', () => {
       expect(result).toBeUndefined();
     });
 
-    it('only fires once per session — second boot-shape nav does not redirect', async () => {
+    it('only fires once per session - second boot-shape nav does not redirect', async () => {
       mockUseAuth.mockReturnValue({
         user: ref({ uid: 'user-1', email: 'a@b.com' }),
         ready: ref(true),

@@ -103,7 +103,7 @@ describe('isCustomItemName', () => {
     expect(isCustomItemName('Milk')).toBe(false);
   });
 
-  it('is locale-agnostic — Latte not custom even with en locale arg', () => {
+  it('is locale-agnostic - Latte not custom even with en locale arg', () => {
     expect(isCustomItemName('Latte', 'en')).toBe(false);
   });
 

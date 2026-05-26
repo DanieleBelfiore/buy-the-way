@@ -17,7 +17,7 @@ const i18n = createI18n({
 
 /**
  * Mount a throwaway component so we get a proper Vue setup context for
- * useI18n() — otherwise the composable fails outside a component instance.
+ * useI18n() - otherwise the composable fails outside a component instance.
  */
 const callShare = async (override?: string) => {
   let api!: ReturnType<typeof useShareApp>;

@@ -11,6 +11,41 @@ export const sortCategoriesByLabel = (
   return [...categories].sort((a, b) => collator.compare(getLabel(a), getLabel(b)));
 };
 
+/**
+ * Order `categories` according to an optional per-list `preferredOrder`,
+ * with categories absent from the preference falling back to alphabetic
+ * label-order at the tail.
+ *
+ * - Duplicates in `preferredOrder` are ignored (first occurrence wins).
+ * - Entries in `preferredOrder` that are NOT in `categories` are skipped.
+ * - Categories in `categories` that are NOT in `preferredOrder` are
+ *   appended after the preferred block, sorted by translated label.
+ */
+export const sortCategoriesWithPreference = (
+  categories: readonly Category[],
+  preferredOrder: readonly Category[] | undefined,
+  getLabel: (c: Category) => string,
+  locale: string,
+): Category[] => {
+  const present = new Set<Category>(categories);
+  if (!preferredOrder || preferredOrder.length === 0) {
+    return sortCategoriesByLabel(categories, getLabel, locale);
+  }
+  const seen = new Set<Category>();
+  const head: Category[] = [];
+  for (const c of preferredOrder) {
+    if (!present.has(c) || seen.has(c)) continue;
+    head.push(c);
+    seen.add(c);
+  }
+  const tail = sortCategoriesByLabel(
+    [...present].filter((c) => !seen.has(c)),
+    getLabel,
+    locale,
+  );
+  return [...head, ...tail];
+};
+
 export const sortItemsByName = <T extends { name: string }>(
   items: readonly T[],
   locale: string,

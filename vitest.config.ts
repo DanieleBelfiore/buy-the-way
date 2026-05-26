@@ -30,11 +30,16 @@ export default defineConfig({
         // E2E-only module: loaded when VITE_E2E=true and exercised by Playwright,
         // never bundled in production. Out of scope for unit coverage.
         'src/e2e-bridge.ts',
-        // No runtime code — types only
+        // Dev-only module: loaded when DEV && VITE_USE_EMULATOR=true so the
+        // SPA can talk to /.netlify/functions/* without `netlify dev`. Hard
+        // refuses to load outside dev (see file header). Out of scope for
+        // unit coverage - exercised manually + via dev workflow.
+        'src/dev-bridge.ts',
+        // No runtime code - types only
         'src/domain/types.ts',
         // Side-effectful Firebase init, globally mocked in tests
         'src/services/firebase.ts',
-        // Minimal wrapper — tested via router-view integration
+        // Minimal wrapper - tested via router-view integration
         'src/App.vue',
         // Reads localStorage/navigator.language at module level; covered by SettingsView tests (Task 27)
         'src/i18n/index.ts',

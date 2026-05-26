@@ -2,9 +2,10 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ArrowLeft, LogOut, MessageSquare, Moon, Share2, Sun, Trash2 } from '@lucide/vue';
+import { ArrowLeft, Download, LogOut, MessageSquare, Moon, Share2, Sun, Trash2 } from '@lucide/vue';
 import { getAuth } from 'firebase/auth';
 import { useAuthStore } from '@/stores/auth';
+import { downloadUserDataExport } from '@/services/export.service';
 import { useThemeStore, type ThemeMode } from '@/stores/theme';
 import { useShareApp } from '@/composables/useShareApp';
 import { useSafeBack } from '@/composables/useSafeBack';
@@ -26,7 +27,7 @@ const deletingAccount = ref(false);
 const deleteConfirmOpen = ref(false);
 const reauthNeeded = ref(false);
 const deleteError = ref<string | null>(null);
-// Unified toast surface — both "link copied" (share fallback) and "feedback
+// Unified toast surface - both "link copied" (share fallback) and "feedback
 // received" funnel through the same Toast instance so they're styled the same
 // (Info icon, content-hugging width) and never clash with each other.
 const toastOpen = ref(false);
@@ -63,6 +64,24 @@ const closeFeedback = (): void => {
 };
 const onFeedbackSubmitted = (): void => {
   showToast(t('settings.feedbackThanks'));
+};
+
+// S2.2: GDPR data export. Aggregates everything the user owns into a JSON
+// blob and triggers a browser download. Errors surface as a toast - the
+// service call itself never throws partial results.
+const exporting = ref(false);
+const handleExportData = async (): Promise<void> => {
+  if (!authStore.user || exporting.value) return;
+  exporting.value = true;
+  try {
+    const filename = await downloadUserDataExport(authStore.user.uid);
+    showToast(t('settings.exportDoneToast', { filename }));
+  } catch (err) {
+    console.error('[SettingsView] data export failed:', err);
+    showToast(t('settings.exportFailedToast'));
+  } finally {
+    exporting.value = false;
+  }
 };
 
 const handleSignOut = async () => {
@@ -117,7 +136,7 @@ const runDelete = async () => {
   try {
     // C1: reauth BEFORE wiping any data. The previous flow deleted
     // Firestore data first, then discovered "requires-recent-login" only at
-    // the final auth.currentUser.delete() step — leaving the account
+    // the final auth.currentUser.delete() step - leaving the account
     // orphaned with no data if the user didn't reauth+retry.
     if (!sessionIsFresh()) {
       reauthNeeded.value = true;
@@ -259,7 +278,7 @@ const reauthAndRetry = async () => {
       </div>
     </section>
 
-    <section class="px-5 pt-8">
+    <section class="px-5 pt-8 space-y-2">
       <div class="flex flex-row gap-2">
         <button
           type="button"
@@ -284,10 +303,28 @@ const reauthAndRetry = async () => {
           <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.feedback') }}</span>
         </button>
       </div>
+
     </section>
 
     <div class="mt-auto">
-      <section class="px-5 pt-8 flex flex-row gap-3">
+      <section class="px-5 pt-8">
+        <button
+          v-if="user"
+          type="button"
+          data-testid="export-data-btn"
+          :disabled="exporting"
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
+                 hover:bg-black/5 active:bg-black/10 transition-colors disabled:opacity-40"
+          @click="handleExportData"
+        >
+          <Download :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">
+            {{ exporting ? t('settings.exportRunning') : t('settings.exportData') }}
+          </span>
+        </button>
+      </section>
+
+      <section class="px-5 pt-3 flex flex-row gap-3">
         <button
           v-if="user"
           :disabled="deletingAccount"

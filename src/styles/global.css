@@ -60,3 +60,16 @@ button[aria-disabled='true'],
 [role='button'][aria-disabled='true'] {
   cursor: not-allowed;
 }
+
+/* Ensure button text never wraps.
+   Note: Automatic font-size reduction is handled by JS (useButtonTextFit). */
+button {
+  white-space: nowrap;
+}
+
+/* Allow spans in flex buttons to be squeezed so JS can detect scrollWidth > clientWidth */
+button > span {
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}

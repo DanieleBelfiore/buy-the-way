@@ -45,7 +45,7 @@ export default defineConfig({
       VITE_FIREBASE_PROJECT_ID: 'buy-the-way',
       // Firebase SDK still calls initializeApp() before the emulator hook
       // kicks in, and it rejects an empty apiKey. In CI there's no .env.local
-      // to supply the real values, so feed the SDK harmless placeholders —
+      // to supply the real values, so feed the SDK harmless placeholders -
       // every auth + firestore call gets rerouted to the local emulator the
       // moment connectAuthEmulator / connectFirestoreEmulator run anyway.
       VITE_FIREBASE_API_KEY: 'demo-api-key',

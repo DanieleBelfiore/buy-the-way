@@ -40,7 +40,7 @@ test('two contexts see new item sync within 1s', async ({ browser }) => {
   const listId = await createSharedList(alicePage, 'Realtime');
   await alicePage.goto(`/lists/${listId}`);
 
-  // Bob context (separate browser session — isolated cookies + storage)
+  // Bob context (separate browser session - isolated cookies + storage)
   const bobCtx = await browser.newContext();
   await pinLocaleEN(bobCtx);
   const bobPage = await bobCtx.newPage();

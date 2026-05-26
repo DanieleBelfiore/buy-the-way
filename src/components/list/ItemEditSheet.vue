@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Check, X } from '@lucide/vue';
+import { Check, X, Camera, Image as ImageIcon, Trash2 } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import { CATEGORY_ORDER, CATEGORIES } from '@/domain/categories';
 import type { Item, Category } from '@/domain/types';
@@ -26,6 +26,10 @@ const emit = defineEmits<{
     },
   ];
   cancel: [];
+  /** S4.2: user picked a file - parent runs `uploadItemPhoto`. */
+  'upload-photo': [Item, File];
+  /** S4.2: user tapped Remove on the existing photo. */
+  'remove-photo': [Item];
 }>();
 
 const { t } = useI18n();
@@ -65,6 +69,25 @@ const onSave = (): void => {
     category: categoryRef.value,
     pinned: pinnedRef.value,
   });
+};
+
+// S4.2: hidden <input type="file"> driven by a styled button. We expose the
+// chosen file to the parent via `upload-photo` so the firestore + storage
+// orchestration stays in the view (testable + composes with undo flows).
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const onPickPhoto = (): void => {
+  fileInputRef.value?.click();
+};
+const onFileChosen = (e: Event): void => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file || !props.item) return;
+  emit('upload-photo', props.item, file);
+  // Reset value so picking the same file twice still triggers `change`.
+  input.value = '';
+};
+const onRemovePhoto = (): void => {
+  if (props.item) emit('remove-photo', props.item);
 };
 </script>
 
@@ -137,6 +160,60 @@ const onSave = (): void => {
             rows="2"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           />
+        </div>
+
+        <!-- S4.2: photo attachment. Existing photo renders as a square thumb
+             with a Remove overlay; absent photo shows a single Add button. -->
+        <div data-testid="edit-photo-section">
+          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+            {{ t('item.photo') }}
+          </label>
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            data-testid="edit-photo-input"
+            @change="onFileChosen"
+          />
+          <div v-if="props.item?.thumbURL || props.item?.photoURL" class="flex flex-col gap-3">
+            <div class="flex flex-row gap-2">
+              <button
+                type="button"
+                data-testid="edit-photo-replace"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+                @click="onPickPhoto"
+              >
+                <Camera :size="16" :stroke-width="2" aria-hidden="true" />
+                {{ t('item.photoReplace') }}
+              </button>
+              <button
+                type="button"
+                data-testid="edit-photo-remove"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900"
+                @click="onRemovePhoto"
+              >
+                <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
+                {{ t('item.photoRemove') }}
+              </button>
+            </div>
+            <img
+              :src="props.item.photoURL ?? props.item.thumbURL"
+              alt=""
+              data-testid="edit-photo-thumb"
+              class="w-full max-h-64 rounded-xl object-contain"
+            />
+          </div>
+          <button
+            v-else
+            type="button"
+            data-testid="edit-photo-add"
+            class="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+            @click="onPickPhoto"
+          >
+            <ImageIcon :size="16" :stroke-width="2" aria-hidden="true" />
+            {{ t('item.photoAdd') }}
+          </button>
         </div>
 
       </div>

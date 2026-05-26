@@ -78,7 +78,7 @@ const onKeydown = (e: KeyboardEvent) => {
 </script>
 
 <template>
-  <div class="relative px-5">
+  <div class="relative">
     <input
       id="autocomplete-input"
       v-model="rawQuery"
@@ -98,7 +98,7 @@ const onKeydown = (e: KeyboardEvent) => {
       v-if="isOpen && totalOptions > 0"
       :id="listboxId"
       role="listbox"
-      class="absolute top-full left-5 right-5 z-50 mt-1 bg-offwhite border border-cream-soft rounded-xl shadow-sm max-h-60 overflow-y-auto"
+      class="absolute top-full left-0 right-0 z-50 mt-1 bg-offwhite border border-cream-soft rounded-xl shadow-sm max-h-60 overflow-y-auto"
     >
       <li
         v-for="(entry, i) in suggestions"

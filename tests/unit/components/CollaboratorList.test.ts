@@ -34,7 +34,7 @@ const mountList = (props: {
   mount(CollaboratorList, {
     props: {
       ...props,
-      // Default to single-admin (owner) when test doesn't specify — keeps
+      // Default to single-admin (owner) when test doesn't specify - keeps
       // legacy assertions working.
       admins: props.admins ?? [props.ownerUid],
     },

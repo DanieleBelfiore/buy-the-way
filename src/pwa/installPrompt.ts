@@ -54,11 +54,11 @@ const detectIOS = (): boolean => {
 
 /**
  * UA-based mobile detection. The install prompt is mobile-only per product
- * decision — desktop browsers get nothing. Covers iOS, Android, plus other
+ * decision - desktop browsers get nothing. Covers iOS, Android, plus other
  * mobile UAs. Width fallback (≤ 768) catches mobile UAs spoofed as desktop
  * (rare) without surfacing the prompt on legitimate laptops with narrow
  * windows (we OR the two so a narrow desktop window still shows nothing
- * unless the UA also reports mobile — desktop windows being narrow is
+ * unless the UA also reports mobile - desktop windows being narrow is
  * common; legitimate mobile is rare on width alone).
  */
 const detectMobile = (): boolean => {
@@ -82,7 +82,7 @@ export const setupInstallPrompt = (): InstallPromptState => {
     return state();
   }
 
-  // iOS Safari has no beforeinstallprompt API — show the manual hint instead.
+  // iOS Safari has no beforeinstallprompt API - show the manual hint instead.
   if (detectIOS()) {
     showIOSHint.value = true;
   }

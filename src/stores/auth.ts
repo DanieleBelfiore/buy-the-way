@@ -6,8 +6,15 @@ import {
   onAuthChanged,
   deleteAccount as deleteAccountSvc,
   reauthenticateGoogle,
+  sendMagicLink as sendMagicLinkSvc,
+  completeMagicLinkSignIn as completeMagicLinkSignInSvc,
+  isMagicLinkCallback as isMagicLinkCallbackSvc,
 } from '@/services/auth.service';
-import { getUserProfile, setUserDefaultList } from '@/services/users.service';
+import {
+  getUserProfile,
+  setUserDefaultList,
+  setOnboardingSeen as setOnboardingSeenSvc,
+} from '@/services/users.service';
 import type { UserProfile } from '@/domain/types';
 import type { AuthUser } from '@/composables/useAuth';
 
@@ -22,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   const init = (): (() => void) => {
     return onAuthChanged((authUser) => {
       // Invalidate cached profile whenever the signed-in identity changes.
-      // Cross-store cleanup (e.g. lists) lives on the consumer side — see
+      // Cross-store cleanup (e.g. lists) lives on the consumer side - see
       // `src/stores/lists.ts`, which watches `auth.user?.uid` directly. That
       // avoids the dynamic import that would otherwise be needed to break the
       // auth↔lists module cycle.
@@ -65,7 +72,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
+  const markOnboardingSeen = async (): Promise<void> => {
+    if (!user.value) return;
+    const uid = user.value.uid;
+    await setOnboardingSeenSvc(uid, true);
+    if (profile.value && profile.value.uid === uid) {
+      profile.value = { ...profile.value, onboardingSeen: true };
+    }
+  };
+
   const signIn = (): Promise<void> => signInWithGoogle();
+
+  const sendMagicLink = (email: string): Promise<void> => sendMagicLinkSvc(email);
+
+  const completeMagicLinkSignIn = (
+    url?: string,
+    emailHint?: string,
+  ): Promise<string> => completeMagicLinkSignInSvc(url, emailHint);
+
+  const isMagicLinkCallback = (url?: string): boolean => isMagicLinkCallbackSvc(url);
 
   const signOut = (): Promise<void> => signOutCurrent();
 
@@ -80,7 +105,11 @@ export const useAuthStore = defineStore('auth', () => {
     init,
     ensureProfile,
     setDefaultListId,
+    markOnboardingSeen,
     signIn,
+    sendMagicLink,
+    completeMagicLinkSignIn,
+    isMagicLinkCallback,
     signOut,
     deleteAccount,
     reauthenticate,

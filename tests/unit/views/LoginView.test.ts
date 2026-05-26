@@ -17,11 +17,19 @@ const i18n = createI18n({
   locale: 'en',
   messages: {
     en: {
-      app: { name: 'Buy The Way', tagline: 'Your smart grocery list' },
+      app: { name: 'Buy The Way', tagline: 'Your smart grocery list', madeByPrefix: 'Made by ', madeBySuffix: ' with ❤️' },
       auth: {
         continueWithGoogle: 'Continue with Google',
         signingIn: 'Signing in…',
         signInError: 'Sign in failed. Please try again.',
+        magicLink: {
+          show: 'Sign in with email',
+          hide: 'Sign in with Google',
+          emailLabel: 'Email address',
+          send: 'Send link',
+          sending: 'Sending…',
+          sentNotice: 'Check {email}',
+        },
       },
       error: { generic: 'Something went wrong.' },
     },
@@ -38,6 +46,7 @@ const router = createRouter({
 
 describe('LoginView', () => {
   const mockSignIn = vi.fn();
+  const mockSendMagicLink = vi.fn();
   // reactive so that watch(() => auth.user) in LoginView tracks changes
   const mockStore = reactive({
     user: null as { uid: string; email: string; displayName: string } | null,
@@ -45,6 +54,7 @@ describe('LoginView', () => {
     signIn: mockSignIn,
     signOut: vi.fn(),
     init: vi.fn(),
+    sendMagicLink: mockSendMagicLink,
   });
 
   const mountView = () => mount(LoginView, { global: { plugins: [i18n, router] } });
@@ -110,5 +120,42 @@ describe('LoginView', () => {
     await flushPromises();
 
     expect(router.currentRoute.value.name).toBe('lists');
+  });
+
+  describe('S2.3: magic-link sign-in', () => {
+    it('shows the magic-link form when the toggle is clicked', async () => {
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="magic-link-form"]').exists()).toBe(false);
+      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
+      expect(wrapper.find('[data-testid="magic-link-form"]').exists()).toBe(true);
+    });
+
+    it('disables Send while the email is empty', async () => {
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
+      const btn = wrapper.find('[data-testid="magic-link-send"]');
+      expect((btn.element as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('calls sendMagicLink with the entered email and shows the sent notice', async () => {
+      mockSendMagicLink.mockResolvedValue(undefined);
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
+      await wrapper.find('input[type="email"]').setValue('user@example.com');
+      await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
+      await flushPromises();
+      expect(mockSendMagicLink).toHaveBeenCalledWith('user@example.com');
+      expect(wrapper.find('[data-testid="magic-link-sent"]').exists()).toBe(true);
+    });
+
+    it('surfaces an error when sendMagicLink rejects', async () => {
+      mockSendMagicLink.mockRejectedValue(new Error('quota exceeded'));
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
+      await wrapper.find('input[type="email"]').setValue('user@example.com');
+      await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
+      await flushPromises();
+      expect(wrapper.find('[data-testid="sign-in-error"]').exists()).toBe(true);
+    });
   });
 });

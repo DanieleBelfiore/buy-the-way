@@ -38,7 +38,7 @@ const switchThemeAndReload = async (page: Page, theme: 'light' | 'dark'): Promis
       try {
         localStorage.setItem(key, value);
       } catch {
-        /* Storage unavailable — the inline script will fall back to light. */
+        /* Storage unavailable - the inline script will fall back to light. */
       }
     },
     { key: THEME_STORAGE_KEY, value: theme },
@@ -58,7 +58,7 @@ const switchThemeAndReload = async (page: Page, theme: 'light' | 'dark'): Promis
 export const expectNoA11yIssues = async (page: Page, label?: string): Promise<void> => {
   const base = label ?? 'page';
 
-  // Light pass first — explicit even though it's the default, so we never
+  // Light pass first - explicit even though it's the default, so we never
   // audit "whatever localStorage happened to be" from a previous test step.
   await switchThemeAndReload(page, 'light');
   await runAxe(page, `${base} (light)`);

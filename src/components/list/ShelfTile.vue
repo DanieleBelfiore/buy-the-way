@@ -12,7 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   add: [ListFavoriteState];
-  /** Trash button — request to hide this entry from this list's favorites shelf. */
+  /** Trash button - request to hide this entry from this list's favorites shelf. */
   exclude: [ListFavoriteState];
 }>();
 

@@ -5,6 +5,10 @@ vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
+  sendSignInLinkToEmail: vi.fn().mockResolvedValue(undefined),
+  isSignInWithEmailLink: vi.fn(),
+  signInWithEmailLink: vi.fn(),
+  reauthenticateWithPopup: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -31,9 +35,19 @@ import {
   signInWithGoogle,
   signOutCurrent,
   onAuthChanged,
+  sendMagicLink,
+  completeMagicLinkSignIn,
+  isMagicLinkCallback,
   __resetAuthLastSeenUid,
 } from '@/services/auth.service';
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+} from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 
 const mSignInWithPopup = vi.mocked(signInWithPopup);
@@ -129,7 +143,7 @@ describe('auth.service', () => {
         email: 'test@example.com',
         displayName: 'Test User',
       });
-      // Public payload must NOT carry lastLoginAt — that's PII now.
+      // Public payload must NOT carry lastLoginAt - that's PII now.
       expect((publicPayloads[0] as any).lastLoginAt).toBeUndefined();
 
       const privatePayloads = mSetDoc.mock.calls
@@ -217,6 +231,89 @@ describe('auth.service', () => {
         .map((c) => c[1] as Record<string, unknown>)
         .find((p) => 'email' in p);
       expect((pub as any)?.email).toBe('');
+    });
+  });
+
+  describe('magic link (S2.3)', () => {
+    beforeEach(() => {
+      // jsdom provides a real localStorage; clear between tests so the
+      // stored-email state doesn't leak.
+      try { window.localStorage.clear(); } catch { /* ignored */ }
+      // Origin defaults to about:blank in some setups; force a known one
+      // so the continueUrl assertions are deterministic.
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          origin: 'https://app.test',
+          href: 'https://app.test/auth/email-link-callback?oobCode=abc',
+        },
+      });
+    });
+
+    describe('sendMagicLink', () => {
+      it('calls sendSignInLinkToEmail with normalized email and the continueUrl', async () => {
+        await sendMagicLink('  USER@example.COM  ');
+        expect(sendSignInLinkToEmail).toHaveBeenCalledOnce();
+        const [, email, settings] = vi.mocked(sendSignInLinkToEmail).mock.calls[0]!;
+        expect(email).toBe('user@example.com');
+        expect(settings).toMatchObject({
+          url: 'https://app.test/auth/email-link-callback',
+          handleCodeInApp: true,
+        });
+      });
+
+      it('persists the requesting email in localStorage so the callback page can use it', async () => {
+        await sendMagicLink('user@example.com');
+        expect(window.localStorage.getItem('btw:magicLinkEmail')).toBe('user@example.com');
+      });
+
+      it('throws on empty input', async () => {
+        await expect(sendMagicLink('   ')).rejects.toThrow(/empty email/);
+      });
+    });
+
+    describe('completeMagicLinkSignIn', () => {
+      it('reads the stored email and completes sign-in', async () => {
+        window.localStorage.setItem('btw:magicLinkEmail', 'user@example.com');
+        vi.mocked(signInWithEmailLink).mockResolvedValue({ user: { uid: 'uid-7' } } as any);
+
+        const uid = await completeMagicLinkSignIn('https://app.test/auth/email-link-callback?oobCode=abc');
+
+        expect(uid).toBe('uid-7');
+        const [, email, link] = vi.mocked(signInWithEmailLink).mock.calls[0]!;
+        expect(email).toBe('user@example.com');
+        expect(link).toBe('https://app.test/auth/email-link-callback?oobCode=abc');
+        // Stored email is cleared after successful sign-in.
+        expect(window.localStorage.getItem('btw:magicLinkEmail')).toBeNull();
+      });
+
+      it('accepts an explicit emailHint when localStorage is empty', async () => {
+        vi.mocked(signInWithEmailLink).mockResolvedValue({ user: { uid: 'uid-9' } } as any);
+        const uid = await completeMagicLinkSignIn(
+          'https://app.test/auth/email-link-callback?oobCode=abc',
+          'cross-device@example.com',
+        );
+        expect(uid).toBe('uid-9');
+        const [, email] = vi.mocked(signInWithEmailLink).mock.calls[0]!;
+        expect(email).toBe('cross-device@example.com');
+      });
+
+      it('throws when no email is stored and no hint is provided', async () => {
+        await expect(
+          completeMagicLinkSignIn('https://app.test/auth/email-link-callback?oobCode=abc'),
+        ).rejects.toThrow(/missing email/);
+      });
+    });
+
+    describe('isMagicLinkCallback', () => {
+      it('delegates to the Firebase Auth helper', () => {
+        vi.mocked(isSignInWithEmailLink).mockReturnValue(true);
+        expect(isMagicLinkCallback('https://app.test/auth/email-link-callback?oobCode=abc')).toBe(true);
+        expect(isSignInWithEmailLink).toHaveBeenCalledWith(
+          expect.anything(),
+          'https://app.test/auth/email-link-callback?oobCode=abc',
+        );
+      });
     });
   });
 });

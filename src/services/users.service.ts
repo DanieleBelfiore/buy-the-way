@@ -36,7 +36,7 @@ export class FindUserError extends Error {
  *   - non-2xx HTTP responses
  *
  * Callers driving an invite flow rely on this distinction to tell the user
- * "no such account" vs "we couldn't check right now — try again".
+ * "no such account" vs "we couldn't check right now - try again".
  */
 export const findUserByEmail = async (email: string): Promise<UserProfile | null> => {
   const normalized = normalizeEmail(email);
@@ -113,7 +113,19 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
   if (lastSeenListMap !== undefined) profile.lastSeenListMap = lastSeenListMap;
   const defaultListId = priv.defaultListId ?? top.defaultListId;
   if (defaultListId !== undefined) profile.defaultListId = defaultListId;
+  if (priv.onboardingSeen !== undefined) profile.onboardingSeen = priv.onboardingSeen;
   return profile;
+};
+
+/**
+ * Mark the onboarding tour as seen for `uid`. Stored in the private
+ * subcollection so it never leaks via cross-user profile reads.
+ */
+export const setOnboardingSeen = async (
+  uid: string,
+  seen: boolean = true,
+): Promise<void> => {
+  await setDoc(privateStateRef(uid), { onboardingSeen: seen }, { merge: true });
 };
 
 export const touchLastSeenLists = async (
@@ -155,7 +167,7 @@ export const setUserDefaultList = async (
 /**
  * One-shot migration helper: copy any legacy private fields living on the
  * top-level user doc into the private subcollection, then strip them from
- * the top-level. Safe to call on every sign-in — a no-op once migrated.
+ * the top-level. Safe to call on every sign-in - a no-op once migrated.
  *
  * Returns the set of keys that were migrated (for logging/tests).
  */
@@ -195,7 +207,7 @@ export const deletePrivateState = async (uid: string): Promise<void> => {
  * Uses parallel `getDoc` calls rather than a `documentId() in [...]` query:
  * the C3 hardening (`allow list: if false` on `users`) deliberately blocks
  * cross-user enumeration, and a `where(documentId(), 'in', […])` query is
- * a `list` operation under Firestore rules — so it would be denied. Each
+ * a `list` operation under Firestore rules - so it would be denied. Each
  * `getDoc` is a `get` operation, which the rules permit.
  *
  * Returns ONLY the public profile fields. Activity metadata (lastLoginAt,

@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Cloud Storage rules. The deny-by-default posture means anything not
+// explicitly permitted below is blocked, including signed-out access.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isListCollaborator(listId) {
+      return isSignedIn()
+        && uid() in firestore.get(
+             /databases/(default)/documents/lists/$(listId)
+           ).data.collaboratorUids;
+    }
+
+    // S4.2: item photo + thumbnail. Anyone who collaborates on the parent
+    // list may read/write. Size cap mirrors the client-side compression
+    // ceiling so a tampered client cannot blow through the Spark quota.
+    //
+    // Content-type allow-list explicitly excludes SVG: an SVG opened as a
+    // top-level document executes embedded <script>, which would turn a
+    // legitimate download URL into a one-tap XSS vector (C2 hardening).
+    // The client always uploads image/jpeg so the strict list mirrors real
+    // traffic; PNG + WebP are permitted for future-proofing other flows.
+    match /lists/{listId}/items/{itemId}/{file=**} {
+      allow read: if isListCollaborator(listId);
+      allow write: if isListCollaborator(listId)
+        && request.resource.size < 5 * 1024 * 1024
+        && (request.resource.contentType == 'image/jpeg'
+            || request.resource.contentType == 'image/png'
+            || request.resource.contentType == 'image/webp');
+      allow delete: if isListCollaborator(listId);
+    }
+  }
+}

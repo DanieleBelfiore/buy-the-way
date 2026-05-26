@@ -47,7 +47,7 @@ const settingsIt = {
   themeLight: 'Chiaro',
   themeDark: 'Scuro',
   share: 'Consiglia a un amico',
-  shareMessage: 'Buy The Way — La Tua Lista Della Spesa Intelligente. Provala:',
+  shareMessage: 'Buy The Way - La Tua Lista Della Spesa Intelligente. Provala:',
   shareCopied: 'Link copiato negli appunti',
   feedback: 'Invia feedback',
   feedbackTitle: 'Manda un feedback',

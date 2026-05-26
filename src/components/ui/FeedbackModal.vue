@@ -27,7 +27,7 @@ watch(
   },
 );
 
-// Encode an object as application/x-www-form-urlencoded — what Netlify Forms
+// Encode an object as application/x-www-form-urlencoded - what Netlify Forms
 // expects from JS-driven SPA submissions.
 const encodeForm = (data: Record<string, string>): string =>
   Object.entries(data)
@@ -54,7 +54,7 @@ const submit = async (): Promise<void> => {
     const auth = useAuthStore();
     const body = encodeForm({
       'form-name': 'feedback',
-      'bot-field': '', // honeypot — bots fill it, humans don't
+      'bot-field': '', // honeypot - bots fill it, humans don't
       email: auth.user?.email ?? '',
       uid: auth.user?.uid ?? '',
       userAgent: navigator.userAgent,

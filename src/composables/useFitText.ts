@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 export interface UseFitTextOptions {
   /** Minimum scale factor applied to the inner text. Default 0.55. */
   minScale?: number;
-  /** Maximum scale factor (usually 1 — no zoom-in beyond the natural size). */
+  /** Maximum scale factor (usually 1 - no zoom-in beyond the natural size). */
   maxScale?: number;
 }
 
@@ -16,7 +16,7 @@ export interface UseFitTextOptions {
  *
  * Why scale and not font-size: scale doesn't reflow the surrounding layout
  * (avoids loops with the very ResizeObserver we register). It does mean the
- * visual height stays constant at the natural font-size's line height —
+ * visual height stays constant at the natural font-size's line height -
  * desirable for a list row where every row must share a baseline.
  */
 export const useFitText = (

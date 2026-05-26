@@ -9,7 +9,7 @@ import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 // first navigation of a session, not every time the user returns to /lists.
 let defaultListRedirectArmed = true;
 
-/** Test-only escape hatch — re-arms the boot redirect between tests. */
+/** Test-only escape hatch - re-arms the boot redirect between tests. */
 export const __resetDefaultListRedirect = (): void => {
   defaultListRedirectArmed = true;
 };
@@ -57,7 +57,7 @@ export const authGuard = async (
     try {
       await authStore.ensureProfile();
     } catch {
-      // Profile fetch failed — fall through to /lists silently.
+      // Profile fetch failed - fall through to /lists silently.
     }
     const defaultId = authStore.profile?.defaultListId;
     if (defaultId) {
@@ -79,6 +79,11 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
+    },
+    {
+      path: '/auth/email-link-callback',
+      name: 'email-link-callback',
+      component: () => import('@/views/EmailLinkCallbackView.vue'),
     },
     {
       path: '/about',

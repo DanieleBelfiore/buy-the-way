@@ -8,7 +8,7 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 
 **Core user stories:**
 
-- As a user, I sign in with Google when I open the app (login is mandatory).
+- As a user, I sign in with Google one-tap **or** a passwordless email magic link (login is mandatory).
 - As a user, I create one or more shopping lists, each with a name.
 - As the owner of a list, I add another already-registered user by looking them up by email; they are added immediately, with no outbound email. Only the owner can add/remove collaborators.
 - If the email I search for does not match any registered user, the app shows an explicit error; no pending invite is created and no email is sent.
@@ -16,7 +16,7 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a collaborator, I can leave a shared list on my own (self-remove) without the owner having to do anything.
 - As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog **and** from a built-in public catalog of common grocery items (it/en), with my catalog overriding on conflicts.
 - As a user, if a product matches nothing in either catalog I create it as a custom item (private, visible only to me).
-- As a user, I see "I preferiti" — a dense 2-column grid of my recurring items, recency-weighted (`usageCount * exp(-Δt·ln2 / 30d)`, min 2 uses, cap 30). The grid is only rendered when at least one entry qualifies. The header has a filled star icon and a chevron; clicking either the title or the chevron collapses/expands the grid. Items already in the current list render with strikethrough + dimmed opacity. Each tile has a small × button (and a 500 ms long-press alternative) that excludes the entry from favorites permanently — you can re-enable it later from the item edit sheet via the "I preferiti" checkbox.
+- As a user, I see "I preferiti" - a dense 2-column grid of my recurring items, recency-weighted (`usageCount * exp(-Δt·ln2 / 30d)`, min 2 uses, cap 30). The grid is only rendered when at least one entry qualifies. The header has a filled star icon and a chevron; clicking either the title or the chevron collapses/expands the grid. Items already in the current list render with strikethrough + dimmed opacity. Each tile has a small × button (and a 500 ms long-press alternative) that excludes the entry from favorites permanently - you can re-enable it later from the item edit sheet via the "I preferiti" checkbox.
 - As a user, on the list detail screen I can clear the entire list in one action via a full-width red button ("Svuota lista" / "Empty list") pinned to the bottom of the screen. The button is visible only when the list is not empty and not in autocomplete mode. Tapping it opens a confirmation modal.
 - As a user, on the list detail screen, categories and items inside each category are sorted alphabetically (locale-aware). I can collapse any category section by clicking its header; the header shows a `bought/total` counter beside the name. Collapse state is persisted per-list in `localStorage`. When all items in a category are checked, the section auto-collapses.
 - As a user, long-pressing (≥ 500 ms) on an item opens an edit sheet where I can change its name, quantity, note, category, and toggle the "I preferiti" flag (forces the entry into favorites or excludes it from the algorithm). A short tap still toggles `checked`. Deleting a single item (red trash icon) prompts a confirmation modal.
@@ -29,6 +29,15 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a user, while shopping I uncheck items as I buy them; the `checked` state persists.
 - As a user, I can use the app offline and changes sync when connectivity is restored.
 - As a user, I can switch the UI language between Italian and English.
+- As a user, I can switch between light and dark themes (system-following by default, manual override persisted).
+- As a user, I can drag-and-drop categories inside a list to set my preferred order; the order is shared with collaborators (`lists/{listId}.categoryOrder`).
+- As a user, I can attach a photo to any item; the client compresses it to an 800 px photo + 200 px thumbnail and stores both under `lists/{listId}/items/{itemId}/` in Cloud Storage.
+- As a user, I can dictate items by voice (Web Speech API where supported) and paste a free-form text block to bulk-add items.
+- As a user, after deleting one or more items I see an Undo toast with countdown; tapping it restores the items before the commit fires.
+- As a user, I can opt-in to push notifications (FCM Web Push); I receive a notification when a collaborator adds an item, checks one off, empties the list, or removes me from it.
+- As a user, I can export all my data (lists, items, catalog, profile) as a JSON file from the Settings view (GDPR right-to-portability).
+- As a first-time user, I see an in-app onboarding tour that I can dismiss; the dismissal is persisted in `users/{uid}/private/state.hasSeenOnboarding`.
+- As a user, my private state (push opt-in, onboarding flag) lives in the owner-only subcollection `users/{uid}/private/state`; the public `users/{uid}` doc keeps only the minimum needed for the email-lookup flow.
 
 **Success definition:**
 
@@ -51,19 +60,22 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 | Styling | Tailwind CSS | ^3.4 |
 | PWA | vite-plugin-pwa (Workbox) | ^0.20 |
 | Head / SEO | @unhead/vue | ^3 (composable + plugin) |
-| Error monitoring | @sentry/vue | ^10 (production-only, masked replays) |
-| Backend (Auth + DB + Realtime) | Firebase: Auth + Firestore | SDK ^10 (modular) |
+| Backend (Auth + DB + Realtime + Storage + Push) | Firebase: Auth + Firestore + Storage + FCM | SDK ^12 (modular) |
+| Drag-and-drop | vue-draggable-plus | ^0.6 |
+| Charts | chart.js + vue-chartjs | ^4 / ^5 (lazy-loaded on /stats) |
+| Serverless | Netlify Functions + firebase-admin | latest |
+| Email (invites) | Resend | ^6 |
 | ID generation | `ulid` (npm) | ^2 |
 | Unit testing | Vitest + @vue/test-utils | ^2 / ^2 |
 | E2E testing | Playwright | ^1.48 |
 | Lint | ESLint + @typescript-eslint + eslint-plugin-vue | latest |
 | Format | Prettier | ^3 |
-| Hosting | Netlify | — |
-| CI | GitHub Actions | — |
+| Hosting | Netlify | - |
+| CI | GitHub Actions | - |
 
 ## Branding
 
-**Master logo:** `public/branding/logo-original.png` — 2816×1536 RGBA, banner format, contains the icon (illustrated shopping cart with fruit + bread + milk + paper plane), the "BUY THE WAY" wordmark, and the tagline "YOUR SMART GROCERY LIST". The logo is preserved as a brand mark only (used on the App Store/Play Store listing, marketing, and the PWA icons). It does NOT drive the in-app palette.
+**Master logo:** `public/branding/logo-original.png` - 2816×1536 RGBA, banner format, contains the icon (illustrated shopping cart with fruit + bread + milk + paper plane), the "BUY THE WAY" wordmark, and the tagline "YOUR SMART GROCERY LIST". The logo is preserved as a brand mark only (used on the App Store/Play Store listing, marketing, and the PWA icons). It does NOT drive the in-app palette.
 
 ## Visual Direction
 
@@ -71,12 +83,12 @@ The product UI follows a **single editorial direction**: Editorial Cream / Lovab
 
 - **Style:** editorial, minimal, magazine-like. High typographic hierarchy, no decoration.
 - **Mood:** quiet, focused, confident. Not playful, not luxury, not brutalist.
-- **Tone:** warm-neutral (cream, not white) with charcoal ink. Color used semantically for category icons only — never for surfaces, buttons, or chrome.
-- **Single direction commitment:** versions B (cream + citrus) and C (notebook) explored during design were rejected. Version A is the canonical look. No theme switcher.
-- **No dark mode.** Out of scope for v1 and v1.x.
+- **Tone:** warm-neutral (cream, not white) with charcoal ink. Color used semantically for category icons only - never for surfaces, buttons, or chrome.
+- **Single direction commitment:** versions B (cream + citrus) and C (notebook) explored during design were rejected. Version A is the canonical look.
+- **Light + dark theme:** dark mode shipped in Sprint 4. Tokens flip on `[data-theme]`; manual override persisted per user; default follows the OS via `prefers-color-scheme`.
 - **Typography:** Hanken Grotesk (Google Fonts) as the production substitute for Lovable's Camera Plain Variable. Weights 400/500/600 only.
 
-**Canonical palette — Editorial Cream (Lovable tokens):**
+**Canonical palette - Editorial Cream (Lovable tokens):**
 
 | Role | Token | Hex | Usage |
 |---|---|---|---|
@@ -168,7 +180,9 @@ buy-the-way/
 │   │   ├── auth.ts                   # User state, login/logout
 │   │   ├── lists.ts                  # User's lists + current list + new-lists badge
 │   │   ├── items.ts                  # Items of current list (realtime subscription)
-│   │   └── catalog.ts                # Personal catalog + most-used suggestions
+│   │   ├── catalog.ts                # Personal catalog + most-used suggestions
+│   │   ├── listFavorites.ts          # Per-list favorite-shelf state
+│   │   └── theme.ts                  # Light/dark theme switching + persistence
 │   ├── views/                        # Pages (route targets)
 │   │   ├── LoginView.vue
 │   │   ├── ListsView.vue             # Home: all user lists + new-lists badge
@@ -199,7 +213,9 @@ buy-the-way/
 │   │   ├── collaborators/
 │   │   │   ├── AddCollaboratorForm.vue   # Lookup by email + add
 │   │   │   └── CollaboratorList.vue      # Member list + remove (owner) / leave (self)
-│   │   └── ui/                       # Buttons, inputs, modals, toasts, LegalFooter, CompletionCelebration
+│   │   ├── onboarding/
+│   │   │   └── OnboardingTour.vue        # First-run tour, persisted dismissal flag
+│   │   └── ui/                       # Buttons, inputs, modals, toasts, LegalFooter, CompletionCelebration, FAB, UpdatePrompt, InstallPrompt, FeedbackModal
 │   ├── composables/
 │   │   ├── useAuth.ts
 │   │   ├── useDebouncedRef.ts
@@ -207,15 +223,28 @@ buy-the-way/
 │   │   ├── useDocumentHead.ts        # @unhead/vue wrapper, locale-reactive title + meta
 │   │   ├── useHaptic.ts
 │   │   ├── useLogoMotion.ts
-│   │   └── useReducedMotion.ts
-│   ├── services/                     # Firebase access layer
-│   │   ├── firebase.ts               # Init app + getAuth + getFirestore
-│   │   ├── auth.service.ts           # signInWithGoogle, signOut, onAuthState, upsert users/{uid}, deleteAccountCascade
-│   │   ├── users.service.ts          # findUserByEmail (query users collection)
-│   │   ├── lists.service.ts          # CRUD lists + addCollaborator/removeCollaborator/leave + hard-delete + ownership transfer
-│   │   ├── items.service.ts          # CRUD items + toggle checked + capitalizeInitial on name
+│   │   ├── useReducedMotion.ts
+│   │   ├── useBulkSelection.ts       # Long-press multi-select for items
+│   │   ├── useUndoDelete.ts          # Toast + countdown + commit chain
+│   │   ├── useSpeechRecognition.ts   # Web Speech API wrapper for voice add
+│   │   ├── useImageCompress.ts       # Client-side JPEG compression for item photos
+│   │   ├── useShareApp.ts            # Web Share API helper
+│   │   ├── useModalBack.ts           # Hardware-back integration for sheets
+│   │   ├── useSafeBack.ts            # Router back with fallback
+│   │   └── useFitText.ts             # Auto-shrink long names
+│   ├── services/                     # Firebase + serverless wrappers
+│   │   ├── firebase.ts               # Init app + Auth + Firestore + Storage + Messaging
+│   │   ├── auth.service.ts           # Google + email magic link + onAuthState + upsert users/{uid} + deleteAccountCascade
+│   │   ├── users.service.ts          # findUserByEmail (per-uid getDoc; no list operation)
+│   │   ├── lists.service.ts          # CRUD lists + collaborators + hard-delete + ownership transfer + categoryOrder
+│   │   ├── items.service.ts          # CRUD items + bulk ops + cascade photo purge + notify hooks
+│   │   ├── itemPhotos.service.ts     # Upload + delete photo/thumb + purge helper for cascades
 │   │   ├── catalog.service.ts        # Personal catalog + ranking + pin/exclude
-│   │   └── sentry.ts                 # Production-only init + shouldFilterEvent
+│   │   ├── listFavorites.service.ts  # Favorites shelf state
+│   │   ├── push.service.ts           # FCM token register/unregister + permission
+│   │   ├── notify.service.ts         # Client wrapper for the notify-list-event function
+│   │   ├── invites.service.ts        # Client wrapper for the send-invite function
+│   │   └── export.service.ts         # GDPR JSON export builder
 │   ├── domain/                       # Pure types and logic, no I/O
 │   │   ├── types.ts                  # List, Item, User, CatalogEntry, Category, ItemPriority
 │   │   ├── categories.ts             # Predefined category seed enum
@@ -261,11 +290,17 @@ buy-the-way/
 │   ├── sitemap.xml                   # 5 public URLs
 │   └── manifest.webmanifest          # (generated by plugin)
 ├── firebase/
-│   ├── firestore.rules               # Security rules
+│   ├── firestore.rules               # Firestore security rules
+│   ├── storage.rules                 # Storage rules for per-item photos (collaborator-gated)
 │   └── firestore.indexes.json        # Composite index for lists.collaboratorUids + updatedAt desc
+├── netlify/
+│   └── functions/
+│       ├── send-invite.ts            # Resend-backed email invites (rate-limited)
+│       ├── find-user.ts              # Server-side email -> uid lookup
+│       ├── notify-list-event.ts      # FCM Web Push fan-out with stale-token pruning
+│       └── _lib/                     # Shared rate-limit + firestore-admin helpers
 ├── .github/workflows/
-│   ├── ci.yml                        # Lint + typecheck + test + build
-│   └── deploy.yml                    # Deploy to Netlify on main + firebase-deploy job (rules + indices)
+│   └── ci-cd.yml                     # Lint + typecheck + unit + rules + e2e + deploy (Firebase + Netlify)
 ├── netlify.toml                      # SPA fallback + headers
 ├── SPEC.md
 ├── README.md
@@ -451,8 +486,8 @@ const onToggle = () => {
 
 **Mandatory TDD workflow (global rule):**
 
-1. RED — write a failing test.
-2. GREEN — implement the minimum to make it pass.
+1. RED - write a failing test.
+2. GREEN - implement the minimum to make it pass.
 3. REFACTOR.
 
 **Specific requirements:**
@@ -466,7 +501,7 @@ const onToggle = () => {
 
 **Test quality rules (learned in Phase 1):**
 
-- View tests must assert **user-observable outcomes** — final route, visible text, element presence — not only that a function was called. Example: after sign-in succeeds, assert `router.currentRoute.value.name === 'lists'`.
+- View tests must assert **user-observable outcomes** - final route, visible text, element presence - not only that a function was called. Example: after sign-in succeeds, assert `router.currentRoute.value.name === 'lists'`.
 - When a Vue component uses `watch(() => store.x, ...)`, the mock store must be `reactive({})`, not a plain object, otherwise the watcher never fires.
 - Every async operation visible to the user must have a test for the **error path** with visible feedback (error text rendered in the DOM).
 - Firestore security rules for every new collection must have at least one integration test (`*.int.test.ts` against the emulator) before that phase is marked complete.
@@ -487,7 +522,7 @@ const onToggle = () => {
 - All UI strings go through `vue-i18n` (`t()`). Both it and en covered.
 - Update `updatedAt` on every mutation to support last-write-wins.
 - Run `lint`, `typecheck`, `test:run` before every commit (CI gate).
-- Keep `firestore.rules` aligned with the data model: `lists/{id}` is readable by `ownerUid` or any uid in `collaboratorUids`. Update rules **in the same commit** that introduces a new collection — never leave a collection with the default deny-all scaffold.
+- Keep `firestore.rules` aligned with the data model: `lists/{id}` is readable by `ownerUid` or any uid in `collaboratorUids`. Update rules **in the same commit** that introduces a new collection - never leave a collection with the default deny-all scaffold.
 - In `main.ts`, call `authStore.init()` **before** `app.use(router)`. Vue Router 4 starts the initial navigation synchronously inside `install()`; if the Firebase listener is not registered first, the auth guard waits on `ready` forever (blank page).
 - Every async Firebase callback that sets `ready = true` (or any flag that unblocks a guard) must wrap side-effectful Firestore calls in `try/catch`. If `setDoc` throws and the callback is never called, `ready` stays false and the app freezes on the guard indefinitely.
 - Rules on `users/{uid}`: any authenticated user can read (for email lookup) but can write only their own document. Read query limited to fields `uid`, `email`, `displayName` (do not expose `lastLoginAt` if avoidable).
@@ -496,7 +531,7 @@ const onToggle = () => {
 
 **Ask first:**
 
-- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB). Phase 7.5 introduces `lucide-vue-next` (icons). Phase 11 adds: `@vueuse/motion` (~34 KB precache delta — hero-logo bounce + idle float on `ListsView` + `LoginView`, respects `prefers-reduced-motion`); `@lottiefiles/dotlottie-vue` (~320 KB — celebration + empty-state lotties; only loads on routes that render a lottie); `chart.js` + `vue-chartjs` (~50 KB gz combined — bar + donut on `/stats`; lazy-loaded via the StatsView route chunk).
+- Adding new npm dependencies (especially heavy ones: animation libs, date libs > 30 KB). Phase 7.5 introduces `lucide-vue-next` (icons). Phase 11 adds: `@vueuse/motion` (~34 KB precache delta - hero-logo bounce + idle float on `ListsView` + `LoginView`, respects `prefers-reduced-motion`); `@lottiefiles/dotlottie-vue` (~320 KB - celebration + empty-state lotties; only loads on routes that render a lottie); `chart.js` + `vue-chartjs` (~50 KB gz combined - bar + donut on `/stats`; lazy-loaded via the StatsView route chunk).
 - Changing the Firestore data schema (adding/renaming fields on existing collections).
 - Modifying `firestore.rules`.
 - Adding new categories to the `Category` enum.
@@ -549,20 +584,30 @@ const onToggle = () => {
 - [ ] Public marketing/legal routes (`/about`, `/privacy`, `/terms`) reachable without authentication; not redirected away when authenticated.
 - [ ] `/about` ships FAQPage + WebApplication JSON-LD (Google Rich Results valid).
 - [ ] `robots.txt` allows public routes only; `sitemap.xml` lists the 5 public URLs.
-- [ ] Privacy Policy enumerates Firebase + Sentry as sub-processors; describes self-service account-deletion as the right-to-erasure path.
-- [ ] Sentry production build masks all input + text in replays; offline + popup-closed errors filtered before they leave the browser.
+- [ ] Privacy Policy enumerates Firebase + Resend as sub-processors; describes self-service account-deletion as the right-to-erasure path and GDPR JSON export as the right-to-portability path.
 - [ ] Custom items flagged with `UserPlus` badge on `ListItemRow`; exclude-from-suggestions one-tap from the edit sheet.
 - [ ] Item names auto-capitalized on add and edit (shared `capitalizeInitial`).
+- [ ] FCM Web Push opt-in from Settings persists a per-device token under `users/{uid}/fcmTokens/{tokenId}`; server-side fan-out templates the notification body from Firestore and prunes stale tokens.
+- [ ] Item photos: client-side compressed to 800 px photo + 200 px thumb; stored under `lists/{listId}/items/{itemId}/` with collaborator-gated Storage rules (allow-list `image/jpeg | image/png | image/webp`, 5 MiB cap).
+- [ ] Category reorder via drag-and-drop, open to all collaborators (not admin-only), persisted in `lists/{listId}.categoryOrder`.
+- [ ] Undo delete for single + bulk item removal via toast + countdown; new schedules chain on the in-flight commit.
+- [ ] GDPR data export downloads a JSON snapshot of every doc the user owns or collaborates on.
+- [ ] Dark theme toggle in Settings with system-following default.
 
 ## Open Questions
 
-None blocking. All v1 decisions locked. Out-of-scope items below are deferred or rejected:
+None blocking. All v1 decisions locked. Status of previously out-of-scope items after Sprints 1-4:
 
-- Rate limiting on collaborator additions (to prevent abuse) — likely via a Cloud Function in v1.x.
-- Push notifications: out of scope for v1, to be evaluated in v1.x.
-- Ownership transfer: out of scope for v1 (owner is fixed).
-- User-defined custom categories: out of scope for v1.
-- Dark theme: **rejected.** Single direction (Editorial Cream) only, v1 and v1.x.
-- Trash / soft-delete with recovery: **rejected for v1.** List deletion is immediate hard-delete from List Settings, gated by an irreversible-action confirm. Reintroducible as a separate phase if usage shows real demand for undo.
-- ~~Error tracking (Sentry/Highlight): deferred to v1.x.~~ **Shipped in Phase 12** (`@sentry/vue`, production-only, masked replays, filtered offline + popup-closed errors). DSN provisioning is part of Task 52 (ops).
-- Analytics: never on v1; reconsider v1.x only if usage data is genuinely needed.
+- ~~Rate limiting on serverless endpoints: deferred.~~ **Shipped.** Firestore-backed token bucket (`rateLimits/{uid}_{funcName}`) used by `send-invite` and `notify-list-event`.
+- ~~Push notifications: out of scope for v1.~~ **Shipped in Sprint 3** (FCM Web Push + dedicated `firebase-messaging-sw.js`, per-recipient `pushEnabled` gate, stale-token pruning).
+- ~~Ownership transfer: out of scope for v1.~~ **Shipped** as part of the account-deletion cascade.
+- ~~Dark theme: rejected.~~ **Shipped in Sprint 4** with system-following default + manual override.
+- ~~Trash / soft-delete with recovery: rejected for v1.~~ **Shipped as Undo delete in Sprint 2** (toast countdown + commit chain) for items; list deletion remains immediate hard-delete with a confirm modal.
+- ~~Error tracking (Sentry/Highlight): deferred to v1.x.~~ **Removed.** Sentry was shipped in Phase 12 and rolled back; no third-party error monitoring is wired up. The Privacy Policy was updated accordingly.
+- ~~Item photos: out of scope.~~ **Shipped in Sprint 2** (client-side compression to photo + thumb, Storage with collaborator gate).
+- ~~Drag-and-drop category reorder: out of scope.~~ **Shipped in Sprint 4** for all collaborators (not admin-only).
+- ~~GDPR data export: out of scope.~~ **Shipped in Sprint 3** (JSON download from Settings).
+- ~~Voice + bulk-paste input: out of scope.~~ **Shipped in Sprint 2** (`useSpeechRecognition`, `BulkPasteSheet`).
+- ~~Onboarding tour: out of scope.~~ **Shipped in Sprint 4** (dismissal flag in `users/{uid}/private/state`).
+- User-defined custom categories: still out of scope.
+- Analytics: never on v1; reconsider only if usage data is genuinely needed.

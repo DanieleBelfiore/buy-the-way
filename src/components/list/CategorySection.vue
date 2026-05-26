@@ -12,8 +12,17 @@ const props = withDefaults(
     collapsed?: boolean;
     canMoveCopy?: boolean;
     pinnedNames?: ReadonlySet<string>;
+    /** S3.2: per-section selection state passthrough. */
+    selectionMode?: boolean;
+    selectedIds?: ReadonlySet<string>;
   }>(),
-  { collapsed: false, canMoveCopy: true, pinnedNames: () => new Set<string>() },
+  {
+    collapsed: false,
+    canMoveCopy: true,
+    pinnedNames: () => new Set<string>(),
+    selectionMode: false,
+    selectedIds: () => new Set<string>(),
+  },
 );
 const emit = defineEmits<{
   'toggle-checked': [id: ULID, checked: boolean];
@@ -23,6 +32,8 @@ const emit = defineEmits<{
   'request-priority': [item: Item];
   'move-copy': [item: Item];
   'toggle-pinned': [item: Item];
+  'select-enter': [item: Item];
+  'select-toggle': [item: Item];
 }>();
 
 const bought = computed(() => props.items.filter((i) => i.checked).length);
@@ -86,12 +97,16 @@ const onLeave = (el: Element, done: () => void): void => {
           :item="item"
           :can-move-copy="props.canMoveCopy"
           :pinned="props.pinnedNames.has(item.name)"
+          :selection-mode="props.selectionMode"
+          :selected="props.selectedIds.has(item.id)"
           @toggle-checked="(val) => emit('toggle-checked', item.id, val)"
           @remove="emit('remove-item', item.id)"
           @open-edit="(it) => emit('open-edit', it)"
           @request-priority="(it) => emit('request-priority', it)"
           @move-copy="(it) => emit('move-copy', it)"
           @toggle-pinned="(it) => emit('toggle-pinned', it)"
+          @select-enter="(it) => emit('select-enter', it)"
+          @select-toggle="(it) => emit('select-toggle', it)"
         />
       </TransitionGroup>
     </Transition>

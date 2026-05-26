@@ -19,7 +19,7 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Gate 1 — static checks + build artefact
+  # Gate 1 - static checks + build artefact
   # ---------------------------------------------------------------------------
   quality:
     name: lint + typecheck + unit + build
@@ -57,18 +57,14 @@ jobs:
       - name: Unit tests
         run: pnpm test:run
 
-      # Build with the commit SHA as the Sentry release tag, exactly as the
-      # Netlify-side build used to do via the COMMIT_REF env var.
       - name: Build production bundle
         env:
-          VITE_RELEASE: ${{ github.sha }}
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: pnpm build
 
       # The deploy-netlify job downloads this artefact instead of rebuilding,
@@ -81,7 +77,7 @@ jobs:
           retention-days: 3
 
   # ---------------------------------------------------------------------------
-  # Gate 2 — Firestore rules
+  # Gate 2 - Firestore rules
   # ---------------------------------------------------------------------------
   rules:
     name: firestore rules
@@ -114,7 +110,7 @@ jobs:
         run: pnpm test:rules
 
   # ---------------------------------------------------------------------------
-  # Gate 3 — Playwright + axe (light + dark)
+  # Gate 3 - Playwright + axe (light + dark)
   #
   # Toggled by the repository variable `E2E_ENABLED`:
   #   GitHub → repo Settings → Secrets and variables → Actions → Variables
@@ -166,7 +162,7 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # Deploy — Firestore rules + indices
+  # Deploy - Firestore rules + indices
   # Runs only on push to main, and only when every gate above has passed.
   # ---------------------------------------------------------------------------
   deploy-firebase:
@@ -210,14 +206,14 @@ jobs:
             --non-interactive
 
   # ---------------------------------------------------------------------------
-  # Deploy — Netlify (SPA + functions)
+  # Deploy - Netlify (SPA + functions)
   # Pulls the dist artefact built in `quality`, ships it together with the
   # netlify/functions/* source. Runs only on push to main after gates pass.
   # ---------------------------------------------------------------------------
   deploy-netlify:
     name: deploy netlify (spa + functions)
     needs: [quality, rules, e2e]
-    # Same gating as deploy-firebase — see the comment there for why
+    # Same gating as deploy-firebase - see the comment there for why
     # `!cancelled()` is required when e2e can legitimately be skipped.
     if: |
       !cancelled()
@@ -245,7 +241,7 @@ jobs:
       # `--config.node-linker=hoisted` forces pnpm to write a flat
       # node_modules layout (npm-style) instead of the default symlinked
       # .pnpm store. Netlify's zip-it-and-ship-it bundler doesn't follow
-      # pnpm's symlink structure when bundling functions — packages like
+      # pnpm's symlink structure when bundling functions - packages like
       # `resend` are left as external imports and the deployed .mjs blows
       # up with ERR_MODULE_NOT_FOUND at runtime.
       - name: Install dependencies (hoisted for function bundling)

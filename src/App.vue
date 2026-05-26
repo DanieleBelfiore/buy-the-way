@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import OfflineBanner from '@/components/ui/OfflineBanner.vue';
 import UpdatePrompt from '@/components/ui/UpdatePrompt.vue';
 import InstallPrompt from '@/components/ui/InstallPrompt.vue';
+import { setupButtonTextFit } from '@/composables/useButtonTextFit';
+import { onMounted } from 'vue';
 
 // Set <html lang> at app root so it survives route changes (and authenticated
 // views that don't call useDocumentHead). axe-core fails serious if it's missing.
@@ -15,6 +17,10 @@ useHead({ htmlAttrs: { lang: () => locale.value } });
 // failures. Playwright's prefers-reduced-motion is not reliable enough on
 // Vue Transition's initial render, so we hard-disable it via the env flag.
 const isE2E = import.meta.env['VITE_E2E'] === 'true';
+
+onMounted(() => {
+  setupButtonTextFit();
+});
 </script>
 
 <template>

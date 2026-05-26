@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
+import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Image, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
 import { iconForName, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
 import type { Item, ItemPriority } from '@/domain/types';
@@ -12,14 +12,18 @@ const props = withDefaults(
     item: Item;
     canMoveCopy?: boolean;
     pinned?: boolean;
+    /** S3.2: when true the row participates in bulk selection (tap = toggle). */
+    selectionMode?: boolean;
+    /** S3.2: whether this row is currently selected. */
+    selected?: boolean;
   }>(),
-  { canMoveCopy: true, pinned: false },
+  { canMoveCopy: true, pinned: false, selectionMode: false, selected: false },
 );
 const icon = computed(() => iconForName(props.item.name, locale.value));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
 
 // Auto-fit the name + custom-badge + note onto one line. Re-measure when
-// the item's name or note changes — `toRef` keeps the watch source live.
+// the item's name or note changes - `toRef` keeps the watch source live.
 const nameContainerRef = ref<HTMLElement | null>(null);
 const nameInnerRef = ref<HTMLElement | null>(null);
 const nameSignature = computed(() => `${props.item.name}|${props.item.quantity}|${props.item.note}`);
@@ -27,14 +31,58 @@ useFitText(nameInnerRef, nameContainerRef, toRef(nameSignature));
 const emit = defineEmits<{
   'toggle-checked': [boolean];
   remove: [];
-  /** Open the item edit sheet — fired by the per-row Settings icon. */
+  /** Open the item edit sheet - fired by the per-row Settings icon. */
   'open-edit': [Item];
   'request-priority': [Item];
   'move-copy': [Item];
   'toggle-pinned': [Item];
+  /** S3.2: long-press → enter bulk-selection mode anchored on this row. */
+  'select-enter': [Item];
+  /** S3.2: tap while in selection mode → toggle this row's inclusion. */
+  'select-toggle': [Item];
 }>();
 
+// S3.2: long-press detection. 500ms touch/mouse hold without movement opens
+// bulk-selection mode. We track the initial pointer coordinates so a normal
+// scroll doesn't trip the timer.
+const LONG_PRESS_MS = 500;
+let pressTimer: ReturnType<typeof setTimeout> | null = null;
+let pressStartX = 0;
+let pressStartY = 0;
+const PRESS_CANCEL_PX = 8;
+
+const clearPressTimer = (): void => {
+  if (pressTimer) {
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  }
+};
+
+const onPressStart = (e: PointerEvent): void => {
+  if (props.selectionMode) return; // Already in mode, regular tap handles it.
+  pressStartX = e.clientX;
+  pressStartY = e.clientY;
+  clearPressTimer();
+  pressTimer = setTimeout(() => {
+    pressTimer = null;
+    emit('select-enter', props.item);
+  }, LONG_PRESS_MS);
+};
+
+const onPressMove = (e: PointerEvent): void => {
+  if (!pressTimer) return;
+  const dx = Math.abs(e.clientX - pressStartX);
+  const dy = Math.abs(e.clientY - pressStartY);
+  if (dx > PRESS_CANCEL_PX || dy > PRESS_CANCEL_PX) clearPressTimer();
+};
+
+const onPressEnd = (): void => clearPressTimer();
+
 const onClick = (): void => {
+  if (props.selectionMode) {
+    emit('select-toggle', props.item);
+    return;
+  }
   emit('toggle-checked', !props.item.checked);
 };
 
@@ -85,13 +133,23 @@ const nameStateClasses = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center min-h-[44px]">
+  <div
+    :class="[
+      'flex items-center min-h-[44px]',
+      props.selectionMode && props.selected ? 'bg-primary/10' : '',
+    ]"
+  >
     <button
       data-testid="row-toggle"
       type="button"
       class="flex-1 flex items-center gap-3 pl-10 pr-2 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
+      @pointerdown="onPressStart"
+      @pointermove="onPressMove"
+      @pointerup="onPressEnd"
+      @pointercancel="onPressEnd"
+      @pointerleave="onPressEnd"
     >
       <span
         aria-hidden="true"
@@ -126,6 +184,14 @@ const nameStateClasses = computed(() => {
             :stroke-width="2"
             class="text-muted-gray shrink-0"
             :aria-label="t('item.customBadge')"
+          />
+          <Image
+            v-if="props.item.thumbURL"
+            data-testid="row-photo-badge"
+            :size="13"
+            :stroke-width="2"
+            class="text-muted-gray shrink-0"
+            :aria-label="t('item.photo')"
           />
           <span
             v-if="props.item.note"

@@ -19,7 +19,7 @@ export const setupServiceWorker = async (): Promise<SWState> => {
     updateServiceWorker = mod.registerSW({
       immediate: true,
       // Triggered once the SW registers. We use the registration handle to
-      // proactively check for a new service worker on three occasions —
+      // proactively check for a new service worker on three occasions -
       // (a) the moment registration completes (covers hard refreshes and
       // first-load after a deploy), (b) tab regains visibility, (c) window
       // regains focus. Without these, vite-plugin-pwa relies on the browser's
@@ -30,7 +30,7 @@ export const setupServiceWorker = async (): Promise<SWState> => {
         const checkForUpdate = (): void => {
           registration.update().catch(() => {
             // Network failures are expected (offline, throttled). The next
-            // visibility/focus event will retry — no need to surface this.
+            // visibility/focus event will retry - no need to surface this.
           });
         };
         checkForUpdate();

@@ -49,7 +49,7 @@ const setMobileUserAgent = (): void => {
 describe('installPrompt', () => {
   beforeEach(() => {
     __resetInstallPromptForTests();
-    // Default to a mobile UA — the install prompt is mobile-only, so every
+    // Default to a mobile UA - the install prompt is mobile-only, so every
     // existing assertion that expects flags to flip needs a mobile context.
     setMobileUserAgent();
     setStandalone(false);

@@ -225,7 +225,7 @@ describe('lists.service', () => {
       expect(updateDoc).not.toHaveBeenCalled();
     });
 
-    it('is idempotent — promoting an already-admin uid still writes arrayUnion', async () => {
+    it('is idempotent - promoting an already-admin uid still writes arrayUnion', async () => {
       mockListSnap({
         ownerUid: 'owner',
         collaboratorUids: ['owner', 'bob'],
@@ -347,6 +347,116 @@ describe('lists.service', () => {
         collaboratorUids: { __arrayRemove: ['bob'] },
         admins: { __arrayRemove: ['bob'] },
       });
+    });
+  });
+
+  describe('setListCategoryOrder', () => {
+    it('writes categoryOrder + updatedAt via updateDoc', async () => {
+      const { setListCategoryOrder } = await import('@/services/lists.service');
+      await setListCategoryOrder('L1', ['dairy', 'bakery', 'other']);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect((patch as any).categoryOrder).toEqual(['dairy', 'bakery', 'other']);
+      expect(typeof (patch as any).updatedAt).toBe('number');
+    });
+
+    it('clones the input array (no shared reference with caller)', async () => {
+      const { setListCategoryOrder } = await import('@/services/lists.service');
+      const input: any[] = ['dairy', 'bakery'];
+      await setListCategoryOrder('L1', input);
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect((patch as any).categoryOrder).not.toBe(input);
+      expect((patch as any).categoryOrder).toEqual(input);
+    });
+  });
+
+  describe('reorderList (S3.4)', () => {
+    it('updates sortIndex + updatedAt via updateDoc', async () => {
+      const { reorderList } = await import('@/services/lists.service');
+      await reorderList('L1', 12345);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect((patch as any).sortIndex).toBe(12345);
+      expect(typeof (patch as any).updatedAt).toBe('number');
+    });
+  });
+
+  describe('computeReorderedSortIndex (S3.4)', () => {
+    const mk = (sortIndex?: number, updatedAt = 1) => ({ id: 'x', sortIndex, updatedAt } as any);
+
+    it('returns midpoint between neighbours', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      const ordered = [mk(200), mk(150), mk(100)];
+      // moved to position 1, between 200 and 100 -> 150
+      expect(computeReorderedSortIndex(ordered, 1)).toBe(150);
+    });
+
+    it('steps one BELOW the top row when dropped at the top edge', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      // Position 0 has no above, below is 200 -> result = 200 + 1
+      const ordered = [mk(150), mk(200)];
+      expect(computeReorderedSortIndex(ordered, 0)).toBe(201);
+    });
+
+    it('steps one ABOVE the bottom row when dropped at the bottom edge', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      // Position 1 has above=150 and no below -> result = 150 - 1
+      const ordered = [mk(150), mk(50)];
+      expect(computeReorderedSortIndex(ordered, 1)).toBe(149);
+    });
+
+    it('falls back to updatedAt when sortIndex is missing on a neighbour', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      const ordered = [mk(undefined, 1000), mk(undefined, 500), mk(undefined, 100)];
+      // midpoint(1000, 100) = 550
+      expect(computeReorderedSortIndex(ordered, 1)).toBe(550);
+    });
+
+    it('returns `now` when newIndex is out of range', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      expect(computeReorderedSortIndex([mk(100)], 5, 42)).toBe(42);
+    });
+
+    it('returns `now` for a single-element array (no neighbours)', async () => {
+      const { computeReorderedSortIndex } = await import('@/services/lists.service');
+      expect(computeReorderedSortIndex([mk(100)], 0, 99)).toBe(99);
+    });
+  });
+
+  describe('createList sortIndex seeding (S3.4)', () => {
+    it('seeds sortIndex equal to the createdAt timestamp', async () => {
+      const before = Date.now();
+      await createList('Spesa', 'uid-1');
+      const after = Date.now();
+      const [, data] = vi.mocked(setDoc).mock.calls[0];
+      const seeded = (data as any).sortIndex;
+      expect(typeof seeded).toBe('number');
+      expect(seeded).toBeGreaterThanOrEqual(before);
+      expect(seeded).toBeLessThanOrEqual(after);
+    });
+  });
+
+  describe('subscribeUserLists client-side sort (S3.4)', () => {
+    it('orders by sortIndex desc, falling back to updatedAt when missing', () => {
+      let capturedNext: ((snap: any) => void) | undefined;
+      vi.mocked(onSnapshot).mockImplementation((_q, onNext: any) => {
+        capturedNext = onNext;
+        return vi.fn() as any;
+      });
+      const onChange = vi.fn();
+      subscribeUserLists('uid-1', onChange, vi.fn());
+
+      capturedNext!({
+        docs: [
+          { id: 'A', data: () => ({ name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 10, sortIndex: 100 }) },
+          { id: 'B', data: () => ({ name: 'B', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 50 /* legacy: no sortIndex */ }) },
+          { id: 'C', data: () => ({ name: 'C', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 5, sortIndex: 200 }) },
+        ],
+      });
+
+      const ids = onChange.mock.calls[0][0].map((l: any) => l.id);
+      // sortIndex C=200, A=100, B=50 (fallback updatedAt) -> C, A, B
+      expect(ids).toEqual(['C', 'A', 'B']);
     });
   });
 });

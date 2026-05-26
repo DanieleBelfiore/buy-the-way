@@ -2,18 +2,36 @@
   "app": {
     "name": "Buy The Way",
     "tagline": "Your smart grocery list",
-    "madeByPrefix": "Made by ",
-    "madeBySuffix": " with ❤️"
+    "madeByPrefix": "Made by ",
+    "madeBySuffix": " with ❤️"
   },
   "nav": {
     "lists": "Lists",
     "settings": "Settings"
   },
+  "common": {
+    "undo": "Undo"
+  },
   "auth": {
     "continueWithGoogle": "Sign in with Google",
     "signOut": "Sign out",
     "signingIn": "Signing in…",
-    "signInError": "Sign in failed. Please try again."
+    "signInError": "Sign in failed. Please try again.",
+    "magicLink": {
+      "show": "Sign in with email instead",
+      "emailLabel": "Email address",
+      "send": "Send link",
+      "sending": "Sending…",
+      "sentNotice": "Check {email} for a sign-in link.",
+      "verifying": "Signing you in…",
+      "confirmEmailTitle": "Confirm your email",
+      "confirmEmailHint": "Looks like you opened the link on a different device. Enter the email you used to request it.",
+      "complete": "Continue",
+      "completing": "Continuing…",
+      "errorTitle": "Sign-in link invalid",
+      "backToLogin": "Back to sign-in",
+      "cancel": "Cancel"
+    }
   },
   "list": {
     "new": "New list",
@@ -34,8 +52,9 @@
     "shareCopied": "List copied to clipboard!",
     "shareError": "Error sharing list.",
     "shareTitle": "🛒 List: {name}",
-    "shareFooter": "Buy The Way — Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev",
-    "shareNoteLabel": "Note"
+    "shareFooter": "Buy The Way - Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareNoteLabel": "Note",
+    "deletedWithUndo": "List \"{name}\" deleted"
   },
   "item": {
     "addPlaceholder": "Add an item",
@@ -57,6 +76,9 @@
     "removeConfirmMessage": "\"{name}\" will be removed from the list.\nThis cannot be undone.",
     "removeConfirm": "Delete",
     "removeCancel": "Cancel",
+    "deletedWithUndo": "Item deleted",
+    "bulkDeletedWithUndo": "no items deleted | 1 item deleted | {n} items deleted",
+    "bulkSelectedCount": "none selected | 1 selected | {n} selected",
     "pinFavorite": "Pin to favorites",
     "unpinFavorite": "Unpin from favorites",
     "priority": "Priority",
@@ -66,10 +88,35 @@
     "options": "Options",
     "renameHint": "Rename to group related items together",
     "openSettings": "Edit item",
+    "photo": "Photo",
+    "photoAdd": "Add photo",
+    "photoReplace": "Replace",
+    "photoRemove": "Remove",
+    "bulkPaste": "Paste a list",
+    "bulkPasteTitle": "Paste many items",
+    "bulkPasteHint": "One item per line or separated by commas.\nWe'll guess the category for each.",
+    "bulkPastePlaceholder": "Milk\nBread\nApples, bananas, oranges",
+    "bulkPasteNoneFound": "Nothing to add yet.",
+    "bulkPasteCount": "no items | Add 1 item | Add {n} items",
+    "voiceAdd": "Add by voice",
+    "voiceTitle": "Add by voice",
+    "voiceHint": "Tap the mic and say your items.\nSeparate them with commas or \"and\".",
+    "voiceStart": "Start listening",
+    "voiceStop": "Stop listening",
+    "voiceListening": "Listening…",
+    "voicePermissionDenied": "Microphone permission denied.",
+    "voiceNoSpeech": "Didn't catch that. Try again.",
+    "voiceUnsupported": "Voice input isn't available on this browser.",
+    "voiceError": "Voice input error. Try again.",
     "moveOrCopy": "Move or copy",
     "copy": "Copy",
     "move": "Move",
-    "noOtherLists": "No other lists available"
+    "noOtherLists": "No other lists available",
+    "selectAll": "Select all",
+    "bulkCheck": "Mark as bought",
+    "bulkUncheck": "Mark as to buy",
+    "bulkPriority": "Set priority",
+    "bulkPin": "Add to favorites"
   },
   "emptyList": {
     "button": "Empty list",
@@ -137,6 +184,37 @@
     "cancel": "Cancel",
     "members": "Users"
   },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Get started",
+    "back": "Back",
+    "step1": {
+      "title": "Lists you share, in real time",
+      "body": "Create a list, invite by email, and everything you add syncs instantly across every device."
+    },
+    "step2": {
+      "title": "Add items the fast way",
+      "body": "Type, dictate, or paste - autocomplete and smart categories keep your list tidy without effort."
+    },
+    "step3": {
+      "title": "Mark as bought, together",
+      "body": "Tap to check off items at the supermarket. Everyone sees the update right away."
+    }
+  },
+  "notifications": {
+    "button": "Notifications",
+    "title": "Notifications",
+    "close": "Close notifications",
+    "empty": "No notifications.",
+    "badgeAria": "Unread notifications",
+    "body": {
+      "itemModifiedWith": "{sender} updated {item}.",
+      "itemModifiedWithout": "{sender} updated an item.",
+      "invitedToList": "{sender} invited you to their list {list}.",
+      "joinedYourList": "{user} joined your list {list}."
+    }
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
@@ -145,11 +223,15 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "share": "Recommend to a friend",
-    "shareMessage": "Buy The Way — Your Smart Shopping List",
+    "shareMessage": "Buy The Way - Your Smart Shopping List",
     "shareCopied": "Link copied to clipboard",
     "feedback": "Send feedback",
+    "exportData": "Export my data",
+    "exportRunning": "Preparing export…",
+    "exportDoneToast": "Export ready: {filename}",
+    "exportFailedToast": "Export failed. Try again later.",
     "feedbackTitle": "Send feedback",
-    "feedbackHint": "Bug, idea, frustration — tell me anything.",
+    "feedbackHint": "Bug, idea, frustration - tell me anything.",
     "feedbackPlaceholder": "Type your message here…",
     "feedbackSubmit": "Send",
     "feedbackCancel": "Cancel",
@@ -166,7 +248,7 @@
     "deleteAccountReauth": "Please sign in again to confirm deletion.",
     "deleteAccountReauthBtn": "Sign in again",
     "deleteAccountError": "Delete failed. Please try again.",
-    "deleteAccountPartial": "Some data could not be removed. Your account is still active — please try again."
+    "deleteAccountPartial": "Some data could not be removed. Your account is still active - please try again."
   },
   "category": {
     "label": "Category",
@@ -182,7 +264,7 @@
     "other": "Other"
   },
   "offline": {
-    "banner": "Offline — changes will sync when back online"
+    "banner": "Offline - changes will sync when back online"
   },
   "pwa": {
     "updateAvailable": "New version available",
@@ -205,7 +287,7 @@
     "featuresTitle": "Features",
     "features": [
       "Real-time sync across devices",
-      "Works offline — changes sync when you reconnect",
+      "Works offline - changes sync when you reconnect",
       "Share lists with family or roommates",
       "Smart favorites based on what you buy most",
       "Statistics on your shopping habits",
@@ -235,7 +317,7 @@
       },
       {
         "q": "Is there a native app?",
-        "a": "It is a PWA — install it from your browser to your home screen and it behaves like a native app."
+        "a": "It is a PWA - install it from your browser to your home screen and it behaves like a native app."
       },
       {
         "q": "Can I delete my account?",
@@ -257,11 +339,11 @@
   },
   "seo": {
     "login": {
-      "title": "Sign in · Buy The Way",
+      "title": "Buy The Way",
       "description": "Sign in to Buy The Way and share real-time shopping lists with your family."
     },
     "about": {
-      "title": "Buy The Way — Your smart shopping list",
+      "title": "Buy The Way - Your smart shopping list",
       "description": "Mobile-first PWA for grocery lists shared with family. Offline-ready, fast, free."
     },
     "privacy": {

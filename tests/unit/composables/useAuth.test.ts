@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 
-// Use real auth store — mock only the service it depends on
+// Use real auth store - mock only the service it depends on
 import { vi } from 'vitest';
 vi.mock('@/services/auth.service', () => ({
   signInWithGoogle: vi.fn(),

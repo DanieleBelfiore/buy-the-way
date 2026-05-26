@@ -25,7 +25,7 @@ const mockList: List = {
   updatedAt: 200,
 };
 
-const mountCard = (props: { list: List; isNew?: boolean; isDefault?: boolean }) =>
+const mountCard = (props: { list: List; isDefault?: boolean }) =>
   mount(ListCard, { props, global: { plugins: [i18n, createPinia()] } });
 
 describe('ListCard', () => {
@@ -49,16 +49,9 @@ describe('ListCard', () => {
     expect(wrapper.emitted('open')?.[0]).toEqual([mockList.id]);
   });
 
-  it('does not render new badge by default', () => {
+  it('never renders the "new" badge (removed in S4.2)', () => {
     const wrapper = mountCard({ list: mockList });
     expect(wrapper.find('[data-testid="new-badge"]').exists()).toBe(false);
-  });
-
-  it('renders new badge when isNew is true', () => {
-    const wrapper = mountCard({ list: mockList, isNew: true });
-    const badge = wrapper.find('[data-testid="new-badge"]');
-    expect(badge.exists()).toBe(true);
-    expect(badge.text()).toBe('New');
   });
 
   it('does not set inline background when no wallpaper present', () => {

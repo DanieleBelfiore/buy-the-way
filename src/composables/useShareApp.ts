@@ -34,7 +34,7 @@ export const useShareApp = () => {
         await nav.share({ title, text, url });
         return { ok: true, copied: false };
       } catch (err) {
-        // User cancelled via the OS sheet — surface as no-op.
+        // User cancelled via the OS sheet - surface as no-op.
         if (err instanceof DOMException && err.name === 'AbortError') {
           return { ok: false, copied: false };
         }
