@@ -7,6 +7,11 @@ import {
   useSpeechRecognition,
   splitTranscriptIntoItems,
 } from '@/composables/useSpeechRecognition';
+import {
+  ensureMicrophoneAccess,
+  isStandaloneDisplayMode,
+  isAndroidMobile,
+} from '@/composables/useMicrophonePermission';
 import { CATEGORIES } from '@/domain/categories';
 import type { Category } from '@/domain/types';
 
@@ -48,18 +53,10 @@ watch(
 );
 
 const startListening = async (): Promise<void> => {
-  // Force an explicit microphone permission prompt (when the browser
-  // supports getUserMedia) so SpeechRecognition doesn't fail silently.
-  const mediaDevices = navigator.mediaDevices;
-  if (mediaDevices?.getUserMedia) {
-    try {
-      const stream = await mediaDevices.getUserMedia({ audio: true });
-      // We only need the permission; SpeechRecognition will use the mic
-      // internally afterwards.
-      stream.getTracks().forEach((t) => t.stop());
-    } catch {
-      // SpeechRecognition will surface 'not-allowed' through its own error.
-    }
+  const micAccess = await ensureMicrophoneAccess();
+  if (micAccess === 'denied') {
+    speech.reportError('not-allowed');
+    return;
   }
 
   speech.start(recognitionLang.value);
@@ -83,10 +80,18 @@ const onSubmit = (): void => {
   emit('submit', rows.value);
 };
 
+const showAndroidVoiceHint = computed(
+  () => isAndroidMobile() && isStandaloneDisplayMode(),
+);
+
 const errorMessageKey = computed<string | null>(() => {
   const e = speech.error.value;
   if (!e) return null;
-  if (e === 'not-allowed') return 'item.voicePermissionDenied';
+  if (e === 'not-allowed') {
+    if (isAndroidMobile()) return 'item.voicePermissionDeniedAndroid';
+    if (isStandaloneDisplayMode()) return 'item.voicePermissionDeniedPwa';
+    return 'item.voicePermissionDenied';
+  }
   if (e === 'no-speech') return 'item.voiceNoSpeech';
   if (e === 'unsupported') return 'item.voiceUnsupported';
   return 'item.voiceError';
@@ -117,6 +122,13 @@ const errorMessageKey = computed<string | null>(() => {
         </h2>
         <p class="mt-1 text-xs text-muted-gray whitespace-pre-line">
           {{ t('item.voiceHint') }}
+        </p>
+        <p
+          v-if="showAndroidVoiceHint"
+          data-testid="voice-android-hint"
+          class="mt-2 text-xs text-muted-gray whitespace-pre-line"
+        >
+          {{ t('item.voiceAndroidHint') }}
         </p>
       </div>
 

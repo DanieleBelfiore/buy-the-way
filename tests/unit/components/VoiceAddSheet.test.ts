@@ -56,6 +56,14 @@ let lastRec: FakeRec | null = null;
 describe('VoiceAddSheet', () => {
   beforeEach(() => {
     lastRec = null;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+      configurable: true,
+    });
     (window as unknown as Record<string, unknown>).SpeechRecognition = class {
       lang = '';
       continuous = false;
@@ -101,13 +109,29 @@ describe('VoiceAddSheet', () => {
   it('clicking the mic starts recognition', async () => {
     const wrapper = mountSheet();
     await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    await flushPromises();
     expect(lastRec).not.toBeNull();
     expect(lastRec!.start).toHaveBeenCalledOnce();
+  });
+
+  it('shows permission error without starting recognition when mic access is denied', async () => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: vi.fn().mockRejectedValue(new DOMException('denied', 'NotAllowedError')),
+      },
+      configurable: true,
+    });
+    const wrapper = mountSheet();
+    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    await flushPromises();
+    expect(lastRec).toBeNull();
+    expect(wrapper.find('[data-testid="voice-error"]').text()).toContain('Mic denied');
   });
 
   it('splits the transcript into preview rows once recognition emits results', async () => {
     const wrapper = mountSheet({ inferCategory: () => 'other' });
     await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    await flushPromises();
     lastRec!.onresult!({
       resultIndex: 0,
       results: [[{ transcript: 'milk, bread and eggs' }]],
@@ -122,6 +146,7 @@ describe('VoiceAddSheet', () => {
       inferCategory: (name) => (name === 'milk' ? 'dairy' : 'other'),
     });
     await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    await flushPromises();
     lastRec!.onresult!({
       resultIndex: 0,
       results: [[{ transcript: 'milk and bread' }]],
@@ -154,6 +179,7 @@ describe('VoiceAddSheet', () => {
   it('exposes a translated error when the recogniser reports not-allowed', async () => {
     const wrapper = mountSheet();
     await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    await flushPromises();
     lastRec!.onerror!({ error: 'not-allowed' });
     await flushPromises();
     expect(wrapper.find('[data-testid="voice-error"]').text()).toContain('Mic denied');

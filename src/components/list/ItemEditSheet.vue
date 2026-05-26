@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, useId, toRef } from 'vue';
+import { ref, watch, useId, toRef, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check, X, Camera, Image as ImageIcon, Trash2 } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
@@ -11,8 +11,10 @@ const props = withDefaults(
     open: boolean;
     item: Item | null;
     pinned?: boolean;
+    /** True while upload/remove is in flight (parent-owned). */
+    photoBusy?: boolean;
   }>(),
-  { pinned: false },
+  { pinned: false, photoBusy: false },
 );
 
 const emit = defineEmits<{
@@ -88,6 +90,37 @@ const onFileChosen = (e: Event): void => {
 };
 const onRemovePhoto = (): void => {
   if (props.item) emit('remove-photo', props.item);
+};
+
+const photoSrc = computed(
+  () => props.item?.photoURL ?? props.item?.thumbURL ?? null,
+);
+const hasPhoto = computed(() => Boolean(photoSrc.value));
+
+const imageLoading = ref(false);
+watch(
+  () => photoSrc.value,
+  (url) => {
+    imageLoading.value = Boolean(url);
+  },
+  { immediate: true },
+);
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) imageLoading.value = false;
+  },
+);
+
+const showPhotoSpinner = computed(
+  () => props.photoBusy || (hasPhoto.value && imageLoading.value),
+);
+
+const onPhotoLoad = (): void => {
+  imageLoading.value = false;
+};
+const onPhotoError = (): void => {
+  imageLoading.value = false;
 };
 </script>
 
@@ -176,12 +209,13 @@ const onRemovePhoto = (): void => {
             data-testid="edit-photo-input"
             @change="onFileChosen"
           />
-          <div v-if="props.item?.thumbURL || props.item?.photoURL" class="flex flex-col gap-3">
+          <div v-if="hasPhoto || photoBusy" class="flex flex-col gap-3">
             <div class="flex flex-row gap-2">
               <button
                 type="button"
                 data-testid="edit-photo-replace"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+                :disabled="photoBusy"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
                 @click="onPickPhoto"
               >
                 <Camera :size="16" :stroke-width="2" aria-hidden="true" />
@@ -190,19 +224,45 @@ const onRemovePhoto = (): void => {
               <button
                 type="button"
                 data-testid="edit-photo-remove"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900"
+                :disabled="photoBusy"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900 disabled:opacity-40"
                 @click="onRemovePhoto"
               >
                 <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
                 {{ t('item.photoRemove') }}
               </button>
             </div>
-            <img
-              :src="props.item.photoURL ?? props.item.thumbURL"
-              alt=""
-              data-testid="edit-photo-thumb"
-              class="w-full max-h-64 rounded-xl object-contain"
-            />
+            <div
+              class="relative mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-cream-soft bg-offwhite"
+            >
+              <div
+                v-if="showPhotoSpinner"
+                data-testid="edit-photo-spinner"
+                class="flex flex-col items-center gap-1.5"
+                role="status"
+                :aria-label="t('item.photoLoading')"
+              >
+                <div
+                  class="h-6 w-6 animate-spin rounded-full border-2 border-charcoal/20 border-t-charcoal"
+                  aria-hidden="true"
+                />
+                <span class="text-[10px] text-muted-gray text-center leading-tight px-1">
+                  {{ t('item.photoLoading') }}
+                </span>
+              </div>
+              <img
+                v-if="photoSrc"
+                :src="photoSrc"
+                alt=""
+                data-testid="edit-photo-thumb"
+                :class="[
+                  'h-28 w-28 object-cover transition-opacity',
+                  showPhotoSpinner ? 'absolute inset-0 opacity-0 pointer-events-none' : 'opacity-100',
+                ]"
+                @load="onPhotoLoad"
+                @error="onPhotoError"
+              />
+            </div>
           </div>
           <button
             v-else

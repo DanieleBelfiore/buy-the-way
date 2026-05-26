@@ -115,6 +115,11 @@ export const useSpeechRecognition = () => {
     listening.value = false;
   };
 
+  const reportError = (code: string): void => {
+    error.value = code;
+    listening.value = false;
+  };
+
   onBeforeUnmount(() => teardown());
 
   return {
@@ -124,6 +129,7 @@ export const useSpeechRecognition = () => {
     error: readonly(error),
     start,
     stop,
+    reportError,
   };
 };
 

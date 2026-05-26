@@ -17,6 +17,12 @@ const i18n = createI18n({
         note: 'Note',
         pinFavorite: 'Pin to favorites',
         customBadge: 'Custom item',
+        photoReplace: 'Replace',
+        photoRemove: 'Remove',
+        photoAdd: 'Add photo',
+        photoLoading: 'Loading photo…',
+        photo: 'Photo',
+        options: 'Options',
       },
       shelf: { title: 'Favorites' },
       listSettings: { save: 'Save' },
@@ -52,9 +58,13 @@ const makeItem = (overrides: Partial<Item> = {}): Item => ({
   ...overrides,
 });
 
-const mountSheet = (open: boolean, item: Item | null) =>
+const mountSheet = (
+  open: boolean,
+  item: Item | null,
+  extra?: { photoBusy?: boolean },
+) =>
   mount(ItemEditSheet, {
-    props: { open, item },
+    props: { open, item, photoBusy: extra?.photoBusy ?? false },
     global: { plugins: [i18n] },
     attachTo: document.body,
   });
@@ -151,6 +161,24 @@ describe('ItemEditSheet', () => {
     const wrapper = mountSheet(true, makeItem({ name: 'Babà' }));
     expect(wrapper.find('[data-testid="edit-exclude-block"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="edit-exclude-suggestions"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('shows a spinner while photoBusy is true', () => {
+    const wrapper = mountSheet(true, makeItem(), { photoBusy: true });
+    expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Loading photo…');
+    wrapper.unmount();
+  });
+
+  it('shows spinner over an existing photo until the image loads', async () => {
+    const wrapper = mountSheet(
+      true,
+      makeItem({ photoURL: 'https://example.com/photo.jpg' }),
+    );
+    expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(true);
+    await wrapper.get('[data-testid="edit-photo-thumb"]').trigger('load');
+    expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });

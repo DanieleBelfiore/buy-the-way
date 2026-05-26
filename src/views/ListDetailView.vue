@@ -308,6 +308,7 @@ const editingItem = computed<Item | null>(() => {
 });
 const editSheetOpen = computed(() => editingItem.value !== null);
 const editingPinned = ref(false);
+const photoBusy = ref(false);
 
 const excludeCandidate = ref<ListFavoriteState | null>(null);
 const excludeModalOpen = computed(() => excludeCandidate.value !== null);
@@ -451,17 +452,23 @@ const handleEditCancel = (): void => {
 // behavior. Failures surface in the console but don't surface a UI toast
 // today (could be added once we have a per-item busy state).
 const handleEditUploadPhoto = async (item: Item, file: File): Promise<void> => {
+  photoBusy.value = true;
   try {
     await uploadItemPhoto(listId.value, item.id, file);
   } catch (err) {
     console.error('[ListDetailView] uploadItemPhoto failed:', err);
+  } finally {
+    photoBusy.value = false;
   }
 };
 const handleEditRemovePhoto = async (item: Item): Promise<void> => {
+  photoBusy.value = true;
   try {
     await removeItemPhoto(listId.value, item.id);
   } catch (err) {
     console.error('[ListDetailView] removeItemPhoto failed:', err);
+  } finally {
+    photoBusy.value = false;
   }
 };
 
@@ -1224,6 +1231,7 @@ watch(
       :open="editSheetOpen"
       :item="editingItem"
       :pinned="editingPinned"
+      :photo-busy="photoBusy"
       @save="handleEditSave"
       @cancel="handleEditCancel"
       @upload-photo="handleEditUploadPhoto"
