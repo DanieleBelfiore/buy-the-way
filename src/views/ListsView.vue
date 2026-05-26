@@ -306,20 +306,20 @@ watch(
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="sm:flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 w-10 sm:w-auto px-0 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="router.push({ name: 'stats' })"
       >
         <BarChart3 :size="20" class="shrink-0" :stroke-width="2" aria-hidden="true" />
-        <span class="text-sm font-medium">{{ t('stats.openButton') }}</span>
+        <span class="hidden sm:inline text-sm font-medium">{{ t('stats.openButton') }}</span>
       </button>
       <button
         type="button"
         :aria-label="t('notifications.title')"
         data-testid="open-notifications"
-        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="sm:flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 w-10 sm:w-auto px-0 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
         @click="openNotifications"
       >
-        <span class="relative inline-flex shrink-0 !overflow-visible mr-0.5 sm:mr-1">
+        <span class="relative inline-flex shrink-0 !overflow-visible sm:mr-1">
           <Bell :size="20" :stroke-width="2" aria-hidden="true" />
           <span
             v-if="notifications.count.value > 0"
@@ -328,7 +328,7 @@ watch(
             class="block absolute -top-1 -left-1 w-2 h-2 rounded-full bg-primary shrink-0"
           />
         </span>
-        <span class="text-sm font-medium">{{ t('notifications.button') }}</span>
+        <span class="hidden sm:inline text-sm font-medium">{{ t('notifications.button') }}</span>
       </button>
       <button
         :aria-label="t('settings.title')"
