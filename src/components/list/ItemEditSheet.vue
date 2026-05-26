@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, useId, toRef, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Check, X, Camera, Image as ImageIcon, Trash2 } from '@lucide/vue';
+import { Check, X, Camera, Images, Trash2 } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import { CATEGORY_ORDER, CATEGORIES } from '@/domain/categories';
 import type { Item, Category } from '@/domain/types';
@@ -73,13 +73,18 @@ const onSave = (): void => {
   });
 };
 
-// S4.2: hidden <input type="file"> driven by a styled button. We expose the
-// chosen file to the parent via `upload-photo` so the firestore + storage
-// orchestration stays in the view (testable + composes with undo flows).
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const onPickPhoto = (): void => {
-  fileInputRef.value?.click();
+// S4.2: hidden <input type="file"> inputs for camera vs gallery. The parent
+// handles upload via `upload-photo` so Firestore + Storage stay in the view.
+const galleryInputRef = ref<HTMLInputElement | null>(null);
+const cameraInputRef = ref<HTMLInputElement | null>(null);
+
+const onPickFromGallery = (): void => {
+  galleryInputRef.value?.click();
 };
+const onPickFromCamera = (): void => {
+  cameraInputRef.value?.click();
+};
+
 const onFileChosen = (e: Event): void => {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -122,6 +127,35 @@ const onPhotoLoad = (): void => {
 const onPhotoError = (): void => {
   imageLoading.value = false;
 };
+
+const photoZoomOpen = ref(false);
+const zoomPhotoSrc = computed(
+  () => props.item?.photoURL ?? props.item?.thumbURL ?? null,
+);
+useModalBack(photoZoomOpen, () => {
+  photoZoomOpen.value = false;
+});
+
+const openPhotoZoom = (): void => {
+  if (!zoomPhotoSrc.value || showPhotoSpinner.value) return;
+  photoZoomOpen.value = true;
+};
+
+const onDialogKeydown = (e: KeyboardEvent): void => {
+  if (e.key !== 'Escape') return;
+  if (photoZoomOpen.value) {
+    photoZoomOpen.value = false;
+    return;
+  }
+  emit('cancel');
+};
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) photoZoomOpen.value = false;
+  },
+);
 </script>
 
 <template>
@@ -139,7 +173,7 @@ const onPhotoError = (): void => {
       aria-modal="true"
       :aria-labelledby="titleId"
       class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl"
-      @keydown.esc="emit('cancel')"
+      @keydown="onDialogKeydown"
     >
       <h2 :id="titleId" class="text-base font-semibold text-charcoal mb-4">
         {{ t('item.options') }}
@@ -202,36 +236,55 @@ const onPhotoError = (): void => {
             {{ t('item.photo') }}
           </label>
           <input
-            ref="fileInputRef"
+            ref="galleryInputRef"
             type="file"
             accept="image/*"
             class="hidden"
-            data-testid="edit-photo-input"
+            data-testid="edit-photo-gallery-input"
+            @change="onFileChosen"
+          />
+          <input
+            ref="cameraInputRef"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="hidden"
+            data-testid="edit-photo-camera-input"
             @change="onFileChosen"
           />
           <div v-if="hasPhoto || photoBusy" class="flex flex-col gap-3">
             <div class="flex flex-row gap-2">
               <button
                 type="button"
-                data-testid="edit-photo-replace"
+                data-testid="edit-photo-camera"
                 :disabled="photoBusy"
                 class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
-                @click="onPickPhoto"
+                @click="onPickFromCamera"
               >
                 <Camera :size="16" :stroke-width="2" aria-hidden="true" />
-                {{ t('item.photoReplace') }}
+                {{ t('item.photoCamera') }}
               </button>
               <button
                 type="button"
-                data-testid="edit-photo-remove"
+                data-testid="edit-photo-gallery"
                 :disabled="photoBusy"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900 disabled:opacity-40"
-                @click="onRemovePhoto"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+                @click="onPickFromGallery"
               >
-                <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
-                {{ t('item.photoRemove') }}
+                <Images :size="16" :stroke-width="2" aria-hidden="true" />
+                {{ t('item.photoGallery') }}
               </button>
             </div>
+            <button
+              type="button"
+              data-testid="edit-photo-remove"
+              :disabled="photoBusy"
+              class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900 disabled:opacity-40"
+              @click="onRemovePhoto"
+            >
+              <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
+              {{ t('item.photoRemove') }}
+            </button>
             <div
               class="relative mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border border-cream-soft bg-offwhite"
             >
@@ -250,30 +303,49 @@ const onPhotoError = (): void => {
                   {{ t('item.photoLoading') }}
                 </span>
               </div>
-              <img
+              <button
                 v-if="photoSrc"
-                :src="photoSrc"
-                alt=""
-                data-testid="edit-photo-thumb"
-                :class="[
-                  'h-28 w-28 object-cover transition-opacity',
-                  showPhotoSpinner ? 'absolute inset-0 opacity-0 pointer-events-none' : 'opacity-100',
-                ]"
-                @load="onPhotoLoad"
-                @error="onPhotoError"
-              />
+                type="button"
+                data-testid="edit-photo-zoom-open"
+                :aria-label="t('item.photoZoom')"
+                :disabled="showPhotoSpinner"
+                class="h-28 w-28 disabled:cursor-default cursor-zoom-in"
+                @click="openPhotoZoom"
+              >
+                <img
+                  :src="photoSrc"
+                  alt=""
+                  data-testid="edit-photo-thumb"
+                  :class="[
+                    'h-28 w-28 object-cover transition-opacity',
+                    showPhotoSpinner ? 'absolute inset-0 opacity-0 pointer-events-none' : 'opacity-100',
+                  ]"
+                  @load="onPhotoLoad"
+                  @error="onPhotoError"
+                />
+              </button>
             </div>
           </div>
-          <button
-            v-else
-            type="button"
-            data-testid="edit-photo-add"
-            class="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
-            @click="onPickPhoto"
-          >
-            <ImageIcon :size="16" :stroke-width="2" aria-hidden="true" />
-            {{ t('item.photoAdd') }}
-          </button>
+          <div v-else class="flex flex-row gap-2">
+            <button
+              type="button"
+              data-testid="edit-photo-camera"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              @click="onPickFromCamera"
+            >
+              <Camera :size="16" :stroke-width="2" aria-hidden="true" />
+              {{ t('item.photoCamera') }}
+            </button>
+            <button
+              type="button"
+              data-testid="edit-photo-gallery"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              @click="onPickFromGallery"
+            >
+              <Images :size="16" :stroke-width="2" aria-hidden="true" />
+              {{ t('item.photoGallery') }}
+            </button>
+          </div>
         </div>
 
       </div>
@@ -300,5 +372,25 @@ const onPhotoError = (): void => {
         </button>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="photoZoomOpen && zoomPhotoSrc"
+        data-testid="edit-photo-zoom"
+        class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('item.photoZoom')"
+        @click="photoZoomOpen = false"
+      >
+        <img
+          :src="zoomPhotoSrc"
+          alt=""
+          data-testid="edit-photo-zoom-image"
+          class="max-h-full max-w-full object-contain"
+          @click.stop
+        />
+      </div>
+    </Teleport>
   </div>
 </template>

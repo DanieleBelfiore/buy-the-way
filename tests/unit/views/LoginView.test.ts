@@ -144,8 +144,27 @@ describe('LoginView', () => {
       await wrapper.find('input[type="email"]').setValue('user@example.com');
       await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
       await flushPromises();
-      expect(mockSendMagicLink).toHaveBeenCalledWith('user@example.com');
+      expect(mockSendMagicLink).toHaveBeenCalledWith('user@example.com', 'en');
       expect(wrapper.find('[data-testid="magic-link-sent"]').exists()).toBe(true);
+      expect(wrapper.find('input[type="email"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="magic-link-send"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="magic-link-cancel"]').exists()).toBe(false);
+    });
+
+    it('returns to the email form when Use another email is clicked', async () => {
+      mockSendMagicLink.mockResolvedValue(undefined);
+      const wrapper = mountView();
+      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
+      await wrapper.find('input[type="email"]').setValue('user@example.com');
+      await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
+      await flushPromises();
+      await wrapper.find('[data-testid="magic-link-use-another-email"]').trigger('click');
+      expect(wrapper.find('[data-testid="magic-link-sent"]').exists()).toBe(false);
+      expect(wrapper.find('input[type="email"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="magic-link-send"]').exists()).toBe(true);
+      expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe(
+        'user@example.com',
+      );
     });
 
     it('surfaces an error when sendMagicLink rejects', async () => {

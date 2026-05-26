@@ -87,6 +87,10 @@ window.fetch = async (input, init) => {
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
+  if (typeof input === 'string' && input.includes('/.netlify/functions/send-magic-link')) {
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
   // Mirror the production notify-list-event function: write one notification
   // doc into every recipient's subcollection. We bypass rules with the
   // emulator owner-bearer trick (rules deny client writes; in prod the

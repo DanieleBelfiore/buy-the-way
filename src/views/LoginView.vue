@@ -7,12 +7,12 @@ import { useLogoMotion } from '@/composables/useLogoMotion';
 import { useDocumentHead } from '@/composables/useDocumentHead';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
-import { Send, X } from '@lucide/vue';
+import { Send, X, Info } from '@lucide/vue';
 import pkg from '../../package.json';
 
 const APP_VERSION = pkg.version;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 useDocumentHead({
   titleKey: 'seo.login.title',
@@ -66,13 +66,17 @@ const handleMagicLink = async (): Promise<void> => {
   magicLinkSending.value = true;
   error.value = null;
   try {
-    await auth.sendMagicLink(email);
+    await auth.sendMagicLink(email, locale.value as 'it' | 'en');
     magicLinkSent.value = true;
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('auth.signInError');
   } finally {
     magicLinkSending.value = false;
   }
+};
+
+const useAnotherMagicLinkEmail = (): void => {
+  magicLinkSent.value = false;
 };
 </script>
 
@@ -159,60 +163,77 @@ const handleMagicLink = async (): Promise<void> => {
         </button>
 
         <div v-if="showMagicLink" data-testid="magic-link-form" class="space-y-2">
-          <input
-            v-model="magicLinkEmail"
-            type="email"
-            autocomplete="email"
-            spellcheck="false"
-            :aria-label="t('auth.magicLink.emailLabel')"
-            :placeholder="t('auth.magicLink.emailLabel')"
-            class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
-            :disabled="magicLinkSending"
-            @keydown.enter="handleMagicLink"
-          />
-          <div class="flex gap-2">
+          <template v-if="!magicLinkSent">
+            <input
+              v-model="magicLinkEmail"
+              type="email"
+              autocomplete="email"
+              spellcheck="false"
+              :aria-label="t('auth.magicLink.emailLabel')"
+              :placeholder="t('auth.magicLink.emailLabel')"
+              class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
+              :disabled="magicLinkSending"
+              @keydown.enter="handleMagicLink"
+            />
+            <div class="flex gap-2">
+              <button
+                type="button"
+                data-testid="magic-link-cancel"
+                :disabled="magicLinkSending"
+                class="flex-1 h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
+                       border border-charcoal/15
+                       hover:bg-cream active:bg-cream
+                       flex items-center justify-center gap-3
+                       focus:outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="toggleMagicLink"
+              >
+                <X class="w-5 h-5" aria-hidden="true" />
+                <span>{{ t('auth.magicLink.cancel') }}</span>
+              </button>
+              <button
+                type="button"
+                data-testid="magic-link-send"
+                :disabled="magicLinkSending || !magicLinkEmail.trim()"
+                class="flex-1 h-12 px-5 bg-primary text-white text-base font-medium rounded-full
+                       hover:bg-primary-hover active:bg-primary-active
+                       flex items-center justify-center gap-3
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="handleMagicLink"
+              >
+                <span
+                  v-if="magicLinkSending"
+                  class="w-5 h-5 border-2 border-offwhite/30 border-t-offwhite rounded-full animate-spin"
+                  aria-hidden="true"
+                />
+                <Send v-else class="w-5 h-5" aria-hidden="true" />
+                <span>{{ magicLinkSending ? t('auth.magicLink.sending') : t('auth.magicLink.send') }}</span>
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <div
+              data-testid="magic-link-sent"
+              role="status"
+              class="flex items-start gap-3 rounded-xl px-1 py-2 text-base font-medium text-primary"
+            >
+              <Info :size="22" :stroke-width="2" class="shrink-0 mt-0.5" aria-hidden="true" />
+              <p class="text-left leading-snug">
+                {{ t('auth.magicLink.sentNotice', { email: magicLinkEmail.trim() }) }}
+              </p>
+            </div>
             <button
               type="button"
-              data-testid="magic-link-cancel"
-              :disabled="magicLinkSending"
-              class="flex-1 h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
+              data-testid="magic-link-use-another-email"
+              class="w-full h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
                      border border-charcoal/15
                      hover:bg-cream active:bg-cream
-                     flex items-center justify-center gap-3
-                     focus:outline-none
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="toggleMagicLink"
+                     focus:outline-none"
+              @click="useAnotherMagicLinkEmail"
             >
-              <X class="w-5 h-5" aria-hidden="true" />
-              <span>{{ t('auth.magicLink.cancel') }}</span>
+              {{ t('auth.magicLink.useAnotherEmail') }}
             </button>
-            <button
-              type="button"
-              data-testid="magic-link-send"
-              :disabled="magicLinkSending || !magicLinkEmail.trim()"
-              class="flex-1 h-12 px-5 bg-primary text-white text-base font-medium rounded-full
-                     hover:bg-primary-hover active:bg-primary-active
-                     flex items-center justify-center gap-3
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="handleMagicLink"
-            >
-              <span
-                v-if="magicLinkSending"
-                class="w-5 h-5 border-2 border-offwhite/30 border-t-offwhite rounded-full animate-spin"
-                aria-hidden="true"
-              />
-              <Send v-else class="w-5 h-5" aria-hidden="true" />
-              <span>{{ magicLinkSending ? t('auth.magicLink.sending') : t('auth.magicLink.send') }}</span>
-            </button>
-          </div>
-          <p
-            v-if="magicLinkSent"
-            data-testid="magic-link-sent"
-            role="status"
-            class="text-xs text-center text-muted-gray"
-          >
-            {{ t('auth.magicLink.sentNotice', { email: magicLinkEmail.trim() }) }}
-          </p>
+          </template>
         </div>
       </div>
     </div>

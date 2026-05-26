@@ -80,9 +80,6 @@ const onSubmit = (): void => {
   emit('submit', rows.value);
 };
 
-const showAndroidVoiceHint = computed(
-  () => isAndroidMobile() && isStandaloneDisplayMode(),
-);
 
 const errorMessageKey = computed<string | null>(() => {
   const e = speech.error.value;
@@ -122,13 +119,6 @@ const errorMessageKey = computed<string | null>(() => {
         </h2>
         <p class="mt-1 text-xs text-muted-gray whitespace-pre-line">
           {{ t('item.voiceHint') }}
-        </p>
-        <p
-          v-if="showAndroidVoiceHint"
-          data-testid="voice-android-hint"
-          class="mt-2 text-xs text-muted-gray whitespace-pre-line"
-        >
-          {{ t('item.voiceAndroidHint') }}
         </p>
       </div>
 

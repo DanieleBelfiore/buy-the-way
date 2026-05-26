@@ -5,7 +5,6 @@ vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
-  sendSignInLinkToEmail: vi.fn().mockResolvedValue(undefined),
   isSignInWithEmailLink: vi.fn(),
   signInWithEmailLink: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
@@ -44,7 +43,6 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
 } from 'firebase/auth';
@@ -251,14 +249,28 @@ describe('auth.service', () => {
     });
 
     describe('sendMagicLink', () => {
-      it('calls sendSignInLinkToEmail with normalized email and the continueUrl', async () => {
-        await sendMagicLink('  USER@example.COM  ');
-        expect(sendSignInLinkToEmail).toHaveBeenCalledOnce();
-        const [, email, settings] = vi.mocked(sendSignInLinkToEmail).mock.calls[0]!;
-        expect(email).toBe('user@example.com');
-        expect(settings).toMatchObject({
-          url: 'https://app.test/auth/email-link-callback',
-          handleCodeInApp: true,
+      beforeEach(() => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 })),
+        );
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('POSTs to send-magic-link with normalized email, locale, and continueOrigin', async () => {
+        await sendMagicLink('  USER@example.COM  ', 'it');
+        expect(fetch).toHaveBeenCalledOnce();
+        const [url, init] = vi.mocked(fetch).mock.calls[0]!;
+        expect(url).toBe('/.netlify/functions/send-magic-link');
+        expect(init?.method).toBe('POST');
+        const body = JSON.parse(String(init?.body));
+        expect(body).toEqual({
+          email: 'user@example.com',
+          locale: 'it',
+          continueOrigin: 'https://app.test',
         });
       });
 
@@ -269,6 +281,17 @@ describe('auth.service', () => {
 
       it('throws on empty input', async () => {
         await expect(sendMagicLink('   ')).rejects.toThrow(/empty email/);
+      });
+
+      it('throws MagicLinkEmailError when the function rejects', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce(
+          new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429 }),
+        );
+        await expect(sendMagicLink('user@example.com')).rejects.toMatchObject({
+          name: 'MagicLinkEmailError',
+          code: 'rate_limited',
+          status: 429,
+        });
       });
     });
 

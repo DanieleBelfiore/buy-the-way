@@ -15,7 +15,7 @@ import {
   setUserDefaultList,
   setOnboardingSeen as setOnboardingSeenSvc,
 } from '@/services/users.service';
-import type { UserProfile } from '@/domain/types';
+import type { Locale } from '@/domain/types';
 import type { AuthUser } from '@/composables/useAuth';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -83,7 +83,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const signIn = (): Promise<void> => signInWithGoogle();
 
-  const sendMagicLink = (email: string): Promise<void> => sendMagicLinkSvc(email);
+  const sendMagicLink = (email: string, locale: Locale = 'en'): Promise<void> =>
+    sendMagicLinkSvc(email, locale);
 
   const completeMagicLinkSignIn = (
     url?: string,

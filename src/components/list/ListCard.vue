@@ -105,27 +105,30 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     @keydown.enter.prevent="emit('open', props.list.id)"
     @keydown.space.prevent="emit('open', props.list.id)"
   >
-    <!-- Avatar cluster -->
-    <div v-if="visibleMembers.length > 0" class="flex -space-x-1.5 shrink-0">
+    <!-- Avatar cluster: profile photos use CSS background (not <img>) so a
+         long-press on mobile does not offer "Save image" and clash with the
+         list reorder drag gesture. -->
+    <div
+      v-if="visibleMembers.length > 0"
+      class="flex -space-x-1.5 shrink-0"
+      @contextmenu.prevent
+    >
       <span
         v-for="m in visibleMembers"
         :key="m.uid"
         :title="m.displayName || m.email"
         :data-testid="`avatar-${m.uid}`"
         :class="[
-          'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold border border-offwhite overflow-hidden',
+          'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold border border-offwhite overflow-hidden select-none [-webkit-touch-callout:none]',
           m.photoURL ? 'bg-offwhite text-charcoal' : colorFor(m.uid),
         ]"
       >
-        <img
+        <span
           v-if="m.photoURL"
-          :src="m.photoURL"
-          :alt="''"
-          referrerpolicy="no-referrer"
-          loading="lazy"
-          width="28"
-          height="28"
-          class="w-full h-full object-cover"
+          :data-testid="`avatar-photo-${m.uid}`"
+          class="block h-full w-full bg-cover bg-center pointer-events-none"
+          :style="{ backgroundImage: `url('${m.photoURL}')` }"
+          aria-hidden="true"
         />
         <template v-else>{{ initialFor(m) }}</template>
       </span>

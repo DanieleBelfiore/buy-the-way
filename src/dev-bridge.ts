@@ -110,6 +110,20 @@ const handleSendInvite = async (init?: RequestInit): Promise<Response> => {
   return jsonResponse(200, { success: true, dev: true });
 };
 
+// ----- send-magic-link -----------------------------------------------------
+
+const handleSendMagicLink = async (init?: RequestInit): Promise<Response> => {
+  try {
+    const bodyStr = typeof init?.body === 'string' ? init.body : '';
+    const payload = bodyStr ? JSON.parse(bodyStr) : {};
+    // eslint-disable-next-line no-console
+    console.info('[dev-bridge] send-magic-link (skipped, would email):', payload);
+  } catch {
+    /* swallow - dev-only logging */
+  }
+  return jsonResponse(200, { ok: true, dev: true });
+};
+
 // ----- notify-list-event ---------------------------------------------------
 
 const handleNotifyListEvent = async (init?: RequestInit): Promise<Response> => {
@@ -209,6 +223,9 @@ window.fetch = async (input, init) => {
     }
     if (input.includes('/.netlify/functions/send-invite')) {
       return handleSendInvite(init);
+    }
+    if (input.includes('/.netlify/functions/send-magic-link')) {
+      return handleSendMagicLink(init);
     }
     if (input.includes('/.netlify/functions/notify-list-event')) {
       return handleNotifyListEvent(init);

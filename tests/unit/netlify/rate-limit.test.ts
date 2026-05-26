@@ -139,5 +139,13 @@ describe('rate-limit helper', () => {
         funcName: 'send-invite',
       });
     });
+
+    it('caps send-magic-link at 5 calls / hour per email', () => {
+      expect(RATE_LIMITS.sendMagicLink).toMatchObject({
+        max: 5,
+        windowMs: 60 * 60 * 1000,
+        funcName: 'send-magic-link',
+      });
+    });
   });
 });

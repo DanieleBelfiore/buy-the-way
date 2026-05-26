@@ -97,4 +97,6 @@ export const RATE_LIMITS = {
   // Transactional invite email send. 20 per hour is generous for legit
   // sharing flows and prevents spam blasts.
   sendInvite: { max: 20, windowMs: 60 * 60 * 1000, funcName: 'send-invite' },
+  // Pre-login magic link. Cap per recipient email to limit inbox spam.
+  sendMagicLink: { max: 5, windowMs: 60 * 60 * 1000, funcName: 'send-magic-link' },
 } as const;

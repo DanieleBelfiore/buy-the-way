@@ -4,7 +4,6 @@ import {
   signOut,
   reauthenticateWithPopup,
   onAuthStateChanged as _onAuthStateChanged,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
 } from 'firebase/auth';
@@ -23,6 +22,7 @@ import { claimPendingInvites, deleteList, leaveList, transferListOwnership } fro
 import { migrateLegacyPrivateFields, deletePrivateState } from '@/services/users.service';
 import { deleteAllNotifications } from '@/services/notifications.service';
 import type { AuthUser } from '@/composables/useAuth';
+import type { Locale } from '@/domain/types';
 
 export class RequiresRecentLoginError extends Error {
   constructor() {
@@ -55,28 +55,48 @@ export const signInWithGoogle = async (): Promise<void> => {
 // without re-prompting (and without trusting the URL alone).
 const MAGIC_LINK_EMAIL_STORAGE_KEY = 'btw:magicLinkEmail';
 
-/**
- * Compute the URL Firebase should send the user back to after they click the
- * magic-link in their inbox. Anchored on `window.location.origin` so it works
- * for both dev (localhost:5173) and prod without hardcoding hosts.
- */
-const magicLinkContinueUrl = (): string =>
-  `${window.location.origin}/auth/email-link-callback`;
+export class MagicLinkEmailError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = 'MagicLinkEmailError';
+  }
+}
 
 /**
- * S2.3: request a sign-in link by email. Firebase sends the actual email via
- * its own infra (no Resend dep), the user clicks the link and is bounced to
- * `magicLinkContinueUrl` which completes sign-in via
- * `completeMagicLinkSignIn`. Persists the email locally so we don't have to
- * trust the link's query string to identify the recipient.
+ * S2.3: request a sign-in link by email. A Netlify function generates the
+ * Firebase link server-side and sends a branded, locale-aware email via Resend
+ * (same sender as list invites). The user clicks the link and is bounced to
+ * `/auth/email-link-callback`, which completes sign-in via
+ * `completeMagicLinkSignIn`. Persists the email locally so we don't have to trust the link's query string.
  */
-export const sendMagicLink = async (email: string): Promise<void> => {
+export const sendMagicLink = async (email: string, locale: Locale = 'en'): Promise<void> => {
   const normalized = email.trim().toLowerCase();
   if (!normalized) throw new Error('sendMagicLink: empty email');
-  await sendSignInLinkToEmail(auth, normalized, {
-    url: magicLinkContinueUrl(),
-    handleCodeInApp: true,
+
+  const res = await fetch('/.netlify/functions/send-magic-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: normalized,
+      locale,
+      continueOrigin: window.location.origin,
+    }),
   });
+  if (!res.ok) {
+    let code: string | undefined;
+    try {
+      const data = (await res.json()) as { error?: string };
+      code = data.error;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new MagicLinkEmailError(`Magic link email failed (${res.status})`, code, res.status);
+  }
+
   try {
     window.localStorage.setItem(MAGIC_LINK_EMAIL_STORAGE_KEY, normalized);
   } catch {

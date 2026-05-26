@@ -134,4 +134,26 @@ describe('ListCard', () => {
     expect(/dark:text-(rose|amber|emerald|sky|violet|pink|lime|cyan)-100/.test(cls)).toBe(true);
     expect(wrapper).toBeTruthy();
   });
+
+  it('renders profile photos as CSS backgrounds (no img) to avoid long-press save menu', () => {
+    const wrapper = mount(ListCard, {
+      props: {
+        list: mockList,
+        members: [
+          {
+            uid: 'uid-1',
+            email: 'a@x',
+            displayName: 'A',
+            lastLoginAt: 0,
+            photoURL: 'https://example.com/photo.jpg',
+          },
+        ],
+      },
+      global: { plugins: [i18n, createPinia()] },
+    });
+    expect(wrapper.find('[data-testid="avatar-photo-uid-1"]').exists()).toBe(true);
+    expect(wrapper.find('img').exists()).toBe(false);
+    const style = wrapper.find('[data-testid="avatar-photo-uid-1"]').attributes('style') ?? '';
+    expect(style).toContain('https://example.com/photo.jpg');
+  });
 });

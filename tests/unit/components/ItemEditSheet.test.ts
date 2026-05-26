@@ -18,9 +18,12 @@ const i18n = createI18n({
         pinFavorite: 'Pin to favorites',
         customBadge: 'Custom item',
         photoReplace: 'Replace',
+        photoCamera: 'Camera',
+        photoGallery: 'Gallery',
         photoRemove: 'Remove',
         photoAdd: 'Add photo',
         photoLoading: 'Loading photo…',
+        photoZoom: 'Zoom photo',
         photo: 'Photo',
         options: 'Options',
       },
@@ -164,6 +167,17 @@ describe('ItemEditSheet', () => {
     wrapper.unmount();
   });
 
+  it('offers separate camera and gallery pickers for photo attachment', () => {
+    const wrapper = mountSheet(true, makeItem());
+    expect(wrapper.find('[data-testid="edit-photo-camera"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="edit-photo-gallery"]').exists()).toBe(true);
+    const cameraInput = wrapper.find('[data-testid="edit-photo-camera-input"]').element as HTMLInputElement;
+    const galleryInput = wrapper.find('[data-testid="edit-photo-gallery-input"]').element as HTMLInputElement;
+    expect(cameraInput.getAttribute('capture')).toBe('environment');
+    expect(galleryInput.hasAttribute('capture')).toBe(false);
+    wrapper.unmount();
+  });
+
   it('shows a spinner while photoBusy is true', () => {
     const wrapper = mountSheet(true, makeItem(), { photoBusy: true });
     expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(true);
@@ -179,6 +193,26 @@ describe('ItemEditSheet', () => {
     expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(true);
     await wrapper.get('[data-testid="edit-photo-thumb"]').trigger('load');
     expect(wrapper.find('[data-testid="edit-photo-spinner"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('opens a full-screen zoom when the photo thumb is clicked', async () => {
+    const wrapper = mountSheet(
+      true,
+      makeItem({
+        photoURL: 'https://example.com/photo-full.jpg',
+        thumbURL: 'https://example.com/photo-thumb.jpg',
+      }),
+    );
+    await wrapper.get('[data-testid="edit-photo-thumb"]').trigger('load');
+    expect(document.querySelector('[data-testid="edit-photo-zoom"]')).toBeNull();
+    await wrapper.get('[data-testid="edit-photo-zoom-open"]').trigger('click');
+    const zoom = document.querySelector('[data-testid="edit-photo-zoom"]');
+    expect(zoom).not.toBeNull();
+    const img = document.querySelector('[data-testid="edit-photo-zoom-image"]') as HTMLImageElement;
+    expect(img.src).toBe('https://example.com/photo-full.jpg');
+    await (zoom as HTMLElement).click();
+    expect(document.querySelector('[data-testid="edit-photo-zoom"]')).toBeNull();
     wrapper.unmount();
   });
 });
