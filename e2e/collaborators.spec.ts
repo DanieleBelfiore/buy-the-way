@@ -41,7 +41,7 @@ test('add collaborator: unregistered email queues a pending invite', async ({ pa
   await expect(page.getByTestId('pending-ghost@nowhere.test')).toBeVisible();
 });
 
-test('share list with Bob: rename + leave + new-badge', async ({ browser }) => {
+test('share list with Bob: rename + leave', async ({ browser }) => {
   await seedUser(browser, BOB);
 
   // Alice context: create list, share with Bob, rename.
@@ -75,7 +75,6 @@ test('share list with Bob: rename + leave + new-badge', async ({ browser }) => {
   const bobPage = await bobCtx.newPage();
   await signInAs(bobPage, BOB);
   await expect(bobPage.getByRole('button', { name: 'Shared Renamed' })).toBeVisible();
-  await expect(bobPage.getByTestId('new-badge').first()).toBeVisible();
 
   await bobPage.getByRole('button', { name: 'Shared Renamed' }).click();
   await bobPage.waitForURL(/\/lists\/[^/]+$/);

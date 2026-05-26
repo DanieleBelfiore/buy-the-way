@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useHaptic } from '@/composables/useHaptic';
@@ -879,7 +879,7 @@ onMounted(() => {
         () => list.value,
         (l) => {
           if (!l) return;
-          stop();
+          nextTick(() => stop());
           if (l.ownerUid !== callerUid && l.collaboratorUids.includes(callerUid)) {
             void notifyListEvent({
               listId: listId.value,

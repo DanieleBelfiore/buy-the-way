@@ -102,6 +102,7 @@ const handleSendInvite = async (init?: RequestInit): Promise<Response> => {
   try {
     const bodyStr = typeof init?.body === 'string' ? init.body : '';
     const payload = bodyStr ? JSON.parse(bodyStr) : {};
+    // eslint-disable-next-line no-console
     console.info('[dev-bridge] send-invite (skipped, would email):', payload);
   } catch {
     /* swallow - dev-only logging */
@@ -216,4 +217,5 @@ window.fetch = async (input, init) => {
   return originalFetch(input, init);
 };
 
+// eslint-disable-next-line no-console
 console.info('[dev-bridge] netlify functions are proxied to the local emulator');
