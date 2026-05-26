@@ -290,6 +290,21 @@ lists/{listId}/items/{itemId}/thumb.jpg   # 200 px JPEG
 
 Rules in `firebase/storage.rules` restrict read/write/delete to list collaborators, cap upload size at 5 MiB, and allow only `image/jpeg | image/png | image/webp` (no SVG - blocks the one-tap XSS vector on a leaked download URL).
 
+### Storage CORS (one-time per bucket)
+
+Browser uploads use `XMLHttpRequest` against the GCS bucket behind Firebase Storage. Without bucket CORS, uploads fail in the console with a preflight error and item photos never persist.
+
+`firebase deploy` ships **rules** only; CORS is configured separately:
+
+```bash
+# Authenticate: gcloud auth login  (or use a service account with Storage Admin)
+pnpm storage:cors
+# or explicitly:
+./scripts/apply-storage-cors.sh gs://buy-the-way-2ac6e.firebasestorage.app
+```
+
+Origins live in `firebase/storage.cors.json` (production + local Vite). Add a new deploy URL there, re-run the command above, then redeploy Netlify if CSP `img-src` also needs the host.
+
 ### Rules summary
 
 - `users/{uid}` public read for email-lookup; private state under `users/{uid}/private/state` owner-only.

@@ -71,7 +71,7 @@
       script-src 'self' 'sha256-3+O/Btwx3rNlw4+lf6X8ToKvw6STzUfNTISIZ/gfOro=' 'wasm-unsafe-eval' blob: https://apis.google.com https://www.gstatic.com;
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;
-      img-src 'self' data: blob: https://lh3.googleusercontent.com;
+      img-src 'self' data: blob: https://lh3.googleusercontent.com https://firebasestorage.googleapis.com https://*.firebasestorage.app;
       connect-src 'self' https://apis.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://cdn.jsdelivr.net https://unpkg.com;
       frame-src 'self' https://*.firebaseapp.com https://accounts.google.com;
       manifest-src 'self';
