@@ -68,7 +68,7 @@
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
     Content-Security-Policy = """
       default-src 'self';
-      script-src 'self' 'sha256-3+O/Btwx3rNlw4+lf6X8ToKvw6STzUfNTISIZ/gfOro=' 'wasm-unsafe-eval' blob: https://apis.google.com https://www.gstatic.com;
+      script-src 'self' 'sha256-+FfCUey18trIgxxSGZuwRJ6cyp2aHKnEZBNWVwPhcnQ=' 'wasm-unsafe-eval' blob: https://apis.google.com https://www.gstatic.com;
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;
       img-src 'self' data: blob: https://lh3.googleusercontent.com https://firebasestorage.googleapis.com https://*.firebasestorage.app;

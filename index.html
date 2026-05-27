@@ -7,10 +7,11 @@
       name="description"
       content="Aggiungi, spunta, sincronizza con la famiglia. Mobile-first, installabile, offline-ready."
     />
-    <!-- Static fallback for browsers that read theme-color before our JS runs.
-         The theme store overwrites this at runtime to match the resolved mode. -->
-    <meta name="theme-color" content="#f7f4ed" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#15151a" media="(prefers-color-scheme: dark)" />
+    <!-- Unconditional fallbacks; inline hydration below overwrites to match the
+         saved app theme (not the OS prefers-color-scheme) so Android PWA chrome
+         stays cream in light mode even when the phone uses dark system UI. -->
+    <meta name="theme-color" content="#f7f4ed" />
+    <meta name="color-scheme" content="light" />
     <link rel="icon" type="image/x-icon" href="/icons/favicon.ico" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
@@ -52,35 +53,47 @@
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
 
     <title>Buy The Way</title>
-  </head>
-  <body>
     <!--
-      Inline theme hydration. Runs before Vue mounts so the first paint already
-      carries the right data-theme attribute and we never flash light-on-dark
-      (or vice versa) at reload. Kept tiny + dependency-free on purpose.
+      Inline theme hydration. Runs in <head> before first paint so surfaces,
+      theme-color, and color-scheme match the saved app theme (not OS dark mode).
+      Kept tiny + dependency-free on purpose.
 
-      CSP-SENSITIVE: the inline script block below is hash-allowlisted in
-      netlify.toml under script-src (sha256-...). Editing the body - including
-      whitespace - changes the hash and CSP will block the new version. After
-      any change:
-        1. Run `pnpm csp:hash` (also runs as a CI gate in ci-cd.yml) to detect
-           the drift and print the new sha256-... token.
-        2. Replace the existing sha256-... token in netlify.toml.
-        3. Verify in browser DevTools that no CSP violation appears.
+      CSP-SENSITIVE: hash-allowlisted in netlify.toml script-src. After edits:
+        1. Run `pnpm csp:hash`
+        2. Replace the sha256-... token in netlify.toml
+        3. Verify no CSP violation in DevTools
     -->
     <script>
       (function () {
+        var themeColor = '#f7f4ed';
+        var colorScheme = 'light';
+        var resolved = 'light';
         try {
           var stored = localStorage.getItem('btw:themeMode');
-          // Default is light; legacy 'system' values fall through to light.
-          var resolved = stored === 'dark' ? 'dark' : 'light';
-          document.documentElement.setAttribute('data-theme', resolved);
+          resolved = stored === 'dark' ? 'dark' : 'light';
         } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
+          resolved = 'light';
         }
+        if (resolved === 'dark') {
+          themeColor = '#15151a';
+          colorScheme = 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+        function setMeta(name, content) {
+          var el = document.querySelector('meta[name="' + name + '"]');
+          if (!el) {
+            el = document.createElement('meta');
+            el.setAttribute('name', name);
+            document.head.appendChild(el);
+          }
+          el.setAttribute('content', content);
+        }
+        setMeta('theme-color', themeColor);
+        setMeta('color-scheme', colorScheme);
       })();
     </script>
-
+  </head>
+  <body>
     <div id="app"></div>
 
     <!--

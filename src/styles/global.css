@@ -17,13 +17,19 @@ html {
   -webkit-text-size-adjust: 100%;
   font-size: 17px;
   background-color: var(--cream);
+  /* Tell the UA which system chrome palette to use (Android PWA nav bar). */
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   font-family: 'Hanken Grotesk', system-ui, sans-serif;
   font-weight: 400;
-  background-color: var(--theme-bg);
+  background-color: var(--cream);
   color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

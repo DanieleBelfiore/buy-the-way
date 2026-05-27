@@ -49,30 +49,31 @@ export const useThemeStore = defineStore('theme', () => {
     dark: '#15151a',
   };
 
-  const updateThemeColorMeta = (next: ResolvedTheme): void => {
-    if (typeof document === 'undefined') return;
-    // Remove any media-scoped fallbacks so our absolute meta wins; browsers
-    // pick the LAST matching theme-color, so a single unconditional tag is
-    // enough once JS is in charge.
-    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
-    metas.forEach((m) => {
-      if (m.hasAttribute('media')) m.remove();
-    });
-    let meta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"]:not([media])',
-    );
+  const upsertMeta = (name: string, content: string): void => {
+    let meta = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
     if (!meta) {
       meta = document.createElement('meta');
-      meta.setAttribute('name', 'theme-color');
+      meta.setAttribute('name', name);
       document.head.appendChild(meta);
     }
-    meta.setAttribute('content', THEME_COLORS[next]);
+    meta.setAttribute('content', content);
+  };
+
+  const updateChromeMetas = (next: ResolvedTheme): void => {
+    if (typeof document === 'undefined') return;
+    // Drop legacy OS-scoped theme-color tags; they invert Android PWA nav bar
+    // when the phone is in dark mode but the app is in light mode.
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+      if (m.hasAttribute('media')) m.remove();
+    });
+    upsertMeta('theme-color', THEME_COLORS[next]);
+    upsertMeta('color-scheme', next);
   };
 
   const applyToDocument = (): void => {
     if (typeof document === 'undefined') return;
     document.documentElement.setAttribute('data-theme', resolved.value);
-    updateThemeColorMeta(resolved.value);
+    updateChromeMetas(resolved.value);
   };
 
   const setMode = (next: ThemeMode): void => {

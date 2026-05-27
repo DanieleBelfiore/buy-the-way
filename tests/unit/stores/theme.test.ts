@@ -134,12 +134,9 @@ describe('useThemeStore', () => {
     expect(store.resolved).toBe('light');
   });
 
-  describe('theme-color meta tag', () => {
+  describe('PWA chrome meta tags', () => {
     beforeEach(() => {
-      // Clean up any leftover meta tags between tests.
-      document
-        .querySelectorAll('meta[name="theme-color"]')
-        .forEach((m) => m.remove());
+      document.querySelectorAll('meta[name="theme-color"], meta[name="color-scheme"]').forEach((m) => m.remove());
     });
 
     it('writes a single unconditional theme-color meta on init', () => {
@@ -195,6 +192,17 @@ describe('useThemeStore', () => {
       expect(
         document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.getAttribute('content'),
       ).toBe('#15151a');
+    });
+
+    it('writes color-scheme meta to match resolved theme', () => {
+      installMatchMedia(true);
+      localStorage.setItem(STORAGE_KEY, 'dark');
+      const store = useThemeStore();
+      teardownInit = store.init();
+      expect(document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')?.getAttribute('content')).toBe('dark');
+      store.setMode('light');
+      expect(document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')?.getAttribute('content')).toBe('light');
+      expect(store).toBeTruthy();
     });
   });
 
