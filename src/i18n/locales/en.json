@@ -10,7 +10,8 @@
     "settings": "Settings"
   },
   "common": {
-    "undo": "Undo"
+    "undo": "Undo",
+    "dismissToast": "Dismiss notification"
   },
   "auth": {
     "continueWithGoogle": "Sign in with Google",

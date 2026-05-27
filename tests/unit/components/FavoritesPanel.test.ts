@@ -67,18 +67,31 @@ describe('ShelfTile', () => {
     expect(wrapper.text()).toContain('Latte');
   });
 
+  it('renders exclude (trash) button', () => {
+    const wrapper = mount_({ entry: makeEntry() });
+    expect(wrapper.find('[data-testid="shelf-tile-exclude"]').exists()).toBe(true);
+  });
+
   it('emits add with entry on click (duplicates allowed)', async () => {
     const entry = makeEntry();
     const wrapper = mount_({ entry });
-    await wrapper.find('button').trigger('click');
+    await wrapper.find('[data-testid="shelf-tile-add"]').trigger('click');
     expect(wrapper.emitted('add')?.[0]).toEqual([entry]);
+  });
+
+  it('emits exclude when trash is clicked', async () => {
+    const entry = makeEntry();
+    const wrapper = mount_({ entry });
+    await wrapper.find('[data-testid="shelf-tile-exclude"]').trigger('click');
+    expect(wrapper.emitted('exclude')?.[0]).toEqual([entry]);
+    expect(wrapper.emitted('add')).toBeUndefined();
   });
 
   it('always emits add even when re-clicked rapidly (no in-list gate)', async () => {
     const entry = makeEntry();
     const wrapper = mount_({ entry });
-    await wrapper.find('button').trigger('click');
-    await wrapper.find('button').trigger('click');
+    await wrapper.find('[data-testid="shelf-tile-add"]').trigger('click');
+    await wrapper.find('[data-testid="shelf-tile-add"]').trigger('click');
     expect(wrapper.emitted('add')).toHaveLength(2);
   });
 
@@ -94,9 +107,9 @@ describe('ShelfTile', () => {
     expect(wrapper.find('[data-testid="shelf-tile-check"]').exists()).toBe(false);
   });
 
-  it('always renders as clickable (no aria-disabled, no line-through)', () => {
+  it('always renders add row as clickable (no aria-disabled, no line-through)', () => {
     const wrapper = mount_({ entry: makeEntry() });
-    const btn = wrapper.find('button');
+    const btn = wrapper.find('[data-testid="shelf-tile-add"]');
     expect(btn.attributes('aria-disabled')).toBeUndefined();
     expect(btn.classes().join(' ')).not.toMatch(/line-through|cursor-not-allowed/);
     expect(btn.classes()).toContain('cursor-pointer');
@@ -104,7 +117,7 @@ describe('ShelfTile', () => {
 
   it('aria-label is just the entry name (no in-list suffix)', () => {
     const wrapper = mount_({ entry: makeEntry({ name: 'Latte' }) });
-    expect(wrapper.find('button').attributes('aria-label')).toBe('Latte');
+    expect(wrapper.find('[data-testid="shelf-tile-add"]').attributes('aria-label')).toBe('Latte');
   });
 });
 

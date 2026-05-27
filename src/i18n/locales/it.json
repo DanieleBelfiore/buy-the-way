@@ -10,7 +10,8 @@
     "settings": "Impostazioni"
   },
   "common": {
-    "undo": "Annulla"
+    "undo": "Annulla",
+    "dismissToast": "Chiudi avviso"
   },
   "auth": {
     "continueWithGoogle": "Accedi con Google",

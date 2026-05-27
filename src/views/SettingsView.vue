@@ -177,10 +177,8 @@ const reauthAndRetry = async () => {
 </script>
 
 <template>
-  <main
-    class="min-h-dvh bg-cream flex flex-col"
-    style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));"
-  >
+  <main class="min-h-dvh bg-cream flex flex-col">
+    <div class="flex-1 min-h-0 overflow-y-auto">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
@@ -305,8 +303,13 @@ const reauthAndRetry = async () => {
       </div>
 
     </section>
+    </div>
 
-    <section class="px-5 pt-6">
+    <div
+      data-testid="settings-page-footer"
+      class="mt-auto shrink-0 w-full pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+    >
+    <section class="px-5">
         <button
           v-if="user"
           type="button"
@@ -363,10 +366,11 @@ const reauthAndRetry = async () => {
     </p>
     <footer
       data-testid="app-version"
-      class="px-5 pb-4 text-center text-xs text-muted-gray"
+      class="px-5 pt-1 text-center text-xs text-muted-gray"
     >
       v{{ APP_VERSION }}
     </footer>
+    </div>
 
     <FeedbackModal
       :open="feedbackOpen"

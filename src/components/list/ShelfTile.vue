@@ -25,12 +25,11 @@ const itemIcon = computed(() =>
   iconForItem(props.entry.name, locale.value, props.entry.category),
 );
 
-const onClick = (): void => {
+const onAddClick = (): void => {
   emit('add', props.entry);
 };
 
-const onRemoveClick = (e: MouseEvent | KeyboardEvent): void => {
-  e.stopPropagation();
+const onExcludeClick = (): void => {
   emit('exclude', props.entry);
 };
 
@@ -39,53 +38,53 @@ const labelClasses = computed(() => [
   props.isTop ? 'font-semibold text-charcoal' : 'font-normal text-charcoal',
 ]);
 
-const buttonClasses = computed(() => [
-  'group relative flex items-center gap-2 w-full pl-3 pr-8 py-2 rounded-md border text-left transition-colors select-none cursor-pointer',
+const rowClasses = computed(() => [
+  'flex items-center gap-1 w-full rounded-md border text-left transition-colors',
   props.inList
-    ? 'border-primary/30 bg-primary/5 hover:bg-primary/10 active:bg-primary/15'
-    : 'border-cream-soft bg-offwhite hover:bg-cream active:bg-cream-soft',
+    ? 'border-primary/30 bg-primary/5'
+    : 'border-cream-soft bg-offwhite',
 ]);
 </script>
 
 <template>
-  <button
-    type="button"
-    :aria-label="entry.name + (props.inList ? ` (${t('shelf.alreadyInList')})` : '')"
-    :class="buttonClasses"
-    @click="onClick"
-  >
-    <span
-      aria-hidden="true"
-      data-testid="shelf-tile-icon"
-      class="text-base leading-none"
+  <div :class="rowClasses" data-testid="shelf-tile">
+    <button
+      type="button"
+      data-testid="shelf-tile-add"
+      :aria-label="entry.name + (props.inList ? ` (${t('shelf.alreadyInList')})` : '')"
+      class="flex flex-1 min-w-0 items-center gap-2 pl-3 py-2 rounded-l-md text-left select-none cursor-pointer hover:bg-cream active:bg-cream-soft"
+      :class="props.inList ? 'hover:bg-primary/10 active:bg-primary/15' : ''"
+      @click="onAddClick"
     >
-      {{ itemIcon }}
-    </span>
-    <span class="flex-1 min-w-0 flex items-center gap-1">
-      <span :class="labelClasses">{{ entry.name }}</span>
-      <InfoHint
-        v-if="props.inList"
-        :message="t('shelf.alreadyInListHint')"
-        test-id="shelf-tile-in-list"
-        class="shrink-0"
-      >
-        <Check :size="14" :stroke-width="2.5" class="text-primary" aria-hidden="true" />
-      </InfoHint>
-    </span>
-    <IconTooltip :label="t('shelf.excludeTitle')">
       <span
-        role="button"
-        tabindex="0"
+        aria-hidden="true"
+        data-testid="shelf-tile-icon"
+        class="text-base leading-none shrink-0"
+      >
+        {{ itemIcon }}
+      </span>
+      <span class="flex-1 min-w-0 flex items-center gap-1">
+        <span :class="labelClasses">{{ entry.name }}</span>
+        <InfoHint
+          v-if="props.inList"
+          :message="t('shelf.alreadyInListHint')"
+          test-id="shelf-tile-in-list"
+          class="shrink-0"
+        >
+          <Check :size="14" :stroke-width="2.5" class="text-primary" aria-hidden="true" />
+        </InfoHint>
+      </span>
+    </button>
+    <IconTooltip :label="t('shelf.excludeTitle')">
+      <button
+        type="button"
         data-testid="shelf-tile-exclude"
         :aria-label="t('shelf.excludeTitle')"
-        class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 transition-colors cursor-pointer"
-        @click="onRemoveClick"
-        @pointerdown.stop
-        @keydown.enter="onRemoveClick($event)"
-        @keydown.space.prevent="onRemoveClick($event)"
+        class="shrink-0 inline-flex items-center justify-center w-8 h-8 mr-1 rounded-full text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+        @click="onExcludeClick"
       >
         <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
-      </span>
+      </button>
     </IconTooltip>
-  </button>
+  </div>
 </template>

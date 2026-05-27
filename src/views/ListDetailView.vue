@@ -613,11 +613,11 @@ watch(
     <footer
       v-if="!bulkSel.active.value"
       data-testid="list-detail-footer"
-      class="shrink-0 border-t border-cream-soft bg-cream pb-safe"
+      class="shrink-0 border-t border-cream-soft bg-cream pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     >
-      <div class="pl-3 pr-1 py-1 flex items-center gap-0 min-w-0">
+      <div class="pl-3 pr-1 flex items-center gap-0 min-w-0">
         <ItemAutocomplete
-          class="flex-1 min-w-0 [&_input]:py-2 [&_input]:px-3"
+          class="flex-1 min-w-0 [&_input]:h-11 [&_input]:box-border [&_input]:py-0 [&_input]:px-3 [&_input]:leading-[2.75rem]"
           dropdown-placement="above"
           @add-item="handleAddItem"
         />
@@ -779,11 +779,15 @@ watch(
          the firestore commit runs. Action button hands control back to the
          composable's undo path. -->
     <Toast
+      :key="undoItemDelete.pending.value?.id ?? 'undo-none'"
       :open="undoItemDelete.pending.value !== null"
       :message="undoItemDelete.pending.value?.message ?? ''"
       :action-label="t('common.undo')"
       :action-icon="Undo2"
+      :dismiss-label="t('common.dismissToast')"
       :duration-ms="undoItemDelete.pending.value?.durationMs ?? 5000"
+      dismissible
+      swipeable
       auto-dismiss-with-action
       @close="undoItemDelete.commitCurrent"
       @action="undoItemDelete.undoCurrent"

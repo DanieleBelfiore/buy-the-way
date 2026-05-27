@@ -164,4 +164,86 @@ describe('Toast', () => {
       expect(wrapper.emitted('close')).toBeFalsy();
     });
   });
+
+  describe('dismissible undo-style toasts', () => {
+    it('renders dismiss button when dismissible', () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Item removed',
+          actionLabel: 'Undo',
+          dismissible: true,
+          autoDismissWithAction: true,
+        },
+      });
+      expect(wrapper.find('[data-testid="toast-dismiss"]').exists()).toBe(true);
+    });
+
+    it('emits close immediately when dismiss is clicked', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Item removed',
+          actionLabel: 'Undo',
+          dismissible: true,
+          autoDismissWithAction: true,
+          durationMs: 5000,
+        },
+      });
+      await wrapper.find('[data-testid="toast-dismiss"]').trigger('click');
+      expect(wrapper.emitted('close')).toHaveLength(1);
+      vi.advanceTimersByTime(5000);
+      expect(wrapper.emitted('close')).toHaveLength(1);
+    });
+
+    it('restarts auto-dismiss timer when message changes while still open', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'First',
+          actionLabel: 'Undo',
+          autoDismissWithAction: true,
+          durationMs: 1000,
+        },
+      });
+      vi.advanceTimersByTime(800);
+      await wrapper.setProps({ message: 'Second' });
+      vi.advanceTimersByTime(800);
+      expect(wrapper.emitted('close')).toBeFalsy();
+      vi.advanceTimersByTime(300);
+      expect(wrapper.emitted('close')).toBeTruthy();
+    });
+
+    it('emits close on horizontal swipe past threshold (right)', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Item removed',
+          swipeable: true,
+          durationMs: 5000,
+        },
+      });
+      const el = wrapper.get('[data-testid="toast"]').element;
+      el.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, bubbles: true }));
+      el.dispatchEvent(new PointerEvent('pointermove', { clientX: 170, bubbles: true }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      expect(wrapper.emitted('close')).toBeTruthy();
+    });
+
+    it('emits close on horizontal swipe past threshold (left)', async () => {
+      const wrapper = mount(Toast, {
+        props: {
+          open: true,
+          message: 'Item removed',
+          swipeable: true,
+          durationMs: 5000,
+        },
+      });
+      const el = wrapper.get('[data-testid="toast"]').element;
+      el.dispatchEvent(new PointerEvent('pointerdown', { clientX: 200, bubbles: true }));
+      el.dispatchEvent(new PointerEvent('pointermove', { clientX: 130, bubbles: true }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      expect(wrapper.emitted('close')).toBeTruthy();
+    });
+  });
 });
