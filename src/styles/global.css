@@ -19,6 +19,12 @@ html {
      rem-based size scales up proportionally. Keep this here (not in tailwind
      config) so it applies to every utility class without rebuilding tokens. */
   font-size: 17px;
+  /* Match body so any iOS PWA gap below the CSS viewport shows cream, not
+     the system default (black). */
+  background-color: var(--cream);
+  /* iOS standalone: `100dvh` alone can leave a strip under the home
+     indicator; `-webkit-fill-available` fills the physical display. */
+  height: -webkit-fill-available;
 }
 
 body {
@@ -29,9 +35,15 @@ body {
   color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   /* Block horizontal rubber-banding on iOS Safari that can otherwise look
      like an unwanted side-scroll. */
   overflow-x: hidden;
+}
+
+#app {
+  min-height: inherit;
 }
 
 /* Safe-area handling. The previous approach put `padding-bottom: max(1rem,

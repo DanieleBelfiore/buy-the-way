@@ -435,7 +435,10 @@ watch(
 </script>
 
 <template>
-  <main class="h-dvh bg-cream flex flex-col">
+  <!-- `fixed inset-0` fills the iOS standalone display edge-to-edge
+       (viewport-fit=cover). `h-dvh` alone can stop above the home-indicator
+       strip and expose the system black bar underneath. -->
+  <main class="fixed inset-0 bg-cream flex flex-col overflow-hidden">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
@@ -610,7 +613,7 @@ watch(
       v-if="!bulkSel.active.value"
       data-testid="list-detail-footer"
       class="shrink-0 border-t border-cream-soft bg-cream"
-      style="padding-bottom: max(0px, env(safe-area-inset-bottom));"
+      style="padding-bottom: env(safe-area-inset-bottom, 0px);"
     >
       <div class="px-5 py-1.5 flex items-center gap-1">
         <ItemAutocomplete
@@ -662,7 +665,7 @@ watch(
       v-if="bulkSel.active.value"
       data-testid="bulk-action-toolbar"
       class="shrink-0 border-t border-cream-soft bg-cream"
-      style="padding-bottom: max(0px, env(safe-area-inset-bottom));"
+      style="padding-bottom: env(safe-area-inset-bottom, 0px);"
     >
       <div class="px-4 py-3 flex items-center gap-2">
         <button
