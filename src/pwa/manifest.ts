@@ -43,6 +43,7 @@ export const pwaManifest: PwaManifest = {
   scope: '/',
   display: 'standalone',
   orientation: 'portrait',
+  theme_color: '#f7f4ed',
   background_color: '#f7f4ed',
   lang: 'it',
   categories: ['productivity', 'lifestyle', 'shopping'],

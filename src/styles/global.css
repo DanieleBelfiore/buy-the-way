@@ -15,12 +15,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
-  /* Bump root font-size from the browser default (16px) by ~1pt so every
-     rem-based size scales up proportionally. Keep this here (not in tailwind
-     config) so it applies to every utility class without rebuilding tokens. */
   font-size: 17px;
-  /* Match body so any iOS PWA gap below the CSS viewport shows cream, not
-     the system default (black). */
   background-color: var(--cream);
 }
 
@@ -28,7 +23,7 @@ body {
   margin: 0;
   font-family: 'Hanken Grotesk', system-ui, sans-serif;
   font-weight: 400;
-  background-color: var(--cream);
+  background-color: var(--theme-bg);
   color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -36,6 +31,8 @@ body {
   /* Block horizontal rubber-banding on iOS Safari that can otherwise look
      like an unwanted side-scroll. */
   overflow-x: hidden;
+  /* Prevent bounce effect on Android/iOS when content fits */
+  overscroll-behavior-y: none;
 }
 
 /* Apply `-webkit-fill-available` only on iOS devices to fix standalone PWA
@@ -51,18 +48,13 @@ body {
 }
 
 #app {
+  display: flex;
+  flex-direction: column;
   min-height: inherit;
+  flex: 1 1 auto;
 }
 
-/* Safe-area handling. The previous approach put `padding-bottom: max(1rem,
-   env(safe-area-inset-bottom))` on `body`, which combined with `min-h-dvh`
-   on every main produced a ~16-34px vertical overflow on mobile browsers
-   (visible as a stuck scrollbar even when content fit inside the viewport).
-   We now handle safe-area per-component (FAB, LegalFooter, ListDetailView
-   footer, etc.) with inline `padding-bottom: max(...)` so the dvh-sized
-   main containers never overflow the viewport. The `.pb-safe` utility
-   below is available for one-off bottom-edge elements that prefer a class
-   over inline styles. */
+/* Base utility for bottom safe-area. Used across views/components. */
 .pb-safe {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }

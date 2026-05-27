@@ -441,7 +441,7 @@ watch(
 </script>
 
 <template>
-  <main class="min-h-dvh bg-cream flex flex-col relative">
+  <main class="flex-1 w-full bg-cream flex flex-col relative">
     <!-- Top bar: icon actions grouped top-right. -->
     <header class="px-5 pt-6 pb-2 flex items-center justify-end gap-1">
       <button
