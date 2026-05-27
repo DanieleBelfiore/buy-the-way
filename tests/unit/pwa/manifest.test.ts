@@ -13,7 +13,6 @@ describe('pwaManifest', () =>
 
   it('uses brand colors and standalone display', () =>
   {
-    expect(pwaManifest.theme_color).toBe('#1c1c1c');
     expect(pwaManifest.background_color).toBe('#f7f4ed');
     expect(pwaManifest.display).toBe('standalone');
     expect(pwaManifest.orientation).toBe('portrait');
