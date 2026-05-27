@@ -114,10 +114,11 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
         && request.resource.data.itemCount == 0
+        && request.resource.data.urgentCount == 0
         && request.resource.data.wallpaper is string
         && request.resource.data.createdAt is number
         && request.resource.data.updatedAt is number
-        && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'showFavorites', 'sortIndex', 'categoryOrder']);
+        && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'urgentCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'sortIndex', 'categoryOrder']);
 
       allow update: if isSignedIn() && (
         // Admin update: may touch any of the privileged fields. createdAt is
@@ -138,8 +139,8 @@ service cloud.firestore {
                'collaboratorUids',
                'pendingInviteEmails',
                'wallpaper',
-               'showFavorites',
                'itemCount',
+               'urgentCount',
                'updatedAt',
                'admins',
                'ownerUid',
@@ -159,11 +160,11 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['collaboratorUids', 'admins', 'updatedAt'])
         )
-        // Any collaborator may bump itemCount + updatedAt (denormalized counter on item writes).
+        // Any collaborator may bump itemCount / urgentCount + updatedAt (denormalized counters on item writes).
         || (
           uid() in resource.data.collaboratorUids
           && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['itemCount', 'updatedAt'])
+             .hasOnly(['itemCount', 'urgentCount', 'updatedAt'])
         )
         // Any collaborator may reorder categories. Shared per-list ordering,
         // intentionally open to all collaborators - shopping route is shared

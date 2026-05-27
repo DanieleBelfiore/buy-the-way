@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertTriangle, CircleDashed, Flag, X } from '@lucide/vue';
+import { CircleDashed, Flag, Flame, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import type { Item, ItemPriority } from '@/domain/types';
 
@@ -89,14 +89,14 @@ useModalBack(openRef, () => emit('cancel'));
           data-testid="priority-picker-urgent"
           :aria-checked="currentPriority() === 'urgent'"
           :class="[
-            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-red-700',
+            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-orange-500',
             currentPriority() === 'urgent'
-              ? 'border-red-600 bg-red-50'
-              : 'border-cream-soft bg-offwhite hover:bg-red-50/60',
+              ? 'border-orange-400 bg-orange-50'
+              : 'border-cream-soft bg-offwhite hover:bg-orange-50/50',
           ]"
           @click="onSelect('urgent')"
         >
-          <AlertTriangle :size="20" :stroke-width="2" aria-hidden="true" />
+          <Flame :size="20" :stroke-width="2" aria-hidden="true" />
           <span>{{ t('item.priorityUrgent') }}</span>
         </button>
       </div>

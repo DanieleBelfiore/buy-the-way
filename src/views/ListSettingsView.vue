@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
-import { useListFavoritesStore } from '@/stores/listFavorites';
 import {
   addCollaborator,
   cancelPendingInvite,
@@ -12,7 +11,6 @@ import {
   leaveList,
   renameList,
   deleteList,
-  setListShowFavorites,
   setListWallpaper,
   promoteAdmin,
   demoteAdmin,
@@ -38,7 +36,6 @@ const router = useRouter();
 const route = useRoute();
 const listsStore = useListsStore();
 const authStore = useAuthStore();
-const listFavoritesStore = useListFavoritesStore();
 
 const listId = computed(() => route.params.id as ULID);
 const list = computed(() => listsStore.lists.find((l) => l.id === listId.value));
@@ -62,23 +59,6 @@ const membersLoading = ref(false);
 const deleteOpen = ref(false);
 const actionError = ref<string | null>(null);
 
-const showFavoritesValue = computed(() => list.value?.showFavorites !== false);
-const togglingFavorites = ref(false);
-const hasFavorites = computed(() => listFavoritesStore.rankedEntries.length > 0);
-
-const handleToggleShowFavorites = async (next: boolean): Promise<void> => {
-  if (!isAdmin.value) return;
-  togglingFavorites.value = true;
-  actionError.value = null;
-  try {
-    await setListShowFavorites(listId.value, next);
-  } catch (err) {
-    actionError.value = err instanceof Error ? err.message : String(err);
-  } finally {
-    togglingFavorites.value = false;
-  }
-};
-
 const wallpaperValue = computed(() => list.value?.wallpaper);
 const settingWallpaper = ref(false);
 
@@ -96,7 +76,6 @@ const handleSelectWallpaper = async (wallpaper: Wallpaper): Promise<void> => {
 };
 
 let listsUnsub: (() => void) | null = null;
-let favoritesUnsub: (() => void) | null = null;
 
 const loadMembers = async (uids: readonly string[]) => {
   membersLoading.value = true;
@@ -126,9 +105,6 @@ watch(
 
 onMounted(() => {
   listsUnsub = listsStore.subscribe();
-  if (listId.value) {
-    favoritesUnsub = listFavoritesStore.subscribe(listId.value);
-  }
   if (list.value) {
     nameDraft.value = list.value.name;
     void loadMembers(list.value.collaboratorUids);
@@ -137,7 +113,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   listsUnsub?.();
-  favoritesUnsub?.();
 });
 
 const handleRename = async () => {
@@ -186,13 +161,10 @@ const onCollaboratorPending = async (email: string): Promise<void> => {
   // The pending invite is already in Firestore - a delivery failure here just
   // means the invitee won't get the heads-up email; nothing else breaks.
   if (!list.value || !authStore.user) return;
-  const inviterName =
-    (authStore.user.displayName ?? '').trim() || authStore.user.email || '';
   try {
     await sendInviteEmail({
       email,
-      listName: list.value.name,
-      inviterName,
+      listId: listId.value,
       locale: locale.value as Locale,
     });
     showInviteToast(t('collaborators.inviteEmailSent', { email }));
@@ -314,7 +286,7 @@ const handleDelete = async () => {
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
+        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
         @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
@@ -366,35 +338,6 @@ const handleDelete = async () => {
         />
       </section>
 
-      <section v-if="isAdmin && hasFavorites" data-testid="show-favorites-section" class="space-y-2">
-        <label class="flex items-start justify-between gap-3 cursor-pointer select-none">
-          <span class="flex-1">
-            <span class="block text-sm font-medium text-charcoal">{{ t('listSettings.showFavorites') }}</span>
-            <span class="block text-xs text-muted-gray">{{ t('listSettings.showFavoritesHint') }}</span>
-          </span>
-          <button
-            data-testid="show-favorites-toggle"
-            type="button"
-            role="switch"
-            :aria-checked="showFavoritesValue"
-            :disabled="togglingFavorites"
-            :class="[
-              showFavoritesValue ? 'bg-primary' : 'bg-gray-200',
-              'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 mt-1'
-            ]"
-            @click="handleToggleShowFavorites(!showFavoritesValue)"
-          >
-            <span
-              aria-hidden="true"
-              :class="[
-                showFavoritesValue ? 'translate-x-5' : 'translate-x-0',
-                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
-              ]"
-            />
-          </button>
-        </label>
-      </section>
-
       <section class="space-y-3">
         <h2 class="text-xs uppercase tracking-wide text-muted-gray font-medium">
           {{ t('listSettings.members') }}
@@ -437,7 +380,7 @@ const handleDelete = async () => {
               type="button"
               :data-testid="`cancel-pending-${pe}`"
               :aria-label="`${t('collaborators.remove')} ${pe}`"
-              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
+              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 dark:text-red-400"
               @click="handleCancelPending(pe)"
             >
               ×

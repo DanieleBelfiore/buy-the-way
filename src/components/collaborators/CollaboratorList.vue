@@ -98,7 +98,7 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`promote-${m.uid}`"
           :aria-label="`${t('collaborators.promote')} ${labelFor(m)}`"
-          class="inline-flex items-center justify-center rounded-full p-1.5 text-primary hover:bg-primary/10 active:bg-primary/20 dark:hover:bg-primary/20 dark:active:bg-primary/30"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-primary dark:text-primary"
           @click="emit('promote', m.uid)"
         >
           <ShieldCheck :size="14" :stroke-width="2.25" aria-hidden="true" />
@@ -112,7 +112,7 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`demote-${m.uid}`"
           :aria-label="`${t('collaborators.demote')} ${labelFor(m)}`"
-          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 dark:text-red-400"
           @click="emit('demote', m.uid)"
         >
           <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
@@ -123,7 +123,7 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"
-          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 hover:bg-red-50 active:bg-red-100 dark:text-red-400 dark:hover:bg-red-950 dark:active:bg-red-900"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 dark:text-red-400"
           @click="emit('remove', m.uid)"
         >
           <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />

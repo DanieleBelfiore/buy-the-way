@@ -1,36 +1,41 @@
 import type { Context } from '@netlify/functions';
 import { Resend } from 'resend';
 import admin from 'firebase-admin';
-import { checkRateLimit, rateLimitedResponse, RATE_LIMITS } from './_lib/rate-limit';
+import {
+  checkRateLimit,
+  rateLimitedResponse,
+  rateLimitUnavailableResponse,
+  RATE_LIMITS,
+} from './_lib/rate-limit';
+import { initAdmin } from './_lib/firebase-admin';
+import { jsonResponse } from './_lib/http';
+import {
+  escapeHtml,
+  joinPlainTextEmail,
+  renderBrandedEmailHtml,
+  resolveAppUrl,
+} from './_lib/branded-email';
+import { sanitizeFreeText } from './_lib/sanitize';
 
 /**
  * Netlify Function: send-invite
  *
- * Sends a transactional "you've been invited" email to a non-registered user
- * via Resend. Called by the client when a list owner adds a collaborator whose
- * email is not yet in our `users/{uid}` collection - the pending invite is
- * already persisted in Firestore, this function is only the notification leg.
- *
- * Auth: requires a Firebase ID token in the `Authorization: Bearer …` header.
- * Verified server-side with firebase-admin so anyone hitting the endpoint
- * without a valid signed-in identity is rejected with 401.
- *
- * Env vars required (Netlify dashboard → Site → Environment variables):
- *   RESEND_API_KEY              - Resend API key
- *   FIREBASE_SERVICE_ACCOUNT    - full service-account JSON (one line, escaped)
- *   INVITE_FROM_ADDRESS         - sender, e.g. "Buy The Way <noreply@buy-the-way.danielebelfiore.dev>"
- *   APP_URL                     - public app URL, defaults to the prod host
+ * Sends a transactional invite email via Resend. Requires list admin auth,
+ * pending invite on the list, and derives copy from Firestore.
  */
 
-interface InviteBody
-{
+interface InviteBody {
   email: string;
-  listName: string;
-  inviterName: string;
+  listId: string;
   locale: 'it' | 'en';
 }
 
-const DEFAULT_APP_URL = 'https://buy-the-way.danielebelfiore.dev';
+interface ListDoc {
+  name?: string;
+  ownerUid?: string;
+  admins?: string[];
+  pendingInviteEmails?: string[];
+}
 
 const TEMPLATES = {
   it: {
@@ -61,90 +66,77 @@ const TEMPLATES = {
 
 type Locale = keyof typeof TEMPLATES;
 
-const escapeHtml = (s: string): string =>
-  s.replace(/[&<>"']/g, (c) =>
-  {
-    if (c === '&') return '&amp;';
-    if (c === '<') return '&lt;';
-    if (c === '>') return '&gt;';
-    if (c === '"') return '&quot;';
-    return '&#39;';
-  });
+const adminsOf = (listData: ListDoc): string[] => {
+  if (listData.admins && listData.admins.length > 0) return [...listData.admins];
+  return listData.ownerUid ? [listData.ownerUid] : [];
+};
 
-const renderHtml = (
+const isListAdmin = (listData: ListDoc, uid: string): boolean =>
+  adminsOf(listData).includes(uid);
+
+const defaultInviterName = (locale: Locale): string =>
+  locale === 'it' ? 'Un amico' : 'A friend';
+
+const resolveInviterName = async (
+  db: FirebaseFirestore.Firestore,
+  inviterUid: string,
+  locale: Locale,
+): Promise<string> => {
+  try {
+    const snap = await db.collection('users').doc(inviterUid).get();
+    const data = snap.data() as { displayName?: string; email?: string } | undefined;
+    const fromDisplay = sanitizeFreeText(data?.displayName ?? '');
+    if (fromDisplay) return fromDisplay;
+    const email = (data?.email ?? '').trim();
+    if (email) {
+      const local = sanitizeFreeText(email.split('@')[0] ?? '');
+      if (local) return local;
+    }
+  } catch (err) {
+    console.warn('[send-invite] inviter profile read failed:', err);
+  }
+  return defaultInviterName(locale);
+};
+
+const renderInviteHtml = (
   locale: Locale,
   inviterName: string,
   listName: string,
   appUrl: string,
-): string =>
-{
+): string => {
   const t = TEMPLATES[locale];
   const safeInviter = escapeHtml(inviterName);
   const safeList = escapeHtml(listName);
-  const logoUrl = `${appUrl}/branding/logo-original.png`;
-  return `<!doctype html>
-<html lang="${locale}">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>${t.subject(safeInviter)}</title>
-  </head>
-  <body style="margin:0;padding:0;background:#fcfbf8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1c1c;">
-    <!-- Preheader (hidden) -->
-    <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(t.preheader)}</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fcfbf8;padding:24px 0;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#fcfbf8;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-            <tr>
-              <td align="center" style="padding:40px 32px 16px;">
-                <img src="${logoUrl}" alt="Buy The Way" width="180" style="display:block;max-width:180px;width:60%;height:auto;border:0;outline:none;text-decoration:none;" />
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:8px 32px 0;text-align:center;">
-                <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:700;color:#1c1c1c;">${t.greeting}</h1>
+  return renderBrandedEmailHtml({
+    locale,
+    title: t.subject(inviterName),
+    preheader: t.preheader,
+    greeting: t.greeting,
+    bodyHtml: `
                 <p style="margin:0 0 8px;font-size:17px;line-height:1.55;color:#1c1c1c;">
-                  <strong>${safeInviter}</strong> ${t.lead}
+                  <strong>${safeInviter}</strong> ${escapeHtml(t.lead)}
                 </p>
                 <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#5f5f5d;">
-                  ${t.listLabel}: <strong style="color:#1c1c1c;">${safeList}</strong>
+                  ${escapeHtml(t.listLabel)}: <strong style="color:#1c1c1c;">${safeList}</strong>
                 </p>
-                <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#5f5f5d;">${t.body}</p>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding:0 32px 32px;">
-                <a
-                  href="${appUrl}"
-                  style="display:inline-block;background:#113261;color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:9999px;font-weight:600;font-size:16px;line-height:1;"
-                >${t.cta}</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 32px 32px;text-align:center;">
-                <p style="margin:0;font-size:13px;line-height:1.55;color:#5f5f5d;">${t.footer}</p>
-              </td>
-            </tr>
-          </table>
-          <p style="margin:16px 0 0;font-size:12px;color:#9d9d9b;">${escapeHtml(t.ignore)}</p>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+                <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#5f5f5d;">${escapeHtml(t.body)}</p>`,
+    ctaHref: appUrl,
+    ctaLabel: t.cta,
+    footer: t.footer,
+    ignore: t.ignore,
+    appUrl,
+  });
 };
 
-const renderText = (
+const renderInviteText = (
   locale: Locale,
   inviterName: string,
   listName: string,
   appUrl: string,
-): string =>
-{
+): string => {
   const t = TEMPLATES[locale];
-  return [
-    `${t.greeting}`,
+  return joinPlainTextEmail([
+    t.greeting,
     '',
     `${inviterName} ${t.lead}`,
     `${t.listLabel}: ${listName}`,
@@ -154,58 +146,30 @@ const renderText = (
     `${t.cta}: ${appUrl}`,
     '',
     t.footer,
-    '',
-    '-- Buy The Way',
-  ].join('\n');
+  ]);
 };
-
-const initAdmin = (): void =>
-{
-  if (admin.apps.length > 0) return;
-  const raw = process.env['FIREBASE_SERVICE_ACCOUNT'];
-  if (!raw)
-  {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT env var is not set');
-  }
-  const serviceAccount = JSON.parse(raw) as admin.ServiceAccount;
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-};
-
-const jsonResponse = (status: number, body: Record<string, unknown>): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 
 const isLocale = (v: unknown): v is Locale => v === 'it' || v === 'en';
 const isEmail = (s: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-export default async (req: Request, _ctx: Context): Promise<Response> =>
-{
+export default async (req: Request, _ctx: Context): Promise<Response> => {
   if (req.method !== 'POST') return jsonResponse(405, { error: 'method_not_allowed' });
 
-  // 1. Auth: Firebase ID token
   const auth = req.headers.get('authorization') ?? '';
   const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
   if (!token) return jsonResponse(401, { error: 'missing_token' });
 
   let inviterUid: string;
-  try
-  {
+  try {
     initAdmin();
     const decoded = await admin.auth().verifyIdToken(token);
     inviterUid = decoded.uid;
-  } catch (err)
-  {
+  } catch (err) {
     console.warn('[send-invite] token verification failed:', err);
     return jsonResponse(401, { error: 'invalid_token' });
   }
 
-  // S2.1: per-uid rate limit. Hard cap at 20 sends per hour. Prevents an
-  // attacker with a stolen ID token from blasting Resend invoice + the
-  // recipient's inbox; legit sharing flows stay comfortably under the cap.
-  try
-  {
+  try {
     const decision = await checkRateLimit(
       inviterUid,
       RATE_LIMITS.sendInvite.funcName,
@@ -213,63 +177,82 @@ export default async (req: Request, _ctx: Context): Promise<Response> =>
       RATE_LIMITS.sendInvite.windowMs,
     );
     if (!decision.allowed) return rateLimitedResponse(decision);
-  } catch (err)
-  {
-    // Fail-open mirrors find-user: don't let a flaky limiter wedge invites.
-    console.warn('[send-invite] rate-limit check failed (allowing):', err);
+  } catch (err) {
+    console.error('[send-invite] rate-limit check failed (denying):', err);
+    return rateLimitUnavailableResponse();
   }
 
-  // 2. Parse + validate
   let body: Partial<InviteBody>;
-  try
-  {
+  try {
     body = (await req.json()) as Partial<InviteBody>;
-  } catch
-  {
+  } catch {
     return jsonResponse(400, { error: 'bad_json' });
   }
   const email = (body.email ?? '').trim().toLowerCase();
-  const listName = (body.listName ?? '').trim().slice(0, 200);
-  const inviterName =
-    (body.inviterName ?? '').trim().slice(0, 120) ||
-    (body.locale === 'it' ? 'Un amico' : 'A friend');
+  const listId = (body.listId ?? '').trim();
   const locale: Locale = isLocale(body.locale) ? body.locale : 'en';
 
   if (!isEmail(email)) return jsonResponse(400, { error: 'bad_email' });
-  if (!listName) return jsonResponse(400, { error: 'bad_list_name' });
+  if (!listId) return jsonResponse(400, { error: 'bad_list_id' });
 
-  // 3. Send via Resend
+  const db = admin.firestore();
+
+  let listData: ListDoc;
+  try {
+    const listSnap = await db.collection('lists').doc(listId).get();
+    if (!listSnap.exists) {
+      return jsonResponse(404, { error: 'list_not_found' });
+    }
+    listData = listSnap.data() as ListDoc;
+  } catch (err) {
+    console.error('[send-invite] list read failed:', err);
+    return jsonResponse(500, { error: 'list_read_failed' });
+  }
+
+  if (!isListAdmin(listData, inviterUid)) {
+    return jsonResponse(403, { error: 'not_list_admin' });
+  }
+
+  const pending = (listData.pendingInviteEmails ?? []).map((e) => e.trim().toLowerCase());
+  if (!pending.includes(email)) {
+    return jsonResponse(403, { error: 'invite_not_pending' });
+  }
+
+  const listName = sanitizeFreeText(listData.name ?? '', 200);
+  if (!listName) {
+    return jsonResponse(400, { error: 'bad_list_name' });
+  }
+
+  const inviterName = await resolveInviterName(db, inviterUid, locale);
+
   const apiKey = process.env['RESEND_API_KEY'];
-  if (!apiKey)
-  {
+  if (!apiKey) {
     console.error('[send-invite] RESEND_API_KEY is not set');
     return jsonResponse(500, { error: 'server_misconfigured' });
   }
   const from = process.env['INVITE_FROM_ADDRESS'] ?? 'Buy The Way <noreply@buy-the-way.danielebelfiore.dev>';
-  const appUrl = process.env['APP_URL'] ?? DEFAULT_APP_URL;
+  const appUrl = resolveAppUrl();
 
   const resend = new Resend(apiKey);
-  try
-  {
+  try {
     const subject = TEMPLATES[locale].subject(inviterName);
     const result = await resend.emails.send({
       from,
       to: [email],
       subject,
-      html: renderHtml(locale, inviterName, listName, appUrl),
-      text: renderText(locale, inviterName, listName, appUrl),
+      html: renderInviteHtml(locale, inviterName, listName, appUrl),
+      text: renderInviteText(locale, inviterName, listName, appUrl),
       headers: {
         'X-BTW-Inviter-Uid': inviterUid,
+        'X-BTW-List-Id': listId,
       },
     });
-    if (result.error)
-    {
+    if (result.error) {
       console.error('[send-invite] Resend rejected:', result.error);
       return jsonResponse(502, { error: 'send_failed', detail: result.error.message });
     }
     return jsonResponse(200, { ok: true, id: result.data?.id });
-  } catch (err)
-  {
+  } catch (err) {
     console.error('[send-invite] exception:', err);
     return jsonResponse(500, { error: 'send_failed' });
   }

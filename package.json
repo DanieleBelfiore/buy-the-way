@@ -14,7 +14,7 @@
     "test:coverage": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run --coverage",
     "test:e2e": "firebase emulators:exec --only auth,firestore --project=buy-the-way 'playwright test'",
     "test:e2e:ui": "firebase emulators:exec --only auth,firestore --project=buy-the-way 'playwright test --ui'",
-    "test:rules": "firebase emulators:exec --only firestore --project=demo-buy-the-way 'vitest run --config vitest.rules.config.ts'",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project=demo-buy-the-way 'vitest run --config vitest.rules.config.ts'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

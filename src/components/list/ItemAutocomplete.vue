@@ -6,6 +6,19 @@ import { useDebouncedRef } from '@/composables/useDebouncedRef';
 import { normalizeName, iconForName } from '@/domain/public-catalog';
 import type { Category } from '@/domain/types';
 
+const props = withDefaults(
+  defineProps<{
+    /** Open suggestions above the input when the field sits in a bottom footer. */
+    dropdownPlacement?: 'above' | 'below';
+  }>(),
+  { dropdownPlacement: 'below' },
+);
+
+/** Visible rows before the list scrolls. Row height matches `h-11` (2.75rem). */
+const VISIBLE_SUGGESTIONS = 5;
+const optionRowClass =
+  'flex items-center gap-2 h-11 shrink-0 px-5 text-sm text-charcoal cursor-pointer';
+
 const { t, locale } = useI18n();
 const catalog = useCatalogStore();
 
@@ -30,6 +43,10 @@ const typedMatchesSuggestion = computed(() => {
 const showCustom = computed(() => hasText.value && !typedMatchesSuggestion.value);
 
 const totalOptions = computed(() => suggestions.value.length + (showCustom.value ? 1 : 0));
+
+const listboxPlacementClass = computed(() =>
+  props.dropdownPlacement === 'above' ? 'bottom-full mb-1' : 'top-full mt-1',
+);
 
 watch(rawQuery, (val) => {
   const active = val.trim().length > 0;
@@ -98,7 +115,12 @@ const onKeydown = (e: KeyboardEvent) => {
       v-if="isOpen && totalOptions > 0"
       :id="listboxId"
       role="listbox"
-      class="absolute top-full left-0 right-0 z-50 mt-1 bg-offwhite border border-cream-soft rounded-xl shadow-sm max-h-60 overflow-y-auto"
+      :class="[
+        'absolute left-0 right-0 z-50 bg-offwhite border border-cream-soft rounded-xl shadow-sm overflow-y-auto',
+        listboxPlacementClass,
+      ]"
+      :style="{ maxHeight: `calc(2.75rem * ${VISIBLE_SUGGESTIONS})` }"
+      data-testid="autocomplete-listbox"
     >
       <li
         v-for="(entry, i) in suggestions"
@@ -107,7 +129,7 @@ const onKeydown = (e: KeyboardEvent) => {
         role="option"
         :aria-selected="highlightIndex === i"
         :class="[
-          'flex items-center gap-2 px-5 py-3 text-sm text-charcoal cursor-pointer',
+          optionRowClass,
           highlightIndex === i ? 'bg-offwhite' : 'hover:bg-cream',
         ]"
         data-testid="suggestion-option"
@@ -116,7 +138,7 @@ const onKeydown = (e: KeyboardEvent) => {
         <span aria-hidden="true" class="text-base leading-none">
           {{ entry.icon ?? iconForName(entry.name, locale) }}
         </span>
-        <span>{{ entry.name }}</span>
+        <span class="truncate">{{ entry.name }}</span>
       </li>
 
       <li
@@ -125,13 +147,14 @@ const onKeydown = (e: KeyboardEvent) => {
         role="option"
         :aria-selected="highlightIndex === suggestions.length"
         :class="[
-          'px-5 py-3 text-sm text-muted-gray cursor-pointer italic',
+          optionRowClass,
+          'text-muted-gray italic',
           highlightIndex === suggestions.length ? 'bg-offwhite' : 'hover:bg-cream',
         ]"
         data-testid="custom-option"
         @click="commit(null)"
       >
-        {{ t('item.addCustom', { name: rawQuery.trim() }) }}
+        <span class="truncate">{{ t('item.addCustom', { name: rawQuery.trim() }) }}</span>
       </li>
     </ul>
   </div>

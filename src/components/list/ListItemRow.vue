@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Image, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
+import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Flame, Image, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
+import InfoHint from '@/components/ui/InfoHint.vue';
 import { iconForName, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
 import type { Item, ItemPriority } from '@/domain/types';
@@ -16,8 +17,10 @@ const props = withDefaults(
     selectionMode?: boolean;
     /** S3.2: whether this row is currently selected. */
     selected?: boolean;
+    /** True when another list row is an exact duplicate of this item. */
+    possibleDuplicate?: boolean;
   }>(),
-  { canMoveCopy: true, pinned: false, selectionMode: false, selected: false },
+  { canMoveCopy: true, pinned: false, selectionMode: false, selected: false, possibleDuplicate: false },
 );
 const icon = computed(() => iconForName(props.item.name, locale.value));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
@@ -107,7 +110,7 @@ const onTogglePinned = (e: MouseEvent): void => {
 };
 
 const priorityIcon = computed(() => {
-  if (props.item.priority === 'urgent') return AlertTriangle;
+  if (props.item.priority === 'urgent') return Flame;
   if (props.item.priority === 'optional') return CircleDashed;
   return Flag;
 });
@@ -119,14 +122,13 @@ const priorityAria = computed(() => {
 });
 
 const priorityBtnClasses = computed(() => {
-  if (props.item.priority === 'urgent')
-    return 'text-red-600 hover:bg-red-50 active:bg-red-100';
-  return 'text-muted-gray hover:bg-black/5 active:bg-black/10';
+  if (props.item.priority === 'urgent') return 'text-orange-500';
+  return 'text-charcoal';
 });
 
 const nameStateClasses = computed(() => {
   if (props.item.checked) return 'text-ink-40';
-  if (props.item.priority === 'urgent') return 'text-red-700 font-semibold';
+  if (props.item.priority === 'urgent') return 'text-orange-500 font-semibold';
   if (props.item.priority === 'optional') return 'text-muted-gray';
   return 'text-charcoal';
 });
@@ -177,22 +179,42 @@ const nameStateClasses = computed(() => {
           >
             ({{ props.item.quantity }})
           </span>
-          <UserPlus
+          <InfoHint
             v-if="isCustom"
-            data-testid="row-custom-badge"
-            :size="13"
-            :stroke-width="2"
-            class="text-muted-gray shrink-0"
-            :aria-label="t('item.customBadge')"
-          />
-          <Image
+            :message="t('item.customBadgeHint')"
+            test-id="row-custom-badge"
+          >
+            <UserPlus
+              :size="13"
+              :stroke-width="2"
+              class="text-muted-gray"
+              aria-hidden="true"
+            />
+          </InfoHint>
+          <InfoHint
+            v-if="props.possibleDuplicate"
+            :message="t('item.possibleDuplicateHint')"
+            test-id="row-duplicate-badge"
+          >
+            <AlertTriangle
+              :size="13"
+              :stroke-width="2"
+              class="text-amber-500"
+              aria-hidden="true"
+            />
+          </InfoHint>
+          <InfoHint
             v-if="props.item.thumbURL"
-            data-testid="row-photo-badge"
-            :size="13"
-            :stroke-width="2"
-            class="text-muted-gray shrink-0"
-            :aria-label="t('item.photo')"
-          />
+            :message="t('item.photoHint')"
+            test-id="row-photo-badge"
+          >
+            <Image
+              :size="13"
+              :stroke-width="2"
+              class="text-muted-gray"
+              aria-hidden="true"
+            />
+          </InfoHint>
           <span
             v-if="props.item.note"
             data-testid="row-note"
@@ -219,23 +241,23 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-pinned"
       type="button"
-      :class="[
-        'inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent transition-colors',
-        props.pinned
-          ? 'text-favorite-gold hover:bg-favorite-gold-soft active:bg-favorite-gold-soft'
-          : 'text-muted-gray hover:bg-black/5 active:bg-black/10',
-      ]"
+      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-favorite-gold transition-colors"
       :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
       :aria-pressed="props.pinned"
       @click="onTogglePinned"
     >
-      <Star :size="18" :stroke-width="2" :fill="props.pinned ? 'currentColor' : 'none'" aria-hidden="true" />
+      <Star
+        :size="18"
+        :stroke-width="props.pinned ? 2.25 : 2.5"
+        :fill="props.pinned ? 'currentColor' : 'none'"
+        aria-hidden="true"
+      />
     </button>
     <button
       v-if="canMoveCopy"
       data-testid="row-move-copy"
       type="button"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-muted-gray hover:bg-black/5 active:bg-black/10 transition-colors"
+      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-charcoal transition-colors"
       :aria-label="t('item.moveOrCopy')"
       @click="onOpenMoveCopy"
     >
@@ -244,7 +266,7 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-settings"
       type="button"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-muted-gray hover:bg-black/5 active:bg-black/10 transition-colors"
+      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-charcoal transition-colors"
       :aria-label="t('item.openSettings')"
       @click="onOpenSettings"
     >
@@ -253,7 +275,7 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-remove"
       type="button"
-      class="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-transparent text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
+      class="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-transparent text-red-600 transition-colors"
       :aria-label="t('item.remove')"
       @click="emit('remove')"
     >

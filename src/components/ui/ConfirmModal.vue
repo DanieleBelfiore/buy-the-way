@@ -30,7 +30,7 @@ useModalBack(openRef, () => emit('cancel'));
 </script>
 
 <template>
-  <div v-if="props.open" class="fixed inset-0 z-[100] flex items-center justify-center">
+  <div v-if="props.open" class="fixed inset-0 z-[120] flex items-center justify-center">
     <div
       data-testid="confirm-modal-backdrop"
       class="absolute inset-0 bg-black/40"

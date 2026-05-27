@@ -10,6 +10,7 @@ vi.mock('firebase/firestore', () => ({
   getDocs: (...args: unknown[]) => getDocsMock(...args),
   query: vi.fn((ref) => ref),
   where: vi.fn((field, op, value) => ({ field, op, value })),
+  limit: vi.fn((n: number) => ({ __limit: n })),
 }));
 
 vi.mock('@/services/firebase', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/services/firebase', () => ({
 import {
   buildExportPayload,
   defaultExportFilename,
+  downloadUserDataExport,
   exportUserData,
 } from '@/services/export.service';
 
@@ -148,8 +150,9 @@ describe('export.service', () => {
       });
 
       await buildExportPayload(UID);
-      const { where } = await import('firebase/firestore');
+      const { where, limit } = await import('firebase/firestore');
       expect(where).toHaveBeenCalledWith('collaboratorUids', 'array-contains', UID);
+      expect(limit).toHaveBeenCalledWith(100);
     });
   });
 
@@ -168,6 +171,39 @@ describe('export.service', () => {
       expect(parsed.profile.uid).toBe(UID);
       // Pretty-printed: indented JSON contains newlines.
       expect(text.includes('\n')).toBe(true);
+    });
+  });
+
+  describe('downloadUserDataExport', () => {
+    it('creates an object URL and triggers a download link', async () => {
+      getDocMock
+        .mockResolvedValueOnce(mockProfileTopLevel)
+        .mockResolvedValueOnce(mockPrivateState);
+      getDocsMock.mockResolvedValue({ docs: [] });
+
+      const click = vi.fn();
+      const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+      const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
+      const createElement = vi.spyOn(document, 'createElement').mockReturnValue({
+        click,
+        href: '',
+        download: '',
+        style: {},
+      } as HTMLAnchorElement);
+      const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+      const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+      const filename = await downloadUserDataExport(UID, 'export.json');
+      expect(filename).toBe('export.json');
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(click).toHaveBeenCalled();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock');
+
+      createElement.mockRestore();
+      appendChild.mockRestore();
+      removeChild.mockRestore();
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
     });
   });
 

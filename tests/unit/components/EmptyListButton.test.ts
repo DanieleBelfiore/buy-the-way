@@ -9,10 +9,10 @@ const i18n = createI18n({
   messages: {
     en: {
       emptyList: {
-        button: 'Empty list',
-        confirmTitle: 'Empty list?',
+        button: 'Remove all items',
+        confirmTitle: 'Remove all items?',
         confirmMessage: 'This will remove all {count} items. This cannot be undone.',
-        confirm: 'Empty',
+        confirm: 'Remove all',
         cancel: 'Cancel',
       },
     },
@@ -33,11 +33,12 @@ describe('EmptyListButton', () => {
     wrapper.unmount();
   });
 
-  it('renders pill button when count > 0', () => {
+  it('renders an icon-only button when count > 0', () => {
     const wrapper = mountBtn(3);
     const btn = wrapper.find('[data-testid="empty-list-button"]');
     expect(btn.exists()).toBe(true);
-    expect(btn.text()).toContain('Empty list');
+    expect(btn.text()).toBe('');
+    expect(btn.classes()).not.toContain('bg-red-700');
   });
 
   it('does not render a count badge', () => {
@@ -79,9 +80,9 @@ describe('EmptyListButton', () => {
     wrapper.unmount();
   });
 
-  it('has aria-label on the pill button', () => {
+  it('has aria-label on the button', () => {
     const wrapper = mountBtn(3);
     const btn = wrapper.get('[data-testid="empty-list-button"]');
-    expect(btn.attributes('aria-label')).toBe('Empty list');
+    expect(btn.attributes('aria-label')).toBe('Remove all items');
   });
 });

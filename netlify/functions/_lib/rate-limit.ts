@@ -89,6 +89,13 @@ export const rateLimitedResponse = (decision: RateLimitDecision): Response => {
   );
 };
 
+/** Fail-closed response when the limiter itself is unavailable (email endpoints). */
+export const rateLimitUnavailableResponse = (): Response =>
+  new Response(JSON.stringify({ error: 'rate_limit_unavailable' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
 /** Standard caps. Exported so the call sites pick from a single source. */
 export const RATE_LIMITS = {
   // Email lookup for collaborator invite UI. 60 per minute leaves room for

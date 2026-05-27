@@ -1,22 +1,19 @@
 import type { Context } from '@netlify/functions';
 import admin from 'firebase-admin';
-import { checkRateLimit, rateLimitedResponse, RATE_LIMITS } from './_lib/rate-limit';
+import {
+  checkRateLimit,
+  rateLimitedResponse,
+  RATE_LIMITS,
+} from './_lib/rate-limit';
+import { initAdmin } from './_lib/firebase-admin';
+import { jsonResponse } from './_lib/http';
 
-const initAdmin = (): void => {
-  if (admin.apps.length > 0) return;
-  const raw = process.env['FIREBASE_SERVICE_ACCOUNT'];
-  if (!raw) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT env var is not set');
-  }
-  const serviceAccount = JSON.parse(raw) as admin.ServiceAccount;
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-};
-
-const jsonResponse = (status: number, body: Record<string, unknown>): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+/**
+ * Netlify Function: find-user
+ *
+ * Email lookup for the collaborator invite UI. Returns only the public profile
+ * fields needed to add an existing user to a list.
+ */
 
 export default async (req: Request, _ctx: Context): Promise<Response> => {
   if (req.method !== 'GET') return jsonResponse(405, { error: 'method_not_allowed' });
@@ -35,9 +32,6 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
     return jsonResponse(401, { error: 'invalid_token' });
   }
 
-  // S2.1: per-uid rate limit to slow email enumeration. Hard cap at 60/min.
-  // Spend cost is one Firestore transaction (1 read + 1 write on allow,
-  // 1 read on deny) per call, all under the Spark plan budget.
   try {
     const decision = await checkRateLimit(
       callerUid,
@@ -47,8 +41,6 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
     );
     if (!decision.allowed) return rateLimitedResponse(decision);
   } catch (err) {
-    // Fail-open if the rate limiter itself is broken: better than wedging
-    // the invite flow for everyone. Logged so the regression is visible.
     console.warn('[find-user] rate-limit check failed (allowing):', err);
   }
 
@@ -60,7 +52,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   try {
     const db = admin.firestore();
     const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-    
+
     if (snap.empty) {
       return jsonResponse(200, { profile: null });
     }
@@ -68,9 +60,6 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
     const doc = snap.docs[0];
     const data = doc.data();
 
-    // Only expose fields the invite flow needs. Activity metadata
-    // (lastLoginAt, lastSeenLists, lastSeenListMap, defaultListId) is private
-    // and must not leak to other authenticated callers via this surface.
     const profile: Record<string, unknown> = {
       uid: data.uid ?? doc.id,
       email: data.email ?? '',

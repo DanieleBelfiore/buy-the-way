@@ -183,7 +183,7 @@ const reauthAndRetry = async () => {
   >
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal hover:bg-black/5 active:bg-black/10"
+        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
         :aria-label="t('settings.title')"
         @click="handleBack"
       >

@@ -25,7 +25,7 @@ describe('sendInviteEmail', () => {
   it('throws when there is no signed-in user', async () => {
     mockGetAuth.mockReturnValue({ currentUser: null } as any);
     await expect(
-      sendInviteEmail({ email: 'a@b.com', listName: 'X', inviterName: 'A', locale: 'en' }),
+      sendInviteEmail({ email: 'a@b.com', listId: '01LIST', locale: 'en' }),
     ).rejects.toBeInstanceOf(InviteEmailError);
   });
 
@@ -35,8 +35,7 @@ describe('sendInviteEmail', () => {
 
     await sendInviteEmail({
       email: 'bob@example.com',
-      listName: 'Spesa',
-      inviterName: 'Alice',
+      listId: '01LIST00000000000000000001',
       locale: 'it',
     });
 
@@ -49,8 +48,7 @@ describe('sendInviteEmail', () => {
     const body = JSON.parse(opts.body as string);
     expect(body).toEqual({
       email: 'bob@example.com',
-      listName: 'Spesa',
-      inviterName: 'Alice',
+      listId: '01LIST00000000000000000001',
       locale: 'it',
     });
   });
@@ -66,7 +64,7 @@ describe('sendInviteEmail', () => {
     });
 
     try {
-      await sendInviteEmail({ email: 'a@b.com', listName: 'X', inviterName: 'A', locale: 'en' });
+      await sendInviteEmail({ email: 'a@b.com', listId: '01LIST', locale: 'en' });
       throw new Error('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(InviteEmailError);
@@ -86,7 +84,7 @@ describe('sendInviteEmail', () => {
     });
 
     await expect(
-      sendInviteEmail({ email: 'a@b.com', listName: 'X', inviterName: 'A', locale: 'en' }),
+      sendInviteEmail({ email: 'a@b.com', listId: '01LIST', locale: 'en' }),
     ).rejects.toMatchObject({ status: 500 });
   });
 });

@@ -26,7 +26,7 @@ import {
   deleteAccount as deleteAccountSvc,
   reauthenticateGoogle,
 } from '@/services/auth.service';
-import { getUserProfile, setUserDefaultList } from '@/services/users.service';
+import { getUserProfile, setUserDefaultList, setOnboardingSeen } from '@/services/users.service';
 
 describe('useAuthStore', () => {
   beforeEach(() => {
@@ -277,6 +277,34 @@ describe('useAuthStore', () => {
       await store.ensureProfile();
       await store.setDefaultListId('01XYZ');
       expect(store.profile?.defaultListId).toBe('01XYZ');
+    });
+  });
+
+  describe('markOnboardingSeen', () => {
+    it('no-ops when user is null', async () => {
+      const store = useAuthStore();
+      await store.markOnboardingSeen();
+      expect(setOnboardingSeen).not.toHaveBeenCalled();
+    });
+
+    it('updates cached profile.onboardingSeen after a successful write', async () => {
+      let capturedCb: ((u: unknown) => void) | undefined;
+      vi.mocked(onAuthChanged).mockImplementation((cb) => {
+        capturedCb = cb;
+        return vi.fn();
+      });
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0, onboardingSeen: false,
+      });
+
+      const store = useAuthStore();
+      store.init();
+      capturedCb!({ uid: 'u1', email: 'a@b.com', displayName: 'A' });
+      await store.ensureProfile();
+      await store.markOnboardingSeen();
+
+      expect(setOnboardingSeen).toHaveBeenCalledWith('u1', true);
+      expect(store.profile?.onboardingSeen).toBe(true);
     });
   });
 

@@ -256,4 +256,32 @@ describe('ItemAutocomplete', () => {
 
     expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
   });
+
+  it('caps visible dropdown height to five rows', async () => {
+    mockSuggestionsFor.mockReturnValue(
+      Array.from({ length: 8 }, (_, i) => makeEntry(`Item ${i}`)),
+    );
+    const wrapper = mountComponent();
+    const input = wrapper.find('input');
+    await input.setValue('item');
+    await input.trigger('input');
+    await flushPromises();
+
+    const listbox = wrapper.find('[data-testid="autocomplete-listbox"]');
+    expect((listbox.element as HTMLElement).style.maxHeight).toBe('calc(13.75rem)');
+    expect(listbox.classes()).toContain('overflow-y-auto');
+  });
+
+  it('positions listbox above the input when dropdownPlacement is above', async () => {
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte')]);
+    const wrapper = mountComponent({ dropdownPlacement: 'above' });
+    const input = wrapper.find('input');
+    await input.setValue('lat');
+    await input.trigger('input');
+    await flushPromises();
+
+    const listbox = wrapper.find('[role="listbox"]');
+    expect(listbox.classes()).toContain('bottom-full');
+    expect(listbox.classes()).toContain('mb-1');
+  });
 });

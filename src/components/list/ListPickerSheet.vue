@@ -56,7 +56,7 @@ useModalBack(openRef, () => emit('cancel'));
           data-testid="list-picker-cancel"
           type="button"
           :aria-label="t('list.cancel')"
-          class="inline-flex items-center justify-center w-9 h-9 rounded-full text-muted-gray hover:bg-black/5"
+          class="inline-flex items-center justify-center w-9 h-9 rounded-full text-muted-gray"
           @click="emit('cancel')"
         >
           <X :size="18" :stroke-width="2" aria-hidden="true" />

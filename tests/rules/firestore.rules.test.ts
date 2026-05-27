@@ -242,35 +242,35 @@ describe('firestore.rules - lists/{id} create', () => {
   it('allows owner-uid creator who is in collaboratorUids and admins=[self]', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
-      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins is missing', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE],
-      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins includes someone other than the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE, BOB], admins: [ALICE, BOB],
-      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when ownerUid is not the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: BOB, collaboratorUids: [BOB], admins: [BOB],
-      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when caller is not in collaboratorUids', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [BOB], admins: [ALICE],
-      itemCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 });
@@ -350,20 +350,6 @@ describe('firestore.rules - lists/{id} update', () => {
     await seedList('L1', ALICE, [ALICE]);
     await assertFails(updateDoc(doc(carlCtx() as any, 'lists', 'L1'), {
       name: 'Hacked', updatedAt: 2,
-    }));
-  });
-
-  it('allows owner to toggle showFavorites', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
-      showFavorites: false, updatedAt: 2,
-    }));
-  });
-
-  it('denies non-owner collaborator from toggling showFavorites', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB]);
-    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
-      showFavorites: false, updatedAt: 2,
     }));
   });
 
@@ -710,10 +696,10 @@ describe('firestore.rules - owner update field whitelist', () => {
     } as Record<string, unknown>));
   });
 
-  it('allows any collaborator to bump itemCount + updatedAt only', async () => {
-    await seedList('L1', ALICE, [ALICE, BOB], { itemCount: 0 });
+  it('allows any collaborator to bump itemCount / urgentCount + updatedAt only', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { itemCount: 0, urgentCount: 0 });
     await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
-      itemCount: 5, updatedAt: 2,
+      itemCount: 5, urgentCount: 2, updatedAt: 2,
     } as Record<string, unknown>));
   });
 });

@@ -15,6 +15,7 @@ const props = withDefaults(
     /** S3.2: per-section selection state passthrough. */
     selectionMode?: boolean;
     selectedIds?: ReadonlySet<string>;
+    duplicateItemIds?: ReadonlySet<string>;
   }>(),
   {
     collapsed: false,
@@ -22,6 +23,7 @@ const props = withDefaults(
     pinnedNames: () => new Set<string>(),
     selectionMode: false,
     selectedIds: () => new Set<string>(),
+    duplicateItemIds: () => new Set<string>(),
   },
 );
 const emit = defineEmits<{
@@ -99,6 +101,7 @@ const onLeave = (el: Element, done: () => void): void => {
           :pinned="props.pinnedNames.has(item.name)"
           :selection-mode="props.selectionMode"
           :selected="props.selectedIds.has(item.id)"
+          :possible-duplicate="props.duplicateItemIds.has(item.id)"
           @toggle-checked="(val) => emit('toggle-checked', item.id, val)"
           @remove="emit('remove-item', item.id)"
           @open-edit="(it) => emit('open-edit', it)"

@@ -45,13 +45,6 @@ const reset = (): void => {
   speech.stop();
 };
 
-watch(
-  () => props.open,
-  (isOpen) => {
-    if (!isOpen) reset();
-  },
-);
-
 const startListening = async (): Promise<void> => {
   const micAccess = await ensureMicrophoneAccess();
   if (micAccess === 'denied') {
@@ -65,6 +58,20 @@ const startListening = async (): Promise<void> => {
 const stopListening = (): void => {
   speech.stop();
 };
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) {
+      reset();
+      return;
+    }
+    if (speech.isSupported.value) {
+      void startListening();
+    }
+  },
+  { immediate: true },
+);
 
 const rows = computed(() => {
   return splitTranscriptIntoItems(speech.transcript.value, locale.value).map((name) => ({
@@ -153,14 +160,6 @@ const errorMessageKey = computed<string | null>(() => {
           >
             {{ t('item.voiceListening') }}
           </p>
-        </div>
-
-        <div
-          v-if="speech.transcript.value"
-          data-testid="voice-transcript"
-          class="rounded-xl bg-offwhite border border-cream-soft p-3 text-sm text-charcoal"
-        >
-          {{ speech.transcript.value }}
         </div>
 
         <div

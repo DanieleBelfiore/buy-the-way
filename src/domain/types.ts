@@ -39,7 +39,8 @@ export interface List {
    */
   pendingInviteEmails?: readonly string[];
   itemCount?: number;
-  showFavorites?: boolean;
+  /** Denormalized count of items with priority "urgent". */
+  urgentCount?: number;
   wallpaper?: string;
   /**
    * S3.4: user-controlled ordering. Higher value = earlier in the lists
@@ -52,7 +53,9 @@ export interface List {
    * Per-list ordering of the category groups inside ListDetailView. Earlier
    * in the array = appears first. Categories present in the items list but
    * absent here fall back to alphabetic order by translated label.
-   * Shared across collaborators (lives on the list doc); admin-only writes.
+   * Shared across collaborators (lives on the list doc). Any collaborator may
+   * update it (see firestore.rules); drag-and-drop in ListDetailView is open
+   * to all members, not admin-only.
    */
   categoryOrder?: Category[];
   createdAt: number;

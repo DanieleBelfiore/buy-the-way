@@ -6,14 +6,12 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }));
 vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
-vi.mock('@/stores/listFavorites', () => ({ useListFavoritesStore: vi.fn() }));
 vi.mock('@/services/lists.service', () => ({
   addCollaborator: vi.fn(),
   removeCollaborator: vi.fn(),
   leaveList: vi.fn(),
   renameList: vi.fn(),
   deleteList: vi.fn(),
-  setListShowFavorites: vi.fn(),
   setListWallpaper: vi.fn(),
   UserNotFoundError: class extends Error {},
   CannotRemoveOwnerError: class extends Error {},
@@ -31,11 +29,9 @@ import {
   addCollaborator,
   removeCollaborator,
   leaveList,
-  setListShowFavorites,
   setListWallpaper,
 } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
-import { useListFavoritesStore } from '@/stores/listFavorites';
 
 const i18n = createI18n({
   legacy: false,
@@ -54,8 +50,6 @@ const i18n = createI18n({
         confirmDelete: 'Delete permanently',
         cancel: 'Cancel',
         members: 'Members',
-        showFavorites: 'Show favorites',
-        showFavoritesHint: 'Show the favorites section',
         wallpaper: 'Wallpaper',
         wallpaperOptionAria: 'Select wallpaper {name}',
       },
@@ -128,16 +122,6 @@ const setupStores = (
     profile,
     ensureProfile: vi.fn().mockResolvedValue(undefined),
     setDefaultListId: mockSetDefaultListId,
-  } as any);
-  
-  vi.mocked(useListFavoritesStore).mockReturnValue({
-    entries: [{ slug: 'a', name: 'A', category: 'Other', usageCount: 1, lastUsedAt: 1 }],
-    loading: false,
-    error: null,
-    currentListId: null,
-    rankedEntries: [{ slug: 'a', name: 'A', category: 'Other', usageCount: 1, lastUsedAt: 1 }],
-    pinnedNames: new Set(),
-    subscribe: vi.fn().mockReturnValue(vi.fn()),
   } as any);
 };
 
@@ -359,45 +343,6 @@ describe('ListSettingsView', () => {
     await mountView();
     await flushPromises();
     expect(mockSubscribe).toHaveBeenCalled();
-  });
-
-  it('owner sees show-favorites toggle; non-owner does not', async () => {
-    setupStores(ownerList, 'uid-me');
-    const wrapper = await mountView();
-    await flushPromises();
-    expect(wrapper.find('[data-testid="show-favorites-toggle"]').exists()).toBe(true);
-
-    setupStores(guestList, 'uid-me');
-    const wrapper2 = await mountView();
-    await flushPromises();
-    expect(wrapper2.find('[data-testid="show-favorites-toggle"]').exists()).toBe(false);
-  });
-
-  it('show-favorites toggle defaults to checked when field undefined', async () => {
-    setupStores(ownerList, 'uid-me');
-    const wrapper = await mountView();
-    await flushPromises();
-    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
-    expect(btn.attributes('aria-checked')).toBe('true');
-  });
-
-  it('show-favorites toggle reflects showFavorites: false', async () => {
-    setupStores({ ...ownerList, showFavorites: false }, 'uid-me');
-    const wrapper = await mountView();
-    await flushPromises();
-    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
-    expect(btn.attributes('aria-checked')).toBe('false');
-  });
-
-  it('toggling show-favorites calls setListShowFavorites', async () => {
-    setupStores(ownerList, 'uid-me');
-    vi.mocked(setListShowFavorites).mockResolvedValue(undefined);
-    const wrapper = await mountView();
-    await flushPromises();
-    const btn = wrapper.get('[data-testid="show-favorites-toggle"]');
-    await btn.trigger('click');
-    await flushPromises();
-    expect(setListShowFavorites).toHaveBeenCalledWith('list-1', false);
   });
 
   it('owner sees wallpaper picker; non-owner does not', async () => {

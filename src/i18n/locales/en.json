@@ -38,15 +38,19 @@
     "new": "New list",
     "newPlaceholder": "List name",
     "empty": "No items yet",
-    "emptyHint": "Add items above",
+    "emptyHint": "Add items below",
     "create": "Create",
     "cancel": "Cancel",
     "noLists": "No lists yet",
     "noListsHint": "Tap + to create your first list",
     "duplicateName": "You already have a list with this name.",
-    "itemCount": "no items | 1 item | {n} items",
+    "itemCount": "No items | 1 item | {n} items",
+    "urgentInlineOne": "1 urgent",
+    "urgentInlineMany": "{u} urgent",
+    "urgentInlineWordOne": "urgent",
+    "urgentInlineWordMany": "urgent",
     "setDefault": "Set as default list",
-    "unsetDefault": "Unset default list",
+    "unsetDefault": "Remove as default list",
     "defaultSetToast": "Default list: it will open automatically when you launch the app!",
     "defaultClearedToast": "Default list cleared. You'll see all lists on next launch!",
     "share": "Share list",
@@ -61,6 +65,7 @@
     "addPlaceholder": "Add an item",
     "name": "Name",
     "customBadge": "Custom item",
+    "customBadgeHint": "You added this name yourself; it is not from the catalog.",
     "dontSuggestAgainTitle": "Stop suggesting this item?",
     "dontSuggestAgainMessage": "\"{name}\" will no longer appear in autocomplete suggestions across any of your lists.",
     "dontSuggestAgainAction": "Don't suggest",
@@ -78,8 +83,8 @@
     "removeConfirm": "Delete",
     "removeCancel": "Cancel",
     "deletedWithUndo": "Item deleted",
-    "bulkDeletedWithUndo": "no items deleted | 1 item deleted | {n} items deleted",
-    "bulkSelectedCount": "none selected | 1 selected | {n} selected",
+    "bulkDeletedWithUndo": "No items deleted | 1 item deleted | {n} items deleted",
+    "bulkSelectedCount": "None selected | 1 selected | {n} selected",
     "pinFavorite": "Pin to favorites",
     "unpinFavorite": "Unpin from favorites",
     "priority": "Priority",
@@ -90,6 +95,9 @@
     "renameHint": "Rename to group related items together",
     "openSettings": "Edit item",
     "photo": "Photo",
+    "photoHint": "This item has a photo attached.",
+    "possibleDuplicate": "Possible duplicate",
+    "possibleDuplicateHint": "Another row matches this item exactly: same name, category, note, quantity, and photo.",
     "photoAdd": "Add photo",
     "photoCamera": "Camera",
     "photoGallery": "Gallery",
@@ -101,11 +109,10 @@
     "bulkPasteTitle": "Paste many items",
     "bulkPasteHint": "One item per line or separated by commas.\nWe'll guess the category for each.",
     "bulkPastePlaceholder": "Milk\nBread\nApples, bananas, oranges",
-    "bulkPasteNoneFound": "Nothing to add yet.",
-    "bulkPasteCount": "no items | Add 1 item | Add {n} items",
+    "bulkPasteCount": "No items | Add 1 item | Add {n} items",
     "voiceAdd": "Add by voice",
     "voiceTitle": "Add by voice",
-    "voiceHint": "Tap the mic and say your items.\nSeparate them with commas or \"and\".",
+    "voiceHint": "Start speaking as soon as the sheet opens.\nSeparate items with commas or \"and\".",
     "voiceStart": "Start listening",
     "voiceStop": "Stop listening",
     "voiceListening": "Listening…",
@@ -126,21 +133,22 @@
     "bulkPin": "Add to favorites"
   },
   "emptyList": {
-    "button": "Empty list",
-    "confirmTitle": "Empty list?",
+    "button": "Remove all items",
+    "confirmTitle": "Remove all items?",
     "confirmMessage": "This will remove all {count} items.\nThis cannot be undone.",
-    "confirm": "Empty",
+    "confirm": "Remove all",
     "cancel": "Cancel"
   },
   "shelf": {
     "title": "Your favorites | Your favorite item | Your {count} favorite items",
-    "empty": "Add items to populate your shelf",
-    "collapse": "Collapse shelf",
-    "expand": "Expand shelf",
+    "openButton": "Favorites",
+    "empty": "Add items repeatedly or pin them from the item menu to build your favorites.",
     "excludeTitle": "Remove from favorites?",
     "excludeMessage": "\"{name}\" won't appear in favorites anymore, even if added to new lists.\nYou can re-enable it from item edit.",
     "excludeConfirm": "Remove",
-    "excludeCancel": "Cancel"
+    "excludeCancel": "Cancel",
+    "alreadyInList": "Already in list",
+    "alreadyInListHint": "This item is already on your list. You can still tap the tile to add another."
   },
   "collaborators": {
     "add": "Add collaborator",
@@ -175,8 +183,6 @@
     "save": "Save",
     "leaveList": "Leave list",
     "deleteList": "Delete list",
-    "showFavorites": "Show favorites",
-    "showFavoritesHint": "Show the favorites section at the top of the list",
     "wallpaper": "Wallpaper",
     "wallpaperOptionAria": "Select wallpaper {name}",
     "stats": {
@@ -230,7 +236,7 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "share": "Recommend to a friend",
-    "shareMessage": "Buy The Way - Your Smart Shopping List",
+    "shareMessage": "Buy The Way - Your smart grocery list",
     "shareCopied": "Link copied to clipboard",
     "feedback": "Send feedback",
     "exportData": "Export my data",
@@ -332,7 +338,7 @@
       },
       {
         "q": "Which sign-in methods are supported?",
-        "a": "Google sign-in only."
+        "a": "Google sign-in or an email sign-in link."
       },
       {
         "q": "Are my lists encrypted?",
@@ -395,7 +401,7 @@
       "title": "By category",
       "subtitle": "How much you buy in each category",
       "share": "{percent}% · {count} purchases",
-      "tooltipItems": "no items | 1 item | {n} items"
+      "tooltipItems": "No items | 1 item | {n} items"
     }
   }
 }

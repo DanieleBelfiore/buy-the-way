@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, useId, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ClipboardPaste, X } from '@lucide/vue';
+import { Check, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import { CATEGORIES } from '@/domain/categories';
 import type { Category } from '@/domain/types';
@@ -122,13 +122,6 @@ const onSubmit = (): void => {
           </li>
         </ul>
       </div>
-      <p
-        v-else
-        data-testid="bulk-paste-empty"
-        class="mt-3 text-center text-xs text-muted-gray"
-      >
-        {{ t('item.bulkPasteNoneFound') }}
-      </p>
 
       <div class="mt-5 flex flex-row items-center gap-2">
         <button
@@ -147,7 +140,7 @@ const onSubmit = (): void => {
           class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="onSubmit"
         >
-          <ClipboardPaste :size="16" :stroke-width="2.25" aria-hidden="true" />
+          <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
           {{ t('item.bulkPasteCount', { n: rows.length }, rows.length) }}
         </button>
       </div>

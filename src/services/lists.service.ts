@@ -96,6 +96,7 @@ export const createList = async (
     collaboratorUids: [ownerUid],
     admins: [ownerUid],
     itemCount: 0,
+    urgentCount: 0,
     wallpaper: pickRandomWallpaper(),
     // S3.4: seed with `now` so newly created lists float to the top of the
     // user's overview by default. User-driven reorders override this.
@@ -105,6 +106,17 @@ export const createList = async (
   };
   await setDoc(doc(db, 'lists', id), listData);
   return id;
+};
+
+/** Put the pinned (default) list first; leave relative order of the rest. */
+export const orderListsWithDefaultFirst = (
+  lists: readonly List[],
+  defaultListId: string | null | undefined,
+): List[] => {
+  if (!defaultListId) return [...lists];
+  const pinned = lists.find((l) => l.id === defaultListId);
+  if (!pinned) return [...lists];
+  return [pinned, ...lists.filter((l) => l.id !== defaultListId)];
 };
 
 /**
@@ -367,16 +379,6 @@ export const renameList = async (listId: string, name: string): Promise<void> =>
   });
 };
 
-export const setListShowFavorites = async (
-  listId: string,
-  showFavorites: boolean,
-): Promise<void> => {
-  await updateDoc(doc(db, 'lists', listId), {
-    showFavorites,
-    updatedAt: Date.now(),
-  });
-};
-
 export const transferListOwnership = async (
   listId: string,
   oldOwnerUid: string,
@@ -514,4 +516,17 @@ export const deleteList = async (listId: string): Promise<void> => {
   } catch (err) {
     console.warn('[lists] deleteList: cascade item delete failed (list doc already gone):', err);
   }
+};
+
+/** Fix denormalized urgentCount when it drifted (legacy docs, missed writes). */
+export const reconcileListUrgentCount = async (
+  listId: string,
+  urgentCount: number,
+  storedUrgentCount = 0,
+): Promise<void> => {
+  if (storedUrgentCount === urgentCount) return;
+  await updateDoc(doc(db, 'lists', listId), {
+    urgentCount,
+    updatedAt: Date.now(),
+  });
 };

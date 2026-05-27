@@ -30,6 +30,7 @@ import {
   DuplicateListNameError,
   LastAdminError,
   NotACollaboratorError,
+  reconcileListUrgentCount,
 } from '@/services/lists.service';
 import { setDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
@@ -53,6 +54,8 @@ describe('lists.service', () => {
         ownerUid: 'uid-1',
         collaboratorUids: ['uid-1'],
         admins: ['uid-1'],
+        itemCount: 0,
+        urgentCount: 0,
       });
       expect(data).not.toHaveProperty('deletedAt');
       expect(typeof (data as any).createdAt).toBe('number');
@@ -381,6 +384,30 @@ describe('lists.service', () => {
     });
   });
 
+  describe('orderListsWithDefaultFirst', () => {
+    it('puts the default list first and keeps relative order of the rest', async () => {
+      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
+      const lists = [
+        { id: 'A', sortIndex: 300, updatedAt: 1 },
+        { id: 'B', sortIndex: 200, updatedAt: 2 },
+        { id: 'C', sortIndex: 100, updatedAt: 3 },
+      ] as any[];
+      expect(orderListsWithDefaultFirst(lists, 'B').map((l) => l.id)).toEqual(['B', 'A', 'C']);
+    });
+
+    it('returns lists unchanged when no default is set', async () => {
+      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
+      const lists = [{ id: 'A' }, { id: 'B' }] as any[];
+      expect(orderListsWithDefaultFirst(lists, null)).toEqual(lists);
+    });
+
+    it('returns lists unchanged when default id is missing from the list', async () => {
+      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
+      const lists = [{ id: 'A' }, { id: 'B' }] as any[];
+      expect(orderListsWithDefaultFirst(lists, 'MISSING')).toEqual(lists);
+    });
+  });
+
   describe('computeReorderedSortIndex (S3.4)', () => {
     const mk = (sortIndex?: number, updatedAt = 1) => ({ id: 'x', sortIndex, updatedAt } as any);
 
@@ -457,6 +484,20 @@ describe('lists.service', () => {
       const ids = onChange.mock.calls[0][0].map((l: any) => l.id);
       // sortIndex C=200, A=100, B=50 (fallback updatedAt) -> C, A, B
       expect(ids).toEqual(['C', 'A', 'B']);
+    });
+  });
+
+  describe('reconcileListUrgentCount', () => {
+    it('writes urgentCount when it differs from stored value', async () => {
+      await reconcileListUrgentCount('L1', 2, 0);
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      expect(payload.urgentCount).toBe(2);
+    });
+
+    it('is a no-op when stored value already matches', async () => {
+      await reconcileListUrgentCount('L1', 2, 2);
+      expect(updateDoc).not.toHaveBeenCalled();
     });
   });
 });

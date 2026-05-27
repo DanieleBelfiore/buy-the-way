@@ -71,7 +71,7 @@ const skip = (): void => emit('done');
         type="button"
         data-testid="onboarding-skip"
         :aria-label="t('onboarding.skip')"
-        class="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full text-muted-gray hover:bg-black/5 active:bg-black/10"
+        class="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full text-muted-gray"
         @click="skip"
       >
         <X :size="18" :stroke-width="2" aria-hidden="true" />

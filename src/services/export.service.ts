@@ -3,9 +3,11 @@ import {
   getDocs,
   query,
   where,
+  limit as fbLimit,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { getUserProfile } from '@/services/users.service';
+import { USER_LISTS_PAGE_LIMIT } from '@/services/lists.service';
 import type { CatalogEntry, Item, List, ListFavoriteState, UserProfile } from '@/domain/types';
 import pkg from '../../package.json';
 
@@ -66,7 +68,11 @@ const fetchCatalog = async (uid: string): Promise<CatalogEntry[]> => {
 };
 
 const fetchUserLists = async (uid: string): Promise<List[]> => {
-  const q = query(collection(db, 'lists'), where('collaboratorUids', 'array-contains', uid));
+  const q = query(
+    collection(db, 'lists'),
+    where('collaboratorUids', 'array-contains', uid),
+    fbLimit(USER_LISTS_PAGE_LIMIT),
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as List);
 };
@@ -81,9 +87,9 @@ export const buildExportPayload = async (uid: string): Promise<UserDataExport> =
     fetchUserLists(uid),
     fetchCatalog(uid),
   ]);
-  // Pull items + favorites for each list in parallel - bounded by the
-  // number of lists the user has, which is itself capped by
-  // USER_LISTS_PAGE_LIMIT (100) on the realtime side.
+  // Pull items + favorites for each list in parallel. List count matches the
+  // realtime subscription cap (USER_LISTS_PAGE_LIMIT); items per list are
+  // unbounded (grocery lists stay small in practice).
   const bundles = await Promise.all(lists.map(fetchListBundle));
   return {
     exportedAt: new Date().toISOString(),

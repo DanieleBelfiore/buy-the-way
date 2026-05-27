@@ -27,7 +27,7 @@ service firebase.storage {
       return isSignedIn()
         && firestore.exists(path)
         && (
-          uid() == firestore.get(path).data.ownerUid
+          uid() == firestore.get(path).data.get('ownerUid', '')
           || uid() in firestore.get(path).data.get('collaboratorUids', [])
         );
     }

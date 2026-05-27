@@ -14,8 +14,7 @@ export class InviteEmailError extends Error {
 
 export interface SendInviteEmailParams {
   email: string;
-  listName: string;
-  inviterName: string;
+  listId: string;
   locale: Locale;
 }
 

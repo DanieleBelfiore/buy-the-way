@@ -1,6 +1,6 @@
 {
   "legal": {
-    "lastUpdated": "2026-05-19",
+    "lastUpdated": "2026-05-27",
     "footer": {
       "about": "About",
       "privacy": "Privacy",
@@ -18,32 +18,32 @@
         {
           "id": "data-collected",
           "heading": "2. Data we collect",
-          "body": "When you sign in we collect: the email address and display name associated with your Google account; an authentication identifier (uid) provided by Firebase Authentication; the date and time of your last sign-in. While you use the service we store: the lists and items you create, the collaborators you add, the usage counters for the items in your personal catalog, the wallpaper and favorites preference per list. Your browser stores a local cache of your lists in IndexedDB so the app works offline. Server access logs operated by Google (IP address, user agent) may be retained for security purposes."
+          "body": "When you sign in we collect: your email address (from Google or the one you provide for the sign-in link), display name and profile photo when available from the method you choose, an authentication identifier (uid) provided by Firebase Authentication, and the date and time of your last sign-in. While you use the service we store: lists and items (name, quantity, note, priority, checked state), any photos you upload for items, collaborators and pending invites (including invited email addresses), in-app notifications, usage counters for your personal catalog, and wallpaper and favorites preferences per list. When you share a list, your name, email and profile photo are visible to the other collaborators on that list. Your browser stores local preferences and an offline cache in localStorage and IndexedDB, and on the device that requested the sign-in link it keeps the email used to complete passwordless sign-in. If you use voice input, audio is processed by your browser's speech engine (e.g. Google or Apple) outside our direct control. The feedback form sends email, uid, message, app version and user agent through Netlify Forms. We do not use profiling cookies, analytics tools or advertising."
         },
         {
           "id": "legal-basis",
           "heading": "3. Legal basis",
-          "body": "The processing of your data is based on the performance of the contract you enter into with us when you start using the service (art. 6.1.b GDPR). Security logs and abuse prevention rely on our legitimate interest in keeping the service safe (art. 6.1.f GDPR)."
+          "body": "The processing of your data is based on the performance of the contract you enter into with us when you start using the service (art. 6.1.b GDPR). Sending transactional emails strictly necessary for the service (sign-in links, list invites) is based on contract performance or our legitimate interest in delivering the feature you requested. Security logs, anti-abuse counters on email functions and abuse prevention rely on our legitimate interest in keeping the service safe (art. 6.1.f GDPR)."
         },
         {
           "id": "processors",
           "heading": "4. Data processors",
-          "body": "We rely on the following sub-processor: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Hosting) - hosting, authentication and storage of all application data. The processor has signed standard contractual clauses for data transfers outside the EEA where applicable."
+          "body": "We rely on the following sub-processors: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Storage, Firebase Hosting) for authentication, database, photo storage and app hosting; Resend Inc. for transactional email delivery (list invites and sign-in links); Netlify Inc. for progressive web app hosting, serverless functions and feedback form collection. These providers process data on our behalf. Where data is transferred outside the EEA, standard contractual clauses or equivalent safeguards under their agreements apply."
         },
         {
           "id": "retention",
           "heading": "5. Data retention and deletion",
-          "body": "Your account data is retained for as long as your account is active. You can delete your account at any time from Settings → Delete account; the operation removes your owned lists, your collaborator references in other users' lists, your personal catalog, your user profile and revokes your sign-in. Firebase backups follow a 30-day rolling window after which deleted data is permanently removed. Aggregate, anonymous metrics may be retained beyond that period for capacity planning."
+          "body": "Your account data is retained for as long as your account is active. You can delete your account at any time from Settings → Delete account; the operation removes your owned lists, your collaborator references in other users' lists, your personal catalog, your photos, your user profile and revokes sign-in access. JSON export from Settings creates a file on your device and does not store an additional copy on our servers. Feedback messages submitted through the form are kept for as long as needed to handle the report. Rate-limit metadata on email functions is kept for short time windows for anti-abuse purposes. Firebase backups follow a 30-day rolling window after which deleted data is permanently removed."
         },
         {
           "id": "rights",
           "heading": "6. Your rights",
-          "body": "You have the right to access your data, rectify it, request erasure, port it to another service, object to certain processing and request its restriction. The erasure right is exercised self-service through the Delete account flow in Settings. For any other request write to danielebelfiorepc@gmail.com. You can also lodge a complaint with the Italian data protection authority (Garante per la Protezione dei Dati Personali, www.garanteprivacy.it)."
+          "body": "You have the right to access your data, rectify it, request erasure, port it to another service, object to certain processing and request its restriction. The erasure right is exercised self-service through the Delete account flow in Settings. The portability right can also be exercised through Export my data in Settings, which downloads a JSON file with your profile, lists, items and catalog. For any other request write to danielebelfiorepc@gmail.com. You can also lodge a complaint with the Italian data protection authority (Garante per la Protezione dei Dati Personali, www.garanteprivacy.it)."
         },
         {
           "id": "children",
           "heading": "7. Children",
-          "body": "The service is not directed at users under the age of 16. We do not knowingly collect data from minors. Access requires a Google account whose terms of service govern the minimum age for account creation."
+          "body": "The service is not directed at users under the age of 16. We do not knowingly collect data from minors. Access requires a Google account or an email address you control; the chosen provider's terms govern the applicable minimum age."
         },
         {
           "id": "changes",
@@ -53,7 +53,7 @@
         {
           "id": "effective-date",
           "heading": "9. Effective date",
-          "body": "This version of the Privacy Policy is effective from 19 May 2026."
+          "body": "This version of the Privacy Policy is effective from 27 May 2026."
         }
       ]
     },
@@ -64,12 +64,12 @@
         {
           "id": "service",
           "heading": "1. The service",
-          "body": "Buy The Way is a real-time shared shopping list application provided free of charge as a progressive web app. The service is offered on a best-effort basis and without any service-level agreement at this stage."
+          "body": "Buy The Way is a real-time shared shopping list application provided free of charge as a progressive web app. You can sign in with Google or an email sign-in link. The service is offered on a best-effort basis and without any service-level agreement at this stage."
         },
         {
           "id": "responsibilities",
           "heading": "2. User responsibilities",
-          "body": "You agree to use the service in compliance with applicable laws. You will not upload illegal, harassing or infringing content, and you will not abuse the collaborator-add feature to contact users you do not personally know. You are responsible for the content of the lists you create and share."
+          "body": "You agree to use the service in compliance with applicable laws. You will not upload illegal, harassing or infringing content (including text, photos or other attachments), and you will not abuse the collaborator-add feature to contact users you do not personally know. You are responsible for the content of the lists you create and share."
         },
         {
           "id": "termination",
@@ -90,6 +90,11 @@
           "id": "disputes",
           "heading": "6. Dispute resolution",
           "body": "Any dispute arising from or relating to these terms shall be submitted to the ordinary courts of the operator's place of residence, subject to mandatory consumer-protection rules that grant you the right to sue at your own place of residence."
+        },
+        {
+          "id": "changes",
+          "heading": "7. Changes to these terms",
+          "body": "We may unilaterally amend these Terms of Service when needed for legal compliance, service evolution or security reasons. When we make material changes we publish an in-app notice on your next sign-in and update the date at the top of this document. Continued use of the service after the effective date of the changes constitutes acceptance of the updated Terms. If you do not accept the changes you may stop using the service and delete your account at any time from Settings → Delete account."
         }
       ]
     }

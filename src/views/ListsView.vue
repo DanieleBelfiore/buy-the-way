@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated, onBeforeUpdate, onUpdated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
@@ -12,7 +12,11 @@ import { useNotifications } from '@/composables/useNotifications';
 import type { NotificationDoc } from '@/domain/types';
 import ListCard from '@/components/list/ListCard.vue';
 import { VueDraggable } from 'vue-draggable-plus';
-import { reorderList, computeReorderedSortIndex } from '@/services/lists.service';
+import {
+  reorderList,
+  computeReorderedSortIndex,
+  orderListsWithDefaultFirst,
+} from '@/services/lists.service';
 import type { List } from '@/domain/types';
 import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
@@ -201,13 +205,34 @@ const handleNotificationOpenList = (listId: string): void => {
   router.push({ name: 'list-detail', params: { id: listId } });
 };
 
+// Pinned (default) list stays first in the overview regardless of sortIndex.
+const orderedLists = computed(() =>
+  orderListsWithDefaultFirst(listsStore.lists, defaultListId.value),
+);
+
+// Local mirror kept in sync with Firestore except during drag. On drop we
+// apply the new order optimistically so Vue does not snap the list back to
+// the stale store order while waiting for the snapshot (that snap reads as
+// a brief flash).
+const localLists = ref<List[]>([]);
+const isDraggingList = ref(false);
+
+watch(
+  orderedLists,
+  (lists) => {
+    if (isDraggingList.value) return;
+    localLists.value = lists;
+  },
+  { immediate: true },
+);
+
 // S3.4: drag-and-drop reorder. We bind the draggable to a LOCAL clone of the
 // lists array so the user can drag without waiting on the firestore round
 // trip; on drop, we compute the moved row's new sortIndex from its
 // neighbours (midpoint heuristic) and persist it. The realtime snapshot
 // catches up moments later and re-sorts identically.
 const draggableLists = computed<List[]>({
-  get: () => listsStore.lists,
+  get: () => localLists.value,
   set: () => {
     // The Sortable lib mutates an internal copy; we ignore writes here and
     // act only on the @end event so we can compute the exact sortIndex
@@ -220,12 +245,30 @@ interface SortableEvent {
   newIndex?: number;
 }
 
+interface SortableMoveEvent {
+  relatedContext?: { index: number; element: List };
+  draggedContext?: { index: number; element: List };
+}
+
+/** Block dragging the pinned list or inserting another list above it. */
+const canMoveList = (evt: SortableMoveEvent): boolean => {
+  const defId = defaultListId.value;
+  if (!defId) return true;
+  const dragged = evt.draggedContext?.element;
+  if (dragged?.id === defId) return false;
+  if (evt.relatedContext?.index === 0) return false;
+  return true;
+};
+
 const onReorder = async (e: SortableEvent): Promise<void> => {
   const { oldIndex, newIndex } = e;
   if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
-  const arr = listsStore.lists;
+  const arr = orderedLists.value;
   const moved = arr[oldIndex];
   if (!moved) return;
+
+  const defId = defaultListId.value;
+  if (defId && (moved.id === defId || newIndex === 0)) return;
 
   const post = [...arr];
   post.splice(oldIndex, 1);
@@ -237,6 +280,103 @@ const onReorder = async (e: SortableEvent): Promise<void> => {
   } catch (err) {
     console.warn('[ListsView] reorderList failed:', err);
   }
+};
+
+const pinListToTop = async (listId: string): Promise<void> => {
+  const ordered = orderListsWithDefaultFirst(listsStore.lists, listId);
+  const target = computeReorderedSortIndex(ordered, 0);
+  try {
+    await reorderList(listId, target);
+  } catch (err) {
+    console.warn('[ListsView] pin reorder failed:', err);
+  }
+};
+
+const LIST_REORDER_MS = 600;
+const LIST_REORDER_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+const draggableContainerRef = ref<{ $el: HTMLElement } | null>(null);
+let flipAfterPin = false;
+let flipFirstRects: Map<string, DOMRect> | null = null;
+
+watch(defaultListId, (next, prev) => {
+  if (next !== prev) flipAfterPin = true;
+});
+
+const captureListCardRects = (container: HTMLElement): Map<string, DOMRect> => {
+  const map = new Map<string, DOMRect>();
+  for (const el of container.querySelectorAll('[data-list-id]')) {
+    const id = (el as HTMLElement).dataset.listId;
+    if (id) map.set(id, el.getBoundingClientRect());
+  }
+  return map;
+};
+
+const playListReorderFlip = (container: HTMLElement, first: Map<string, DOMRect>): void => {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  for (const el of container.querySelectorAll('[data-list-id]')) {
+    const card = el as HTMLElement;
+    const id = card.dataset.listId;
+    if (!id) continue;
+    const prev = first.get(id);
+    if (!prev) continue;
+
+    const next = card.getBoundingClientRect();
+    const dx = prev.left - next.left;
+    const dy = prev.top - next.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+
+    card.style.transform = `translate(${dx}px, ${dy}px)`;
+    card.style.transition = 'transform 0s';
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        card.style.transition = `transform ${LIST_REORDER_MS}ms ${LIST_REORDER_EASING}`;
+        card.style.transform = '';
+        const cleanup = (): void => {
+          card.style.transition = '';
+          card.removeEventListener('transitionend', cleanup);
+        };
+        card.addEventListener('transitionend', cleanup);
+      });
+    });
+  }
+};
+
+onBeforeUpdate(() => {
+  if (!flipAfterPin || isDraggingList.value) return;
+  const container = draggableContainerRef.value?.$el;
+  if (!container) return;
+  flipFirstRects = captureListCardRects(container);
+});
+
+onUpdated(() => {
+  const container = draggableContainerRef.value?.$el;
+  if (flipAfterPin && !isDraggingList.value && flipFirstRects && container) {
+    playListReorderFlip(container, flipFirstRects);
+  }
+  flipFirstRects = null;
+  flipAfterPin = false;
+});
+
+const onDragStart = (): void => {
+  isDraggingList.value = true;
+};
+
+const onDragEnd = async (e: SortableEvent): Promise<void> => {
+  const { oldIndex, newIndex } = e;
+  if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+    const arr = [...localLists.value];
+    const moved = arr[oldIndex];
+    if (moved) {
+      arr.splice(oldIndex, 1);
+      arr.splice(newIndex, 0, moved);
+      localLists.value = arr;
+    }
+  }
+  isDraggingList.value = false;
+  await onReorder(e);
 };
 
 // Explainer toast - fires when the star toggles so the user understands what
@@ -262,6 +402,7 @@ const handleToggleDefault = async (id: string): Promise<void> => {
   const next = wasDefault ? null : id;
   try {
     await authStore.setDefaultListId(next);
+    if (next) await pinListToTop(next);
     showDefaultToast(
       wasDefault ? t('list.defaultClearedToast') : t('list.defaultSetToast'),
     );
@@ -301,26 +442,25 @@ watch(
 
 <template>
   <main class="min-h-dvh bg-cream flex flex-col relative">
-    <!-- Top bar with stats + settings buttons (split 50/50 full width). -->
-    <header class="px-5 pt-6 pb-2 flex items-center gap-2">
+    <!-- Top bar: icon actions grouped top-right. -->
+    <header class="px-5 pt-6 pb-2 flex items-center justify-end gap-1">
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="sm:flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 w-10 sm:w-auto px-0 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
         @click="router.push({ name: 'stats' })"
       >
-        <BarChart3 :size="20" class="shrink-0" :stroke-width="2" aria-hidden="true" />
-        <span class="hidden sm:inline text-sm font-medium">{{ t('stats.openButton') }}</span>
+        <BarChart3 :size="18" :stroke-width="2.25" aria-hidden="true" />
       </button>
       <button
         type="button"
         :aria-label="t('notifications.title')"
         data-testid="open-notifications"
-        class="sm:flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 w-10 sm:w-auto px-0 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
         @click="openNotifications"
       >
-        <span class="relative inline-flex shrink-0 !overflow-visible sm:mr-1">
-          <Bell :size="20" :stroke-width="2" aria-hidden="true" />
+        <span class="relative inline-flex shrink-0 !overflow-visible">
+          <Bell :size="18" :stroke-width="2.25" aria-hidden="true" />
           <span
             v-if="notifications.count.value > 0"
             data-testid="notifications-badge"
@@ -328,17 +468,16 @@ watch(
             class="block absolute -top-1 -left-1 w-2 h-2 rounded-full bg-primary shrink-0"
           />
         </span>
-        <span class="hidden sm:inline text-sm font-medium">{{ t('notifications.button') }}</span>
       </button>
       <button
         :aria-label="t('settings.title')"
-        class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 sm:px-3 rounded-full text-muted-gray dark:text-white hover:bg-black/5 active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15"
+        data-testid="open-settings"
+        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
         @click="router.push({ name: 'settings' })"
       >
-        <SettingsIcon :size="20" class="shrink-0" :stroke-width="2" aria-hidden="true" />
-        <span class="text-sm font-medium">{{ t('settings.title') }}</span>
+        <SettingsIcon :size="18" :stroke-width="2.25" aria-hidden="true" />
       </button>
-      <LocaleSwitcher class="shrink-0" />
+      <LocaleSwitcher class="shrink-0 ml-1" />
     </header>
 
     <!-- Hero brand block -->
@@ -437,17 +576,22 @@ watch(
 
         <VueDraggable
           v-else
+          ref="draggableContainerRef"
           v-model="draggableLists"
           key="cards"
           tag="div"
           class="space-y-3"
-          :animation="200"
+          :animation="LIST_REORDER_MS"
+          easing="ease-out"
           :delay="300"
           :delay-on-touch-only="true"
           :touch-start-threshold="5"
           :disabled="draggableLists.length <= 1"
+          filter=".list-card-no-drag"
+          :move="canMoveList"
           ghost-class="list-card-ghost"
-          @end="onReorder"
+          @start="onDragStart"
+          @end="onDragEnd"
         >
           <ListCard
             v-for="list in draggableLists"
@@ -497,7 +641,7 @@ watch(
   transform: translateX(-16px);
 }
 .list-card-move {
-  transition: transform 220ms ease;
+  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .state-fade-enter-active,
 .state-fade-leave-active {

@@ -11,7 +11,7 @@ const messages = {
     item: {
       voiceAdd: 'Add by voice',
       voiceTitle: 'Add by voice',
-      voiceHint: 'Tap the mic.',
+      voiceHint: 'Start speaking as soon as the sheet opens.',
       voiceStart: 'Start listening',
       voiceStop: 'Stop listening',
       voiceListening: 'Listening…',
@@ -106,12 +106,19 @@ describe('VoiceAddSheet', () => {
     expect(wrapper.find('[data-testid="voice-mic"]').exists()).toBe(true);
   });
 
-  it('clicking the mic starts recognition', async () => {
-    const wrapper = mountSheet();
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+  it('starts recognition automatically when the sheet opens', async () => {
+    mountSheet();
     await flushPromises();
     expect(lastRec).not.toBeNull();
     expect(lastRec!.start).toHaveBeenCalledOnce();
+  });
+
+  it('clicking the mic toggles recognition off while listening', async () => {
+    const wrapper = mountSheet();
+    await flushPromises();
+    expect(lastRec!.start).toHaveBeenCalledOnce();
+    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
+    expect(lastRec!.stop).toHaveBeenCalledOnce();
   });
 
   it('shows permission error without starting recognition when mic access is denied', async () => {
@@ -122,7 +129,6 @@ describe('VoiceAddSheet', () => {
       configurable: true,
     });
     const wrapper = mountSheet();
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
     await flushPromises();
     expect(lastRec).toBeNull();
     expect(wrapper.find('[data-testid="voice-error"]').text()).toContain('Mic denied');
@@ -130,7 +136,6 @@ describe('VoiceAddSheet', () => {
 
   it('splits the transcript into preview rows once recognition emits results', async () => {
     const wrapper = mountSheet({ inferCategory: () => 'other' });
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
     await flushPromises();
     lastRec!.onresult!({
       resultIndex: 0,
@@ -145,7 +150,6 @@ describe('VoiceAddSheet', () => {
     const wrapper = mountSheet({
       inferCategory: (name) => (name === 'milk' ? 'dairy' : 'other'),
     });
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
     await flushPromises();
     lastRec!.onresult!({
       resultIndex: 0,
@@ -171,14 +175,12 @@ describe('VoiceAddSheet', () => {
 
   it('renders the listening indicator while recognition is running', async () => {
     const wrapper = mountSheet();
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
     await flushPromises();
     expect(wrapper.find('[data-testid="voice-listening"]').exists()).toBe(true);
   });
 
   it('exposes a translated error when the recogniser reports not-allowed', async () => {
     const wrapper = mountSheet();
-    await wrapper.find('[data-testid="voice-mic"]').trigger('click');
     await flushPromises();
     lastRec!.onerror!({ error: 'not-allowed' });
     await flushPromises();

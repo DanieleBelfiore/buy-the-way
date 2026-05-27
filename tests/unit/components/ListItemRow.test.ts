@@ -22,6 +22,10 @@ const i18n = createI18n({
         pinFavorite: 'Pin to favorites',
         unpinFavorite: 'Unpin from favorites',
         customBadge: 'Custom item',
+        possibleDuplicate: 'Possible duplicate',
+        possibleDuplicateHint: 'Another row matches this item exactly.',
+        customBadgeHint: 'Custom item hint',
+        photoHint: 'Photo attached',
       },
     },
   },
@@ -232,18 +236,35 @@ describe('ListItemRow', () => {
       expect(wrapper.emitted('toggle-checked')).toBeFalsy();
     });
 
-    it('applies red styling when priority=urgent', () => {
+    it('applies orange styling when priority=urgent', () => {
       const wrapper = mountRow(makeItem({ priority: 'urgent' }));
-      expect(wrapper.html()).toContain('text-red-700');
+      expect(wrapper.html()).toContain('text-orange-500');
+    });
+  });
+
+  describe('duplicate badge', () => {
+    it('shows amber alert when possibleDuplicate is true', () => {
+      const wrapper = mountRow(makeItem(), { possibleDuplicate: true });
+      wrapper.get('[data-testid="row-duplicate-badge"]');
+      expect(wrapper.get('[data-testid="info-hint-trigger"]').attributes('aria-label')).toBe(
+        'Another row matches this item exactly.',
+      );
+      expect(wrapper.find('.text-amber-500').exists()).toBe(true);
+    });
+
+    it('hides duplicate badge by default', () => {
+      const wrapper = mountRow(makeItem());
+      expect(wrapper.find('[data-testid="row-duplicate-badge"]').exists()).toBe(false);
     });
   });
 
   describe('pinned star button', () => {
-    it('renders an unfilled star by default', () => {
+    it('renders an unfilled gold star by default', () => {
       const wrapper = mountRow(makeItem());
       const btn = wrapper.get('[data-testid="row-pinned"]');
       expect(btn.attributes('aria-pressed')).toBe('false');
       expect(btn.attributes('aria-label')).toBe('Pin to favorites');
+      expect(btn.classes().join(' ')).toContain('text-favorite-gold');
     });
 
     it('renders filled gold star when pinned', () => {

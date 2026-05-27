@@ -11,7 +11,15 @@ const i18n = createI18n({
   messages: {
     en: {
       badge: { new: 'New' },
-      list: { setDefault: 'Set as default list', unsetDefault: 'Unset default list' },
+      list: {
+        setDefault: 'Set as default list',
+        unsetDefault: 'Unset default list',
+        urgentInlineOne: '1 urgent',
+        urgentInlineMany: '{u} urgent',
+        urgentInlineWordOne: 'urgent',
+        urgentInlineWordMany: 'urgent',
+      },
+      listSettings: { stats: { items: 'Items' } },
     },
   },
 });
@@ -70,34 +78,49 @@ describe('ListCard', () => {
 
   it('switches text color to white when wallpaper is present', () => {
     const wrapper = mountCard({ list: { ...mockList, wallpaper: '05.jpg' } });
-    const title = wrapper.find('[data-testid="list-card"] span');
+    const title = wrapper.find('[data-testid="list-card"] .font-medium');
     expect(title.classes()).toContain('text-white');
+    expect(title.classes()).toContain('wallpaper-overlay-text');
   });
 
-  it('renders a star toggle button labelled "set as default" when not default', () => {
+  it('applies text shadow on wallpaper meta without a background pill', () => {
+    const wrapper = mountCard({ list: { ...mockList, wallpaper: '05.jpg', itemCount: 3 } });
+    const meta = wrapper.find('[data-testid="item-count"]').element.parentElement;
+    expect(meta?.className).toContain('wallpaper-overlay-text');
+    expect(meta?.className).not.toContain('bg-black');
+  });
+
+  it('renders a pin toggle button labelled "set as default" when not default', () => {
     const wrapper = mountCard({ list: mockList });
-    const star = wrapper.find(`[data-testid="star-${mockList.id}"]`);
+    const star = wrapper.find(`[data-testid="pin-${mockList.id}"]`);
     expect(star.exists()).toBe(true);
     expect(star.attributes('aria-pressed')).toBe('false');
     expect(star.attributes('aria-label')).toBe('Set as default list');
   });
 
-  it('flips the star button label to "unset" when isDefault is true', () => {
+  it('flips the pin button label to "unset" when isDefault is true', () => {
     const wrapper = mountCard({ list: mockList, isDefault: true });
-    const star = wrapper.find(`[data-testid="star-${mockList.id}"]`);
-    expect(star.attributes('aria-pressed')).toBe('true');
-    expect(star.attributes('aria-label')).toBe('Unset default list');
+    const pin = wrapper.find(`[data-testid="pin-${mockList.id}"]`);
+    expect(pin.attributes('aria-pressed')).toBe('true');
+    expect(pin.attributes('aria-label')).toBe('Unset default list');
+    expect(pin.classes()).toContain('text-primary');
+    expect(pin.classes()).not.toContain('bg-primary');
   });
 
-  it('emits toggle-default with the list id when the star is clicked', async () => {
+  it('adds list-card-no-drag when isDefault is true', () => {
+    const wrapper = mountCard({ list: mockList, isDefault: true });
+    expect(wrapper.find('[data-testid="list-card"]').classes()).toContain('list-card-no-drag');
+  });
+
+  it('emits toggle-default with the list id when the pin is clicked', async () => {
     const wrapper = mountCard({ list: mockList });
-    await wrapper.find(`[data-testid="star-${mockList.id}"]`).trigger('click');
+    await wrapper.find(`[data-testid="pin-${mockList.id}"]`).trigger('click');
     expect(wrapper.emitted('toggle-default')?.[0]).toEqual([mockList.id]);
   });
 
-  it('does not also emit open when the star is clicked (stopPropagation)', async () => {
+  it('does not also emit open when the pin is clicked (stopPropagation)', async () => {
     const wrapper = mountCard({ list: mockList });
-    await wrapper.find(`[data-testid="star-${mockList.id}"]`).trigger('click');
+    await wrapper.find(`[data-testid="pin-${mockList.id}"]`).trigger('click');
     expect(wrapper.emitted('open')).toBeUndefined();
   });
 
@@ -133,6 +156,32 @@ describe('ListCard', () => {
     expect(/text-(rose|amber|emerald|sky|violet|pink|lime|cyan)-900/.test(cls)).toBe(true);
     expect(/dark:text-(rose|amber|emerald|sky|violet|pink|lime|cyan)-100/.test(cls)).toBe(true);
     expect(wrapper).toBeTruthy();
+  });
+
+  it('includes urgent count with icon in item-count when urgentCount > 0', () => {
+    const wrapper = mountCard({
+      list: { ...mockList, itemCount: 4, urgentCount: 2, updatedAt: Date.UTC(2026, 0, 15, 10, 30) },
+    });
+    expect(wrapper.find('[data-testid="item-count"]').text()).toContain('Items:');
+    expect(wrapper.find('[data-testid="item-count"]').text()).toContain('4');
+    expect(wrapper.find('[data-testid="item-count"]').text()).toContain('2 urgent');
+    expect(wrapper.find('[data-testid="urgent-inline"] svg').exists()).toBe(true);
+  });
+
+  it('omits urgent suffix when urgentCount is 0', () => {
+    const wrapper = mountCard({ list: { ...mockList, itemCount: 2, urgentCount: 0 } });
+    expect(wrapper.find('[data-testid="item-count"]').text()).toBe('Items: 2');
+  });
+
+  it('uses white pin styling on wallpaper cards when pinned', () => {
+    const wrapper = mountCard({
+      list: { ...mockList, wallpaper: 'market' },
+      isDefault: true,
+    });
+    const pin = wrapper.find(`[data-testid="pin-${mockList.id}"]`);
+    expect(pin.classes()).toContain('text-white');
+    expect(pin.classes()).not.toContain('text-primary');
+    expect(pin.classes()).not.toContain('bg-primary');
   });
 
   it('renders profile photos as CSS backgrounds (no img) to avoid long-press save menu', () => {

@@ -19,6 +19,7 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   deleteField: vi.fn(() => ({ __deleteField: true })),
   getDocs: vi.fn().mockResolvedValue({ docs: [], empty: true }),
+  getDoc: vi.fn().mockResolvedValue({ data: () => ({}) }),
   onSnapshot: vi.fn(),
   query: vi.fn().mockReturnValue({ type: 'query' }),
   where: vi.fn().mockReturnValue({ type: 'where' }),

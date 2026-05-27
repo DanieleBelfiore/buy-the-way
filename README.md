@@ -255,7 +255,6 @@ Optional:
 
 ```bash
 VITE_USE_EMULATOR=false           # point the SDK at local emulators
-VITE_USE_FIXTURES=0               # in-memory fixtures instead of Firestore
 ```
 
 ### Runtime env vars (Netlify-only, used by serverless functions)

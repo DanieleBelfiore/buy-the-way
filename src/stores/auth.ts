@@ -15,7 +15,7 @@ import {
   setUserDefaultList,
   setOnboardingSeen as setOnboardingSeenSvc,
 } from '@/services/users.service';
-import type { Locale } from '@/domain/types';
+import type { Locale, UserProfile } from '@/domain/types';
 import type { AuthUser } from '@/composables/useAuth';
 
 export const useAuthStore = defineStore('auth', () => {

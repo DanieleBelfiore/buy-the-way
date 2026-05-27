@@ -12,8 +12,7 @@ const messages = {
       bulkPasteTitle: 'Paste many items',
       bulkPasteHint: 'One per line.',
       bulkPastePlaceholder: 'Milk\nBread',
-      bulkPasteNoneFound: 'Nothing to add yet.',
-      bulkPasteCount: 'no items | Add 1 item | Add {n} items',
+      bulkPasteCount: 'No items | Add 1 item | Add {n} items',
     },
     list: { cancel: 'Cancel' },
   },
@@ -49,9 +48,9 @@ describe('BulkPasteSheet', () => {
     expect(wrapper.find('[data-testid="bulk-paste-textarea"]').exists()).toBe(false);
   });
 
-  it('shows empty-state message when textarea is blank', () => {
+  it('shows no preview rows when textarea is blank', () => {
     const wrapper = mountSheet();
-    expect(wrapper.find('[data-testid="bulk-paste-empty"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="bulk-paste-preview"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="bulk-paste-row"]').exists()).toBe(false);
   });
 

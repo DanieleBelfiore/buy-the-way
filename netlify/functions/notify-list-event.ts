@@ -1,6 +1,9 @@
 import type { Context } from '@netlify/functions';
 import admin from 'firebase-admin';
 import { checkRateLimit, rateLimitedResponse } from './_lib/rate-limit';
+import { initAdmin } from './_lib/firebase-admin';
+import { jsonResponse } from './_lib/http';
+import { sanitizeFreeText } from './_lib/sanitize';
 
 /**
  * S4.2: server-side fan-out for in-app notifications.
@@ -25,20 +28,6 @@ import { checkRateLimit, rateLimitedResponse } from './_lib/rate-limit';
  * we prune the oldest entries beyond the cap. Keeps storage bounded and
  * the popover render cheap.
  */
-
-const initAdmin = (): void => {
-  if (admin.apps.length > 0) return;
-  const raw = process.env['FIREBASE_SERVICE_ACCOUNT'];
-  if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT env var is not set');
-  const serviceAccount = JSON.parse(raw) as admin.ServiceAccount;
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-};
-
-const jsonResponse = (status: number, body: Record<string, unknown>): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 
 type NotifyKind = 'item-modified' | 'collaborator-added' | 'collaborator-joined';
 type NotifyLocale = 'it' | 'en';
@@ -78,15 +67,6 @@ const isNotifyBody = (v: unknown): v is NotifyBody => {
 /** Per-recipient FIFO cap on the notifications inbox. */
 const INBOX_CAP = 50;
 
-/** Strip http/https/www-prefixed url-like tokens out of free-text names. */
-const sanitize = (raw: string): string =>
-  raw
-    .replace(/https?:\/\/\S+/gi, '')
-    .replace(/\bwww\.\S+/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80);
-
 const resolveSenderName = async (
   db: FirebaseFirestore.Firestore,
   uid: string,
@@ -94,7 +74,7 @@ const resolveSenderName = async (
   try {
     const snap = await db.collection('users').doc(uid).get();
     const name = (snap.data() as { displayName?: string } | undefined)?.displayName ?? '';
-    return sanitize(name);
+    return sanitizeFreeText(name, 80);
   } catch {
     return '';
   }
@@ -123,7 +103,7 @@ const resolveNames = async (
     .collection('lists').doc(payload.listId)
     .collection('items').doc(payload.itemId)
     .get();
-  const name = sanitize(((itemSnap.data() as { name?: string } | undefined)?.name) ?? '');
+  const name = sanitizeFreeText(((itemSnap.data() as { name?: string } | undefined)?.name) ?? '', 80);
   return name ? { itemName: name } : {};
 };
 
@@ -231,7 +211,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   }
 
   const now = Date.now();
-  const listName = sanitize(listData.name ?? '');
+  const listName = sanitizeFreeText(listData.name ?? '', 80);
   const locale: NotifyLocale = body.locale && LOCALES.includes(body.locale)
     ? body.locale
     : 'it';

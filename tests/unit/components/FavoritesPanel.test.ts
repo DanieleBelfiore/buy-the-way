@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
-import MostUsedShelf from '@/components/list/MostUsedShelf.vue';
+import FavoritesPanel from '@/components/list/FavoritesPanel.vue';
+import FavoritesSheet from '@/components/list/FavoritesSheet.vue';
 import ShelfTile from '@/components/list/ShelfTile.vue';
 import type { ListFavoriteState } from '@/domain/types';
 
@@ -12,10 +13,13 @@ const i18n = createI18n({
     en: {
       shelf: {
         title: 'Your favorites | Your favorite item | Your {count} favorite items',
-        empty: 'Add items to populate your shelf',
-        collapse: 'Collapse shelf',
-        expand: 'Expand shelf',
+        openButton: 'Favorites',
+        empty: 'Add items repeatedly or pin them from the item menu to build your favorites.',
+        excludeTitle: 'Remove from favorites?',
+        alreadyInList: 'Already in list',
+        alreadyInListHint: 'Already on your list.',
       },
+      list: { cancel: 'Cancel' },
       category: {
         fruit_vegetables: 'Fruit & Veg',
         dairy: 'Dairy',
@@ -104,144 +108,75 @@ describe('ShelfTile', () => {
   });
 });
 
-describe('MostUsedShelf', () => {
+describe('FavoritesPanel', () => {
   const mount_ = (props: {
     entries: ListFavoriteState[];
     topSlugs?: Set<string>;
+    presenceKeys?: Set<string>;
   }) =>
-    mount(MostUsedShelf, {
+    mount(FavoritesPanel, {
       props: {
         entries: props.entries,
         topSlugs: props.topSlugs ?? new Set<string>(),
+        presenceKeys: props.presenceKeys,
       },
       global: { plugins: [i18n] },
     });
 
   it('renders nothing when entries is empty', () => {
     const wrapper = mount_({ entries: [] });
-    expect(wrapper.find('[data-testid="shelf-title"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="favorites-panel"]').exists()).toBe(false);
     expect(wrapper.findAllComponents(ShelfTile)).toHaveLength(0);
   });
 
-  it('renders one tile per entry when expanded', async () => {
+  it('renders one tile per entry', () => {
     const entries = [
       makeEntry({ slug: 'latte', name: 'Latte' }),
       makeEntry({ slug: 'pane', name: 'Pane' }),
       makeEntry({ slug: 'mela', name: 'Mela' }),
     ];
     const wrapper = mount_({ entries });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     expect(wrapper.findAllComponents(ShelfTile)).toHaveLength(3);
   });
 
-  it('renders title with the favorites count', () => {
-    const entries = [
-      makeEntry({ slug: 'a' }),
-      makeEntry({ slug: 'b', name: 'B' }),
-    ];
-    const wrapper = mount_({ entries });
-    const headerText = wrapper.find('[data-testid="shelf-title"]').text();
-    expect(headerText).toContain('2');
-    expect(headerText).toContain('favorite');
-  });
-
-  it('renders singular title form when there is exactly one favorite', () => {
-    const entries = [makeEntry({ slug: 'a' })];
-    const wrapper = mount_({ entries });
-    const headerText = wrapper.find('[data-testid="shelf-title"]').text();
-    expect(headerText).toBe('Your favorite item');
-  });
-
-  it('defaults to collapsed on mount', () => {
-    const entries = [makeEntry({ slug: 'a' })];
-    const wrapper = mount_({ entries });
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
-  });
-
-  it('passes isTop to tile when entry slug is in topSlugs (expanded)', async () => {
+  it('passes isTop to tile when entry slug is in topSlugs', () => {
     const entries = [
       makeEntry({ slug: 'a' }),
       makeEntry({ slug: 'b' }),
     ];
     const topSlugs = new Set(['a']);
     const wrapper = mount_({ entries, topSlugs });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     const tiles = wrapper.findAllComponents(ShelfTile);
     expect(tiles[0].props('isTop')).toBe(true);
     expect(tiles[1].props('isTop')).toBe(false);
   });
 
-  it('does not accept or propagate any isInList prop (duplicates allowed)', async () => {
-    const entries = [
-      makeEntry({ slug: 'a', name: 'Latte' }),
-      makeEntry({ slug: 'b', name: 'Pane' }),
-    ];
-    const wrapper = mount_({ entries });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    const tiles = wrapper.findAllComponents(ShelfTile);
-    for (const tile of tiles) {
-      expect((tile.props() as Record<string, unknown>).isInList).toBeUndefined();
-    }
+  it('passes inList when presenceKeys contains the entry slug+category', () => {
+    const entry = makeEntry({ slug: 'latte', category: 'dairy' });
+    const wrapper = mount_({
+      entries: [entry],
+      presenceKeys: new Set(['latte|dairy']),
+    });
+    expect(wrapper.findComponent(ShelfTile).props('inList')).toBe(true);
   });
 
   it('re-emits add-from-shelf when tile emits add', async () => {
     const entry = makeEntry({ slug: 'a' });
     const wrapper = mount_({ entries: [entry] });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     await wrapper.findComponent(ShelfTile).find('button').trigger('click');
     expect(wrapper.emitted('add-from-shelf')?.[0]).toEqual([entry]);
   });
 
-  it('toggles open/closed when title clicked', async () => {
-    const entries = [makeEntry({ slug: 'a' })];
-    const wrapper = mount_({ entries });
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
-    await wrapper.find('[data-testid="shelf-title"]').trigger('click');
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(true);
-    await wrapper.find('[data-testid="shelf-title"]').trigger('click');
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
-  });
-
-  it('toggles open/closed when chevron clicked', async () => {
-    const entries = [makeEntry({ slug: 'a' })];
-    const wrapper = mount_({ entries });
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(true);
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    expect(wrapper.findComponent(ShelfTile).exists()).toBe(false);
-  });
-
-  it('renders one sub-section per distinct category when expanded', async () => {
+  it('renders one sub-section per distinct category', () => {
     const entries = [
       makeEntry({ slug: 'l', name: 'Latte', category: 'dairy' }),
       makeEntry({ slug: 'm', name: 'Mela', category: 'fruit_vegetables' }),
       makeEntry({ slug: 'y', name: 'Yogurt', category: 'dairy' }),
     ];
     const wrapper = mount_({ entries });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     expect(wrapper.find('[data-testid="shelf-group-dairy"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="shelf-group-fruit_vegetables"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="shelf-group-bakery"]').exists()).toBe(false);
-  });
-
-  it('renders sub-sections in alphabetical order by translated category label', async () => {
-    const entries = [
-      makeEntry({ slug: 'l', name: 'Latte', category: 'dairy' }),
-      makeEntry({ slug: 'p', name: 'Pane', category: 'bakery' }),
-      makeEntry({ slug: 'm', name: 'Mela', category: 'fruit_vegetables' }),
-    ];
-    const wrapper = mount_({ entries });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    const groupNodes = wrapper
-      .findAll('[data-testid^="shelf-group-"]')
-      .filter((n) => n.attributes('data-testid')?.startsWith('shelf-group-') && !n.attributes('data-testid')?.includes('-title-'));
-    const order = groupNodes.map((n) => n.attributes('data-testid'));
-    expect(order).toEqual([
-      'shelf-group-bakery',
-      'shelf-group-dairy',
-      'shelf-group-fruit_vegetables',
-    ]);
   });
 
   it('keeps tile order stable when entries prop is reordered with same slugs', async () => {
@@ -249,7 +184,6 @@ describe('MostUsedShelf', () => {
     const b = makeEntry({ slug: 'b', name: 'B', category: 'dairy' });
     const c = makeEntry({ slug: 'c', name: 'C', category: 'dairy' });
     const wrapper = mount_({ entries: [a, b, c] });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
     expect(wrapper.findAllComponents(ShelfTile).map((t) => t.props('entry').slug)).toEqual([
       'a',
       'b',
@@ -262,31 +196,49 @@ describe('MostUsedShelf', () => {
       'c',
     ]);
   });
+});
 
-  it('refreshes order when entries prop adds a new slug', async () => {
-    const a = makeEntry({ slug: 'a', name: 'A', category: 'dairy' });
-    const b = makeEntry({ slug: 'b', name: 'B', category: 'dairy' });
-    const wrapper = mount_({ entries: [a, b] });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    const c = makeEntry({ slug: 'c', name: 'C', category: 'dairy' });
-    await wrapper.setProps({ entries: [c, a, b] });
-    expect(wrapper.findAllComponents(ShelfTile).map((t) => t.props('entry').slug)).toEqual([
-      'c',
-      'a',
-      'b',
-    ]);
+describe('FavoritesSheet', () => {
+  const mount_ = (props: {
+    open?: boolean;
+    entries?: ListFavoriteState[];
+    topSlugs?: Set<string>;
+  }) =>
+    mount(FavoritesSheet, {
+      props: {
+        open: props.open ?? true,
+        entries: props.entries ?? [makeEntry()],
+        topSlugs: props.topSlugs ?? new Set<string>(),
+      },
+      global: { plugins: [i18n] },
+    });
+
+  it('does not render when closed', () => {
+    const wrapper = mount_({ open: false });
+    expect(wrapper.find('[data-testid="favorites-backdrop"]').exists()).toBe(false);
   });
 
-  it('refreshes order when entries prop removes a slug', async () => {
-    const a = makeEntry({ slug: 'a', name: 'A', category: 'dairy' });
-    const b = makeEntry({ slug: 'b', name: 'B', category: 'dairy' });
-    const c = makeEntry({ slug: 'c', name: 'C', category: 'dairy' });
-    const wrapper = mount_({ entries: [a, b, c] });
-    await wrapper.find('[data-testid="shelf-toggle"]').trigger('click');
-    await wrapper.setProps({ entries: [b, c] });
-    expect(wrapper.findAllComponents(ShelfTile).map((t) => t.props('entry').slug)).toEqual([
-      'b',
-      'c',
-    ]);
+  it('shows empty hint when there are no favorites', () => {
+    const wrapper = mount_({ entries: [] });
+    expect(wrapper.find('[data-testid="favorites-sheet-scroll"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Add items repeatedly');
+  });
+
+  it('renders panel when entries exist', () => {
+    const wrapper = mount_({ entries: [makeEntry({ name: 'Latte' })] });
+    expect(wrapper.find('[data-testid="favorites-panel"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Latte');
+  });
+
+  it('emits cancel on backdrop click', async () => {
+    const wrapper = mount_({});
+    await wrapper.find('[data-testid="favorites-backdrop"]').trigger('click');
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+  });
+
+  it('emits cancel on close button click', async () => {
+    const wrapper = mount_({});
+    await wrapper.find('[data-testid="favorites-close"]').trigger('click');
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
   });
 });

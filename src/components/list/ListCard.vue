@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Star } from '@lucide/vue';
+import { Pin } from '@lucide/vue';
+import ItemCountWithUrgent from '@/components/list/ItemCountWithUrgent.vue';
 import { wallpaperUrl } from '@/domain/wallpapers';
 import { useThemeStore } from '@/stores/theme';
 import type { List, UserProfile } from '@/domain/types';
@@ -20,14 +21,14 @@ const emit = defineEmits<{
 }>();
 const { t, locale } = useI18n();
 
-const handleStarClick = (ev: MouseEvent): void => {
-  // Tapping the star must not also open the list.
+const handlePinClick = (ev: MouseEvent): void => {
+  // Tapping the pin must not also open the list.
   ev.stopPropagation();
   emit('toggle-default', props.list.id);
 };
 
 const itemCount = computed(() => props.list.itemCount ?? 0);
-const itemCountLabel = computed(() => t('list.itemCount', itemCount.value, { n: itemCount.value }));
+const urgentCount = computed(() => props.list.urgentCount ?? 0);
 
 const initialFor = (m: UserProfile): string => {
   const source = m.displayName.trim() || m.email;
@@ -64,7 +65,7 @@ const cardStyle = computed(() => {
   if (!props.list.wallpaper) return {};
   // Dark theme: darker overlay so the wallpaper recedes and text stays
   // readable against the surrounding dark surfaces.
-  const overlay = themeStore.resolved === 'dark' ? '0.6' : '0.45';
+  const overlay = themeStore.resolved === 'dark' ? '0.68' : '0.58';
   return {
     backgroundImage: `linear-gradient(rgba(0,0,0,${overlay}), rgba(0,0,0,${overlay})), url('${wallpaperUrl(props.list.wallpaper)}')`,
     backgroundSize: 'cover',
@@ -86,11 +87,22 @@ const dateFormatter = computed(
     }),
 );
 const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.list.updatedAt)));
+
+const pinButtonClass = computed(() => {
+  const base =
+    'shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full';
+  if (props.isDefault) {
+    return hasWallpaper.value ? `${base} text-white` : `${base} text-primary`;
+  }
+  if (hasWallpaper.value) return `${base} text-white/80`;
+  return `${base} text-muted-gray`;
+});
 </script>
 
 <template>
   <div
     data-testid="list-card"
+    :data-list-id="props.list.id"
     role="button"
     tabindex="0"
     :class="[
@@ -98,6 +110,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
       hasWallpaper
         ? 'text-white border-transparent shadow-sm'
         : 'bg-offwhite text-charcoal border-cream-soft',
+      { 'list-card-no-drag': props.isDefault },
     ]"
     :style="cardStyle"
     :aria-label="props.list.name"
@@ -144,10 +157,27 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
     <!-- Title + meta -->
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 min-w-0">
-        <span :class="['font-medium truncate', hasWallpaper ? 'text-white' : 'text-charcoal']">{{ props.list.name }}</span>
+        <span
+          :class="[
+            'text-lg font-medium truncate',
+            hasWallpaper ? 'text-white wallpaper-overlay-text' : 'text-charcoal',
+          ]"
+        >{{ props.list.name }}</span>
       </div>
-      <div :class="['flex items-center gap-1.5 text-xs mt-0.5', hasWallpaper ? 'text-white/85' : 'text-muted-gray']">
-        <span v-if="itemCount > 0" data-testid="item-count">{{ itemCountLabel }}</span>
+      <div
+        :class="[
+          'text-sm mt-0.5',
+          hasWallpaper
+            ? 'inline-flex w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-white wallpaper-overlay-text'
+            : 'flex items-center gap-1.5 text-muted-gray',
+        ]"
+      >
+        <ItemCountWithUrgent
+          v-if="itemCount > 0"
+          :count="itemCount"
+          :urgent-count="urgentCount"
+          :muted="hasWallpaper"
+        />
         <span v-if="itemCount > 0" aria-hidden="true">·</span>
         <span data-testid="updated-at">{{ updatedLabel }}</span>
       </div>
@@ -155,35 +185,26 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
 
     <button
       type="button"
-      :data-testid="`star-${props.list.id}`"
+      :data-testid="`pin-${props.list.id}`"
       :aria-pressed="props.isDefault"
       :aria-label="props.isDefault ? t('list.unsetDefault') : t('list.setDefault')"
-      :title="props.isDefault ? t('list.unsetDefault') : t('list.setDefault')"
-      :class="[
-        'shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
-        hasWallpaper
-          ? 'hover:bg-white/15 active:bg-white/25'
-          : 'hover:bg-black/5 active:bg-black/10',
-      ]"
-      @click="handleStarClick"
+      :class="pinButtonClass"
+      @click="handlePinClick"
     >
-      <Star
+      <Pin
         :size="18"
         :stroke-width="2"
-        :class="
-          props.isDefault
-            ? 'text-amber-400'
-            : hasWallpaper
-              ? 'text-white/80'
-              : 'text-muted-gray'
-        "
+        :class="['text-inherit', props.isDefault ? 'rotate-[30deg]' : 'rotate-0']"
         :fill="props.isDefault ? 'currentColor' : 'none'"
         aria-hidden="true"
       />
     </button>
 
     <svg
-      :class="['shrink-0', hasWallpaper ? 'text-white' : 'text-muted-gray']"
+      :class="[
+        'shrink-0',
+        hasWallpaper ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]' : 'text-muted-gray',
+      ]"
       width="16"
       height="16"
       viewBox="0 0 16 16"

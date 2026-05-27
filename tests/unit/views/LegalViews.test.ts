@@ -44,18 +44,23 @@ describe('PrivacyView', () => {
     expect(wrapper.findAll('section[id]').length).toBe(9);
     expect(wrapper.text()).toContain('Data controller');
     expect(wrapper.text()).toContain('Firebase');
+    expect(wrapper.text()).toContain('Resend');
+    expect(wrapper.text()).toContain('Export my data');
     expect(wrapper.text()).not.toContain('Sentry');
     expect(wrapper.text()).toContain('Delete account');
   });
 
-  it('renders 9 privacy sections in Italian and lists Firebase as sole processor', () => {
+  it('renders 9 privacy sections in Italian and lists sub-processors', () => {
     const wrapper = mount(PrivacyView, {
       global: { plugins: [buildI18n('it'), buildRouter()] },
     });
     expect(wrapper.findAll('section[id]').length).toBe(9);
     expect(wrapper.text()).toContain('Firebase');
+    expect(wrapper.text()).toContain('Resend');
+    expect(wrapper.text()).toContain('Netlify');
     expect(wrapper.text()).not.toContain('Sentry');
     expect(wrapper.text()).toContain('Elimina account');
+    expect(wrapper.text()).toContain('Esporta i miei dati');
   });
 
   it('renders TOC anchors matching section ids', () => {
@@ -78,20 +83,22 @@ describe('PrivacyView', () => {
 });
 
 describe('TermsView', () => {
-  it('renders 6 terms sections in English', () => {
+  it('renders 7 terms sections in English', () => {
     const wrapper = mount(TermsView, {
       global: { plugins: [buildI18n('en'), buildRouter()] },
     });
-    expect(wrapper.findAll('section[id]').length).toBe(6);
+    expect(wrapper.findAll('section[id]').length).toBe(7);
     expect(wrapper.text()).toContain('Governing law');
+    expect(wrapper.text()).toContain('Changes to these terms');
   });
 
-  it('renders 6 terms sections in Italian', () => {
+  it('renders 7 terms sections in Italian', () => {
     const wrapper = mount(TermsView, {
       global: { plugins: [buildI18n('it'), buildRouter()] },
     });
-    expect(wrapper.findAll('section[id]').length).toBe(6);
+    expect(wrapper.findAll('section[id]').length).toBe(7);
     expect(wrapper.text()).toContain('Legge applicabile');
+    expect(wrapper.text()).toContain('Modifiche ai termini');
   });
 });
 
