@@ -26,7 +26,7 @@ export interface PwaManifest
   scope: string;
   display: 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
   orientation: 'portrait' | 'landscape' | 'any';
-  theme_color: string;
+  theme_color?: string;
   background_color: string;
   lang: string;
   categories: string[];
@@ -43,7 +43,6 @@ export const pwaManifest: PwaManifest = {
   scope: '/',
   display: 'standalone',
   orientation: 'portrait',
-  theme_color: '#1c1c1c',
   background_color: '#f7f4ed',
   lang: 'it',
   categories: ['productivity', 'lifestyle', 'shopping'],

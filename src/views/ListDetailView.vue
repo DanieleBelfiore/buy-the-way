@@ -612,8 +612,7 @@ watch(
     <footer
       v-if="!bulkSel.active.value"
       data-testid="list-detail-footer"
-      class="shrink-0 border-t border-cream-soft bg-cream"
-      style="padding-bottom: env(safe-area-inset-bottom, 0px);"
+      class="shrink-0 border-t border-cream-soft bg-cream pb-safe"
     >
       <div class="px-5 py-1.5 flex items-center gap-1">
         <ItemAutocomplete
@@ -664,8 +663,7 @@ watch(
     <footer
       v-if="bulkSel.active.value"
       data-testid="bulk-action-toolbar"
-      class="shrink-0 border-t border-cream-soft bg-cream"
-      style="padding-bottom: env(safe-area-inset-bottom, 0px);"
+      class="shrink-0 border-t border-cream-soft bg-cream pb-safe"
     >
       <div class="px-4 py-3 flex items-center gap-2">
         <button
