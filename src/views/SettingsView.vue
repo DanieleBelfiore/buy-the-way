@@ -174,8 +174,8 @@ const reauthAndRetry = async () => {
 </script>
 
 <template>
-  <main class="h-dvh bg-cream flex flex-col overflow-hidden">
-    <div class="flex-1 min-h-0 flex flex-col overflow-y-auto">
+  <main class="fixed inset-0 bg-cream flex flex-col overflow-hidden">
+    <div class="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-y-contain">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"

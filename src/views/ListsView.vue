@@ -444,9 +444,11 @@ watch(
 </script>
 
 <template>
-  <main class="min-h-dvh w-full bg-cream flex flex-col relative">
+  <main
+    class="fixed inset-0 w-full bg-cream flex flex-col overflow-hidden"
+  >
     <!-- Top bar: icon actions grouped top-right. -->
-    <header class="px-5 pt-6 pb-2 flex items-center justify-end gap-1">
+    <header class="shrink-0 px-5 pt-6 pb-2 flex items-center justify-end gap-1">
       <PwaInstallButton />
       <button
         :aria-label="t('stats.title')"
@@ -484,29 +486,37 @@ watch(
     </header>
 
     <!-- Hero brand block -->
-    <section class="px-5 pt-2 pb-6 text-center">
-      <picture>
-        <!-- Use the original-res asset for every density so the browser
-             always downscales (crisp) instead of upscaling the 540px variant
-             on retina/3x displays. -->
-        <source srcset="/branding/logo-original.avif" type="image/avif" />
-        <img
-          v-motion="logoMotion"
-          src="/branding/logo-original.png"
-          :alt="t('app.name')"
-          data-testid="lists-logo"
-          width="1316"
-          height="974"
-          fetchpriority="high"
-          decoding="async"
-          class="mx-auto h-50 w-auto select-none"
-          draggable="false"
-        />
-      </picture>
+    <section class="shrink-0 px-5 pt-2 pb-6 flex justify-center">
+      <div class="inline-flex flex-col items-end">
+        <picture>
+          <!-- Use the original-res asset for every density so the browser
+               always downscales (crisp) instead of upscaling the 540px variant
+               on retina/3x displays. -->
+          <source srcset="/branding/logo-original.avif" type="image/avif" />
+          <img
+            v-motion="logoMotion"
+            src="/branding/logo-original.png"
+            :alt="t('app.name')"
+            data-testid="lists-logo"
+            width="1316"
+            height="974"
+            fetchpriority="high"
+            decoding="async"
+            class="h-50 w-auto select-none"
+            draggable="false"
+          />
+        </picture>
+        <footer
+          data-testid="app-version"
+          class="mt-1 text-[10px] leading-none text-muted-gray tabular-nums"
+        >
+          v{{ APP_VERSION }}
+        </footer>
+      </div>
     </section>
 
     <!-- Create input (inline, appears when FAB tapped) -->
-    <div v-if="showCreateInput" class="px-5 mb-4 space-y-2">
+    <div v-if="showCreateInput" class="shrink-0 px-5 mb-4 space-y-2">
       <AlertMessage v-if="createError" :message="createError" />
       <input
         v-model="newListName"
@@ -539,8 +549,11 @@ watch(
       </div>
     </div>
 
-    <!-- List of cards -->
-    <section class="px-5 pb-4 flex-1">
+    <div class="flex-1 min-h-0 flex flex-col">
+    <!-- List of cards (only this block scrolls when there are many lists) -->
+    <section
+      class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-5 pb-[max(5rem,env(safe-area-inset-bottom))]"
+    >
       <Transition name="state-fade" mode="out-in">
         <!-- Treat the pre-subscription window (mount → first Firestore
              snapshot) as "loading" too: without the `!initialized` guard the
@@ -608,13 +621,7 @@ watch(
         </VueDraggable>
       </Transition>
     </section>
-
-    <footer
-      data-testid="app-version"
-      class="mt-auto shrink-0 w-full px-5 pt-2 text-center text-xs text-muted-gray pb-[max(5rem,env(safe-area-inset-bottom))]"
-    >
-      v{{ APP_VERSION }}
-    </footer>
+    </div>
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
