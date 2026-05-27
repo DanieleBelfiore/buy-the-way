@@ -21,7 +21,10 @@ export const useModalBack = (isOpen: Ref<boolean>, close: () => void) => {
     !!history.state && (history.state as { modalToken?: string }).modalToken === token;
 
   const onPopState = () => {
-    if (isOpen.value) close();
+    // Only react when *our* history entry was popped (hardware back / swipe-back).
+    // If a stacked child modal closes programmatically it calls history.back()
+    // too; the parent still owns the current state and must stay open.
+    if (isOpen.value && !ownsCurrentState()) close();
   };
 
   const sync = (open: boolean) => {

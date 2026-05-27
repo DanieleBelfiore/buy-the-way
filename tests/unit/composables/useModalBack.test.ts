@@ -95,15 +95,42 @@ describe('useModalBack', () => {
     expect(backSpy).toHaveBeenCalledOnce();
   });
 
-  it('popstate fires close() when modal is open', () => {
+  it('popstate fires close() when our history entry was popped', () => {
     const isOpen = ref(true);
     const close = vi.fn();
     mount(hostFor(isOpen, close));
+
+    const [pushedState] = pushSpy.mock.calls[0];
+    history.replaceState(pushedState, '');
+    history.replaceState(null, '');
 
     const handler = addSpy.mock.calls.find((c) => c[0] === 'popstate')?.[1] as EventListener;
     handler(new PopStateEvent('popstate'));
 
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('popstate does not close parent when a stacked child modal is dismissed', async () => {
+    const parentOpen = ref(true);
+    const parentClose = vi.fn();
+    mount(hostFor(parentOpen, parentClose));
+
+    const [parentState] = pushSpy.mock.calls[0];
+    history.replaceState(parentState, '');
+
+    const childOpen = ref(true);
+    const childClose = vi.fn();
+    mount(hostFor(childOpen, childClose));
+
+    childOpen.value = false;
+    await nextTick();
+    history.replaceState(parentState, '');
+
+    window.dispatchEvent(new PopStateEvent('popstate'));
+
+    expect(childClose).not.toHaveBeenCalled();
+    expect(parentClose).not.toHaveBeenCalled();
+    expect(parentOpen.value).toBe(true);
   });
 
   it('popstate does not fire close() when modal is closed', () => {

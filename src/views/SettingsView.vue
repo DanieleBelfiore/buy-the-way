@@ -15,10 +15,6 @@ import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import Toast from '@/components/ui/Toast.vue';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
-import pkg from '../../package.json';
-
-const APP_VERSION = pkg.version;
-
 const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
@@ -178,8 +174,8 @@ const reauthAndRetry = async () => {
 </script>
 
 <template>
-  <main class="min-h-dvh bg-cream flex flex-col">
-    <div class="flex-1 min-h-0 overflow-y-auto">
+  <main class="h-dvh bg-cream flex flex-col overflow-hidden">
+    <div class="flex-1 min-h-0 flex flex-col overflow-y-auto">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
@@ -284,7 +280,11 @@ const reauthAndRetry = async () => {
       <LocaleSwitcher variant="segmented" />
     </section>
 
-    <section class="px-5 pt-8 space-y-2">
+    <div
+      data-testid="settings-page-footer"
+      class="mt-auto shrink-0 w-full pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-3"
+    >
+    <section class="px-5">
       <div class="flex flex-row gap-2">
         <button
           type="button"
@@ -294,8 +294,6 @@ const reauthAndRetry = async () => {
           @click="handleShare"
         >
           <Share2 :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <!-- min-w-0 + truncate-by-clamp keeps both labels on a single line
-               on the narrowest phones; flex-basis 0 lets them shrink equally. -->
           <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.share') }}</span>
         </button>
         <button
@@ -309,14 +307,8 @@ const reauthAndRetry = async () => {
           <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.feedback') }}</span>
         </button>
       </div>
-
     </section>
-    </div>
 
-    <div
-      data-testid="settings-page-footer"
-      class="mt-auto shrink-0 w-full pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-    >
     <section class="px-5">
         <button
           v-if="user"
@@ -334,7 +326,7 @@ const reauthAndRetry = async () => {
         </button>
     </section>
 
-    <section class="px-5 pt-3 flex flex-row gap-3">
+    <section class="px-5 flex flex-row gap-3">
         <button
           v-if="user"
           :disabled="deletingAccount"
@@ -372,12 +364,7 @@ const reauthAndRetry = async () => {
         class="underline"
       >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
     </p>
-    <footer
-      data-testid="app-version"
-      class="px-5 pt-1 text-center text-xs text-muted-gray"
-    >
-      v{{ APP_VERSION }}
-    </footer>
+    </div>
     </div>
 
     <FeedbackModal

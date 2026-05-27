@@ -27,6 +27,9 @@ import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
 import type { UserProfile } from '@/domain/types';
+import pkg from '../../package.json';
+
+const APP_VERSION = pkg.version;
 
 // Explicit component name so <KeepAlive include="ListsView"> matches.
 defineOptions({ name: 'ListsView' });
@@ -441,7 +444,7 @@ watch(
 </script>
 
 <template>
-  <main class="flex-1 w-full bg-cream flex flex-col relative">
+  <main class="min-h-dvh w-full bg-cream flex flex-col relative">
     <!-- Top bar: icon actions grouped top-right. -->
     <header class="px-5 pt-6 pb-2 flex items-center justify-end gap-1">
       <PwaInstallButton />
@@ -537,7 +540,7 @@ watch(
     </div>
 
     <!-- List of cards -->
-    <section class="px-5 pb-24">
+    <section class="px-5 pb-4 flex-1">
       <Transition name="state-fade" mode="out-in">
         <!-- Treat the pre-subscription window (mount → first Firestore
              snapshot) as "loading" too: without the `!initialized` guard the
@@ -605,6 +608,13 @@ watch(
         </VueDraggable>
       </Transition>
     </section>
+
+    <footer
+      data-testid="app-version"
+      class="mt-auto shrink-0 w-full px-5 pt-2 text-center text-xs text-muted-gray pb-[max(5rem,env(safe-area-inset-bottom))]"
+    >
+      v{{ APP_VERSION }}
+    </footer>
 
     <!-- FAB -->
     <FAB v-if="!showCreateInput" @click="openCreateInput" />
