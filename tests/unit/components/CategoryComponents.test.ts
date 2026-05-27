@@ -13,6 +13,7 @@ const i18n = createI18n({
   messages: {
     en: {
       category: {
+        allBought: 'All items in this category are bought',
         fruit_vegetables: 'Fruit & Veg',
         dairy: 'Dairy',
         meat: 'Meat',
@@ -94,6 +95,17 @@ describe('CategoryHeader', () => {
   it('hides counter when total is 0', () => {
     const wrapper = mount_('dairy', { bought: 0, total: 0 });
     expect(wrapper.find('[data-testid="category-counter"]').exists()).toBe(false);
+  });
+
+  it('shows a check after the counter when every item is bought', () => {
+    const wrapper = mount_('dairy', { bought: 3, total: 3 });
+    expect(wrapper.find('[data-testid="category-all-bought"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="info-hint-tooltip"]').exists()).toBe(false);
+  });
+
+  it('hides the check when some items are still to buy', () => {
+    const wrapper = mount_('dairy', { bought: 2, total: 5 });
+    expect(wrapper.find('[data-testid="category-all-bought"]').exists()).toBe(false);
   });
 
   it('renders as button with chevron when interactive', () => {

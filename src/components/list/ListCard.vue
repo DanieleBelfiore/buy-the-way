@@ -166,7 +166,7 @@ const pinButtonClass = computed(() => {
       </div>
       <div
         :class="[
-          'text-sm mt-0.5',
+          'text-xs mt-0.5',
           hasWallpaper
             ? 'inline-flex w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-white wallpaper-overlay-text'
             : 'flex items-center gap-1.5 text-muted-gray',

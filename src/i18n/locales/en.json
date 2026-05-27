@@ -110,6 +110,8 @@
     "bulkPasteHint": "One item per line or separated by commas.\nWe'll guess the category for each.",
     "bulkPastePlaceholder": "Milk\nBread\nApples, bananas, oranges",
     "bulkPasteCount": "No items | Add 1 item | Add {n} items",
+    "showActions": "More actions",
+    "hideActions": "Close actions",
     "voiceAdd": "Add by voice",
     "voiceTitle": "Add by voice",
     "voiceHint": "Start speaking as soon as the sheet opens.\nSeparate items with commas or \"and\".",
@@ -264,6 +266,7 @@
     "deleteAccountPartial": "Some data could not be removed. Your account is still active - please try again."
   },
   "category": {
+    "allBought": "All items in this category are bought",
     "label": "Category",
     "fruit_vegetables": "Fruit & Veg",
     "dairy": "Dairy",

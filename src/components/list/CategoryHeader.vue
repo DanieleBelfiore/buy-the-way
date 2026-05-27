@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Check } from '@lucide/vue';
 import CategoryIcon from './CategoryIcon.vue';
 import { CATEGORIES } from '@/domain/categories';
 import type { Category } from '@/domain/types';
@@ -22,6 +24,11 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ toggle: [] }>();
+
+const allBought = computed(
+  () => props.total > 0 && props.bought === props.total,
+);
+
 const onClick = (): void => {
   if (props.interactive) emit('toggle');
 };
@@ -48,6 +55,14 @@ const onClick = (): void => {
     >
       {{ props.bought }}/{{ props.total }}
     </span>
+    <Check
+      v-if="allBought"
+      data-testid="category-all-bought"
+      :size="16"
+      :stroke-width="2.75"
+      class="text-charcoal shrink-0"
+      :aria-label="t('category.allBought')"
+    />
     <span class="flex-1" aria-hidden="true" />
     <svg
       v-if="props.interactive"

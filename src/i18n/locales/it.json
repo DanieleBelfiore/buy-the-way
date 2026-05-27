@@ -110,6 +110,8 @@
     "bulkPasteHint": "Un articolo per riga o separati da virgole.\nLa categoria verrà dedotta automaticamente.",
     "bulkPastePlaceholder": "Latte\nPane\nMele, banane, arance",
     "bulkPasteCount": "Nessun articolo | Aggiungi 1 articolo | Aggiungi {n} articoli",
+    "showActions": "Altre azioni",
+    "hideActions": "Chiudi azioni",
     "voiceAdd": "Aggiungi a voce",
     "voiceTitle": "Aggiungi a voce",
     "voiceHint": "Inizia a parlare appena si apre il foglio.\nSepara con virgole o con \"e\".",
@@ -264,6 +266,7 @@
     "deleteAccountPartial": "Alcuni dati non sono stati rimossi. L'account è ancora attivo - riprova."
   },
   "category": {
+    "allBought": "Tutti gli articoli di questa categoria sono stati comprati",
     "label": "Categoria",
     "fruit_vegetables": "Frutta e verdura",
     "dairy": "Latticini",

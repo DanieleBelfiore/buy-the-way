@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
 import { useCollaboratorProfiles } from '@/composables/useCollaboratorProfiles';
 import { useListDetailActions } from '@/composables/useListDetailActions';
-import { ArrowLeft, Settings as SettingsIcon, Share2, ClipboardList, Mic, Star } from '@lucide/vue';
+import { ArrowLeft, Settings as SettingsIcon, Share2 } from '@lucide/vue';
 import { notifyListEvent } from '@/services/notify.service';
 import { useSafeBack } from '@/composables/useSafeBack';
 import { VueDraggable } from 'vue-draggable-plus';
@@ -25,6 +25,7 @@ import { useListFavoritesStore } from '@/stores/listFavorites';
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import CategorySection from '@/components/list/CategorySection.vue';
 import FavoritesSheet from '@/components/list/FavoritesSheet.vue';
+import ListFooterActionsMenu from '@/components/list/ListFooterActionsMenu.vue';
 import EmptyListButton from '@/components/list/EmptyListButton.vue';
 import ItemEditSheet from '@/components/list/ItemEditSheet.vue';
 import ListPickerSheet from '@/components/list/ListPickerSheet.vue';
@@ -614,46 +615,21 @@ watch(
       data-testid="list-detail-footer"
       class="shrink-0 border-t border-cream-soft bg-cream pb-safe"
     >
-      <div class="px-5 py-1.5 flex items-center gap-1">
+      <div class="pl-3 pr-1 py-1 flex items-center gap-0 min-w-0">
         <ItemAutocomplete
-          class="flex-1 min-w-0"
+          class="flex-1 min-w-0 [&_input]:py-2 [&_input]:px-3"
           dropdown-placement="above"
           @add-item="handleAddItem"
         />
-        <button
-          v-if="shelfEntries.length > 0"
-          type="button"
-          :aria-label="t('shelf.openButton')"
-          data-testid="open-favorites"
-          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full text-favorite-gold transition-colors"
-          @click="openFavorites"
-        >
-          <Star
-            :size="18"
-            :stroke-width="2.5"
-            fill="none"
-            aria-hidden="true"
+        <div class="flex items-center -space-x-1 shrink-0">
+          <ListFooterActionsMenu
+            :show-favorites="shelfEntries.length > 0"
+            @open-favorites="openFavorites"
+            @open-voice="openVoiceAdd"
+            @open-bulk="openBulkPaste"
           />
-        </button>
-        <button
-          type="button"
-          :aria-label="t('item.voiceAdd')"
-          data-testid="open-voice-add"
-          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal transition-colors"
-          @click="openVoiceAdd"
-        >
-          <Mic :size="18" :stroke-width="2.25" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          :aria-label="t('item.bulkPaste')"
-          data-testid="open-bulk-paste"
-          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal transition-colors"
-          @click="openBulkPaste"
-        >
-          <ClipboardList :size="18" :stroke-width="2.25" aria-hidden="true" />
-        </button>
-        <EmptyListButton :count="itemCount" @empty="handleEmptyList" />
+          <EmptyListButton :count="itemCount" @empty="handleEmptyList" />
+        </div>
       </div>
     </footer>
 

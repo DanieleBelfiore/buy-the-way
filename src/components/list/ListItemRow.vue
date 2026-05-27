@@ -144,7 +144,7 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-toggle"
       type="button"
-      class="flex-1 flex items-center gap-3 pl-10 pr-2 min-h-[44px] text-left select-none"
+      class="flex-1 flex items-center gap-3 pl-10 pr-0 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
       @pointerdown="onPressStart"
@@ -225,61 +225,63 @@ const nameStateClasses = computed(() => {
         </span>
       </span>
     </button>
-    <button
-      data-testid="row-priority"
-      type="button"
-      :class="[
-        'inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent transition-colors',
-        priorityBtnClasses,
-      ]"
-      :aria-label="priorityAria"
-      :data-priority="props.item.priority ?? 'none'"
-      @click="onRequestPriority"
-    >
-      <component :is="priorityIcon" :size="18" :stroke-width="2" aria-hidden="true" />
-    </button>
-    <button
-      data-testid="row-pinned"
-      type="button"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-favorite-gold transition-colors"
-      :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
-      :aria-pressed="props.pinned"
-      @click="onTogglePinned"
-    >
-      <Star
-        :size="18"
-        :stroke-width="props.pinned ? 2.25 : 2.5"
-        :fill="props.pinned ? 'currentColor' : 'none'"
-        aria-hidden="true"
-      />
-    </button>
-    <button
-      v-if="canMoveCopy"
-      data-testid="row-move-copy"
-      type="button"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-charcoal transition-colors"
-      :aria-label="t('item.moveOrCopy')"
-      @click="onOpenMoveCopy"
-    >
-      <ArrowRightLeft :size="18" :stroke-width="2" aria-hidden="true" />
-    </button>
-    <button
-      data-testid="row-settings"
-      type="button"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-charcoal transition-colors"
-      :aria-label="t('item.openSettings')"
-      @click="onOpenSettings"
-    >
-      <Settings :size="18" :stroke-width="2" aria-hidden="true" />
-    </button>
-    <button
-      data-testid="row-remove"
-      type="button"
-      class="inline-flex items-center justify-center w-10 h-10 mr-2 rounded-full bg-transparent text-red-600 transition-colors"
-      :aria-label="t('item.remove')"
-      @click="emit('remove')"
-    >
-      <Trash2 :size="18" :stroke-width="2" aria-hidden="true" />
-    </button>
+    <div class="flex items-center shrink-0 -space-x-1 pr-0.5">
+      <button
+        data-testid="row-priority"
+        type="button"
+        :class="[
+          'inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent transition-colors',
+          priorityBtnClasses,
+        ]"
+        :aria-label="priorityAria"
+        :data-priority="props.item.priority ?? 'none'"
+        @click="onRequestPriority"
+      >
+        <component :is="priorityIcon" :size="17" :stroke-width="2" aria-hidden="true" />
+      </button>
+      <button
+        data-testid="row-pinned"
+        type="button"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-favorite-gold transition-colors"
+        :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
+        :aria-pressed="props.pinned"
+        @click="onTogglePinned"
+      >
+        <Star
+          :size="17"
+          :stroke-width="props.pinned ? 2.25 : 2.5"
+          :fill="props.pinned ? 'currentColor' : 'none'"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        v-if="canMoveCopy"
+        data-testid="row-move-copy"
+        type="button"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-charcoal transition-colors"
+        :aria-label="t('item.moveOrCopy')"
+        @click="onOpenMoveCopy"
+      >
+        <ArrowRightLeft :size="17" :stroke-width="2" aria-hidden="true" />
+      </button>
+      <button
+        data-testid="row-settings"
+        type="button"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-charcoal transition-colors"
+        :aria-label="t('item.openSettings')"
+        @click="onOpenSettings"
+      >
+        <Settings :size="17" :stroke-width="2" aria-hidden="true" />
+      </button>
+      <button
+        data-testid="row-remove"
+        type="button"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-red-600 transition-colors"
+        :aria-label="t('item.remove')"
+        @click="emit('remove')"
+      >
+        <Trash2 :size="17" :stroke-width="2" aria-hidden="true" />
+      </button>
+    </div>
   </div>
 </template>
