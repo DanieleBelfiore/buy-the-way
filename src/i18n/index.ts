@@ -4,13 +4,13 @@ import en from './locales/en.json';
 import it from './locales/it.json';
 import legalEn from './locales/legal.en.json';
 import legalIt from './locales/legal.it.json';
+import { LOCALE_STORAGE_KEY, resolveInitialLocale } from './resolveLocale';
 
-const STORAGE_KEY = 'locale';
-const DEFAULT: Locale = 'it';
+export { LOCALE_STORAGE_KEY, resolveInitialLocale, localeFromBrowserLanguage, resolveBrowserLocale } from './resolveLocale';
+
 const FALLBACK: Locale = 'it';
 
-const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
-const initialLocale: Locale = savedLocale ?? DEFAULT;
+const initialLocale = resolveInitialLocale();
 
 const mergedEn = { ...en, ...legalEn };
 const mergedIt = { ...it, ...legalIt };
@@ -25,5 +25,5 @@ export const i18n = createI18n({
 
 export const setLocale = (locale: Locale): void => {
   (i18n.global.locale as { value: Locale }).value = locale;
-  localStorage.setItem(STORAGE_KEY, locale);
+  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
 };

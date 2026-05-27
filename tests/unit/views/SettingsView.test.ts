@@ -42,6 +42,8 @@ import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.
 const settingsIt = {
   title: 'Impostazioni',
   language: 'Lingua',
+  languageIt: 'Italiano',
+  languageEn: 'English',
   theme: 'Tema',
   themeSystem: 'Sistema',
   themeLight: 'Chiaro',
@@ -121,11 +123,13 @@ describe('SettingsView', () => {
     expect(wrapper.text()).toContain('Impostazioni');
   });
 
-  it('no longer renders the language selector (moved to Login + Lists header)', () => {
+  it('renders language selector below theme with segmented style', () => {
     const wrapper = mountView();
-    expect(wrapper.find('[data-testid="locale-it"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="locale-en"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="locale-switcher-it"]').classes().join(' ')).toContain('flex-1');
+    expect(wrapper.text()).toContain('Lingua');
+    expect(wrapper.text()).toContain('Italiano');
+    expect(wrapper.text()).toContain('English');
   });
 
   describe('theme selector', () => {

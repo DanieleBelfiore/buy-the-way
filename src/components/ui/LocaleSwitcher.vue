@@ -4,6 +4,14 @@ import { useI18n } from 'vue-i18n';
 import { setLocale } from '@/i18n';
 import type { Locale } from '@/domain/types';
 
+const props = withDefaults(
+  defineProps<{
+    /** `compact`: flag chips (login). `segmented`: full-width radios like theme. */
+    variant?: 'compact' | 'segmented';
+  }>(),
+  { variant: 'compact' },
+);
+
 const { t, locale } = useI18n();
 
 const current = computed<Locale>(() => locale.value as Locale);
@@ -12,6 +20,14 @@ const choose = (next: Locale): void => {
   if (next === current.value) return;
   setLocale(next);
 };
+
+const segmentedBtnClass = (active: boolean): string =>
+  [
+    'flex-1 inline-flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-medium border transition-colors',
+    active
+      ? 'bg-primary text-white border-primary'
+      : 'bg-offwhite text-charcoal border-cream-soft',
+  ].join(' ');
 </script>
 
 <template>
@@ -19,39 +35,49 @@ const choose = (next: Locale): void => {
     role="radiogroup"
     :aria-label="t('settings.language')"
     data-testid="locale-switcher"
-    class="inline-flex items-center gap-1"
+    :class="props.variant === 'segmented' ? 'flex gap-2 w-full' : 'inline-flex items-center gap-1'"
   >
     <button
       type="button"
       role="radio"
       :aria-checked="current === 'it'"
-      :aria-label="t('settings.language') + ': Italiano'"
+      :aria-label="t('settings.language') + ': ' + t('settings.languageIt')"
       data-testid="locale-switcher-it"
-      :class="[
-        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
-        current === 'it'
-          ? 'scale-110 opacity-100'
-          : 'opacity-60 hover:opacity-100 active:opacity-100',
-      ]"
+      :class="
+        props.variant === 'segmented'
+          ? segmentedBtnClass(current === 'it')
+          : [
+              'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
+              current === 'it'
+                ? 'scale-110 opacity-100'
+                : 'opacity-60 hover:opacity-100 active:opacity-100',
+            ]
+      "
       @click="choose('it')"
     >
-      <span aria-hidden="true">🇮🇹</span>
+      <span aria-hidden="true" class="text-base leading-none">🇮🇹</span>
+      <span v-if="props.variant === 'segmented'">{{ t('settings.languageIt') }}</span>
     </button>
     <button
       type="button"
       role="radio"
       :aria-checked="current === 'en'"
-      :aria-label="t('settings.language') + ': English'"
+      :aria-label="t('settings.language') + ': ' + t('settings.languageEn')"
       data-testid="locale-switcher-en"
-      :class="[
-        'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
-        current === 'en'
-          ? 'scale-110 opacity-100'
-          : 'opacity-60 hover:opacity-100 active:opacity-100',
-      ]"
+      :class="
+        props.variant === 'segmented'
+          ? segmentedBtnClass(current === 'en')
+          : [
+              'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
+              current === 'en'
+                ? 'scale-110 opacity-100'
+                : 'opacity-60 hover:opacity-100 active:opacity-100',
+            ]
+      "
       @click="choose('en')"
     >
-      <span aria-hidden="true">🇬🇧</span>
+      <span aria-hidden="true" class="text-base leading-none">🇬🇧</span>
+      <span v-if="props.variant === 'segmented'">{{ t('settings.languageEn') }}</span>
     </button>
   </div>
 </template>

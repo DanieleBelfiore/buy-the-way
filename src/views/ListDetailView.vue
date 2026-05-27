@@ -779,7 +779,6 @@ watch(
          the firestore commit runs. Action button hands control back to the
          composable's undo path. -->
     <Toast
-      :key="undoItemDelete.pending.value?.id ?? 'undo-none'"
       :open="undoItemDelete.pending.value !== null"
       :message="undoItemDelete.pending.value?.message ?? ''"
       :action-label="t('common.undo')"

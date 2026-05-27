@@ -12,6 +12,7 @@ import { useSafeBack } from '@/composables/useSafeBack';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import FeedbackModal from '@/components/ui/FeedbackModal.vue';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
+import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import Toast from '@/components/ui/Toast.vue';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
 import pkg from '../../package.json';
@@ -192,7 +193,47 @@ const reauthAndRetry = async () => {
       </h1>
     </header>
 
-    <section class="px-5 pt-6">
+    <section
+      v-if="user"
+      data-testid="account-section"
+      class="px-5 pt-6"
+    >
+      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
+        {{ t('settings.account') }}
+      </h2>
+      <div class="bg-offwhite rounded-xl border border-cream-soft px-4 py-3 flex items-center gap-3">
+        <span
+          data-testid="account-avatar"
+          aria-hidden="true"
+          class="inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-cream-soft text-charcoal text-sm font-semibold"
+        >
+          <img
+            v-if="user.photoURL"
+            :src="user.photoURL"
+            alt=""
+            referrerpolicy="no-referrer"
+            loading="lazy"
+            width="40"
+            height="40"
+            class="w-full h-full object-cover"
+          />
+          <template v-else>{{ (user.displayName || user.email || '?').charAt(0).toUpperCase() }}</template>
+        </span>
+        <div class="min-w-0 flex-1">
+          <div
+            v-if="user.displayName"
+            class="text-charcoal font-medium truncate"
+          >
+            {{ user.displayName }}
+          </div>
+          <div class="text-sm text-muted-gray truncate">
+            {{ user.email }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-5 pt-8">
       <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
         {{ t('settings.theme') }}
       </h2>
@@ -236,44 +277,11 @@ const reauthAndRetry = async () => {
       </div>
     </section>
 
-    <section
-      v-if="user"
-      data-testid="account-section"
-      class="px-5 pt-8"
-    >
+    <section class="px-5 pt-8">
       <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
-        {{ t('settings.account') }}
+        {{ t('settings.language') }}
       </h2>
-      <div class="bg-offwhite rounded-xl border border-cream-soft px-4 py-3 flex items-center gap-3">
-        <span
-          data-testid="account-avatar"
-          aria-hidden="true"
-          class="inline-flex shrink-0 items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-cream-soft text-charcoal text-sm font-semibold"
-        >
-          <img
-            v-if="user.photoURL"
-            :src="user.photoURL"
-            alt=""
-            referrerpolicy="no-referrer"
-            loading="lazy"
-            width="40"
-            height="40"
-            class="w-full h-full object-cover"
-          />
-          <template v-else>{{ (user.displayName || user.email || '?').charAt(0).toUpperCase() }}</template>
-        </span>
-        <div class="min-w-0 flex-1">
-          <div
-            v-if="user.displayName"
-            class="text-charcoal font-medium truncate"
-          >
-            {{ user.displayName }}
-          </div>
-          <div class="text-sm text-muted-gray truncate">
-            {{ user.email }}
-          </div>
-        </div>
-      </div>
+      <LocaleSwitcher variant="segmented" />
     </section>
 
     <section class="px-5 pt-8 space-y-2">

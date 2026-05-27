@@ -234,6 +234,8 @@
   "settings": {
     "title": "Impostazioni",
     "language": "Lingua",
+    "languageIt": "Italiano",
+    "languageEn": "English",
     "theme": "Tema",
     "themeSystem": "Sistema",
     "themeLight": "Chiaro",

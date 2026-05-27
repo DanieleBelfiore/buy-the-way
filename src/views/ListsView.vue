@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import { Plus, X, Settings as SettingsIcon, BarChart3, Bell } from '@lucide/vue';
-import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover.vue';
 import { useNotifications } from '@/composables/useNotifications';
@@ -479,7 +478,6 @@ watch(
       >
         <SettingsIcon :size="18" :stroke-width="2.25" aria-hidden="true" />
       </button>
-      <LocaleSwitcher class="shrink-0 ml-1" />
     </header>
 
     <!-- Hero brand block -->

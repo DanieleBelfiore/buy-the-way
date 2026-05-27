@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check, Trash2 } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
-import IconTooltip from '@/components/ui/IconTooltip.vue';
 import { iconForItem } from '@/domain/public-catalog';
 import type { ListFavoriteState } from '@/domain/types';
 
@@ -75,16 +74,14 @@ const rowClasses = computed(() => [
         </InfoHint>
       </span>
     </button>
-    <IconTooltip :label="t('shelf.excludeTitle')">
-      <button
-        type="button"
-        data-testid="shelf-tile-exclude"
-        :aria-label="t('shelf.excludeTitle')"
-        class="shrink-0 inline-flex items-center justify-center w-8 h-8 mr-1 rounded-full text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
-        @click="onExcludeClick"
-      >
-        <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
-      </button>
-    </IconTooltip>
+    <button
+      type="button"
+      data-testid="shelf-tile-exclude"
+      :aria-label="t('shelf.excludeConfirm')"
+      class="shrink-0 inline-flex items-center justify-center w-8 h-8 mr-1 rounded-full text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+      @click="onExcludeClick"
+    >
+      <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
+    </button>
   </div>
 </template>
