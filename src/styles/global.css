@@ -22,9 +22,6 @@ html {
   /* Match body so any iOS PWA gap below the CSS viewport shows cream, not
      the system default (black). */
   background-color: var(--cream);
-  /* iOS standalone: `100dvh` alone can leave a strip under the home
-     indicator; `-webkit-fill-available` fills the physical display. */
-  height: -webkit-fill-available;
 }
 
 body {
@@ -36,10 +33,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
   /* Block horizontal rubber-banding on iOS Safari that can otherwise look
      like an unwanted side-scroll. */
   overflow-x: hidden;
+}
+
+/* Apply `-webkit-fill-available` only on iOS devices to fix standalone PWA
+   gap under the home indicator. On Android Chrome, this can cause the page
+   to be cut off above the navigation bar. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    height: -webkit-fill-available;
+  }
+  body {
+    min-height: -webkit-fill-available;
+  }
 }
 
 #app {
