@@ -25,6 +25,7 @@ vi.mock('@/services/items.service', () => ({
 
 vi.mock('@/services/listFavorites.service', () => ({
   ensureListFavorite: vi.fn().mockResolvedValue('slug-1'),
+  patchListFavorite: vi.fn().mockResolvedValue(undefined),
   setListFavoriteState: vi.fn().mockResolvedValue(undefined),
   setListFavoriteExcluded: vi.fn().mockResolvedValue(undefined),
   findListFavoriteByName: vi.fn().mockResolvedValue(null),
@@ -98,6 +99,7 @@ import {
 } from '@/services/items.service';
 import {
   ensureListFavorite,
+  patchListFavorite,
   setListFavoriteState,
   setListFavoriteExcluded,
   findListFavoriteByName,
@@ -243,6 +245,10 @@ describe('useListDetailActions', () => {
       ITEM_ID,
       expect.objectContaining({ name: 'Oat milk', quantity: '2' }),
     );
+    expect(patchListFavorite).toHaveBeenCalledWith(LIST_ID, 'milk', {
+      name: 'Oat milk',
+      category: 'dairy',
+    });
     expect(setListFavoriteState).toHaveBeenCalledWith(LIST_ID, 'milk', false);
     expect(editSheetOpen.value).toBe(false);
   });

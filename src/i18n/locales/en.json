@@ -284,9 +284,12 @@
   },
   "pwa": {
     "updateAvailable": "New version available",
+    "updateRequiredTitle": "Update required",
+    "updateRequiredMessage": "A new version is available. Reload to keep using the app.",
     "reload": "Reload",
     "installMessage": "Install Buy The Way for quick access",
     "install": "Install",
+    "installButton": "Install app",
     "iosInstallHint": "Install the app: tap Share → Add to Home Screen"
   },
   "error": {

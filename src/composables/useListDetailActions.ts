@@ -26,7 +26,9 @@ import {
   setListFavoriteState,
   findListFavoriteByName,
   ensureListFavorite,
+  patchListFavorite,
 } from '@/services/listFavorites.service';
+import { capitalizeInitial } from '@/domain/text';
 import { deleteCatalogEntry, findCatalogEntryByName } from '@/services/catalog.service';
 import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import { isCustomItemName } from '@/domain/public-catalog';
@@ -458,9 +460,13 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         note: patch.note,
         category: patch.category,
       });
-      if (patch.pinned !== previousPinned) {
-        const fav = await findListFavoriteByName(listId.value, itemName);
-        if (fav) {
+      const fav = await findListFavoriteByName(listId.value, itemName);
+      if (fav) {
+        await patchListFavorite(listId.value, fav.slug, {
+          name: capitalizeInitial(patch.name),
+          category: patch.category,
+        });
+        if (patch.pinned !== previousPinned) {
           await setListFavoriteState(listId.value, fav.slug, patch.pinned);
         }
       }

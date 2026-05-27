@@ -102,7 +102,7 @@ watch(
       :aria-labelledby="titleId"
       tabindex="-1"
       data-testid="notifications-dialog"
-      class="relative z-10 w-fit min-w-[18rem] max-w-[calc(100vw-2.5rem)] rounded-2xl bg-cream shadow-xl overflow-hidden"
+      class="relative z-10 w-full min-w-[18rem] max-w-[min(24rem,calc(100vw-2.5rem))] rounded-2xl bg-cream shadow-xl overflow-hidden"
       @keydown.esc="emit('close')"
     >
       <header class="flex items-center justify-between px-4 py-3 border-b border-cream-soft">
@@ -148,10 +148,10 @@ watch(
             @click="handleRowClick(n)"
           >
             <span class="min-w-0 flex-1">
-              <span class="block text-sm font-medium text-charcoal truncate">
+              <span class="block text-sm font-medium text-charcoal break-words">
                 {{ n.listName }}
               </span>
-              <span class="block text-sm text-muted-gray whitespace-nowrap">
+              <span class="block text-sm text-muted-gray break-words">
                 <I18nT
                   v-if="n.kind === 'collaborator-added'"
                   :keypath="bodyKey(n)"

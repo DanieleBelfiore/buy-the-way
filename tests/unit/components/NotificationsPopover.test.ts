@@ -146,6 +146,19 @@ describe('NotificationsPopover', () => {
     wrapper.unmount();
   });
 
+  it('allows notification title and body to wrap (no truncate or nowrap)', () => {
+    const wrapper = mountPopover();
+    const row = wrapper.get('[data-testid="notification-row"]');
+    const title = row.find('span.block.text-sm.font-medium');
+    const body = row.find('span.block.text-sm.text-muted-gray');
+    for (const span of [title, body]) {
+      const cls = span.classes().join(' ');
+      expect(cls).not.toMatch(/truncate|whitespace-nowrap/);
+      expect(cls).toContain('break-words');
+    }
+    wrapper.unmount();
+  });
+
   it('sets aria-modal and aria-labelledby on the dialog', () => {
     const wrapper = mountPopover();
     const dialog = wrapper.get('[role="dialog"]');

@@ -15,6 +15,8 @@ export type InstallPromptOutcome = 'accepted' | 'dismissed' | 'unavailable';
 export interface InstallPromptState {
   /** True when a Chromium-style native prompt can be triggered programmatically. */
   canInstall: Ref<boolean>;
+  /** True when the home install button should show (mobile, not installed, offer available). */
+  showInstallButton: Ref<boolean>;
   /** True when running already-installed (display-mode standalone or iOS standalone). */
   isInstalled: Ref<boolean>;
   /** True when we should show the iOS Safari "tap share → add to home" hint. */
@@ -30,6 +32,7 @@ export interface InstallPromptState {
 }
 
 const canInstall = ref(false);
+const showInstallButton = ref(false);
 const isInstalled = ref(false);
 const showIOSHint = ref(false);
 const isMobile = ref(false);
@@ -37,6 +40,13 @@ const dismissed = ref(false);
 
 let deferredPrompt: InstallPromptEvent | null = null;
 let listenersAttached = false;
+
+const refreshInstallButton = (): void => {
+  showInstallButton.value =
+    isMobile.value
+    && !isInstalled.value
+    && (canInstall.value || showIOSHint.value);
+};
 
 const detectStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -79,6 +89,7 @@ export const setupInstallPrompt = (): InstallPromptState => {
   if (isInstalled.value) {
     canInstall.value = false;
     showIOSHint.value = false;
+    refreshInstallButton();
     return state();
   }
 
@@ -86,10 +97,13 @@ export const setupInstallPrompt = (): InstallPromptState => {
   if (detectIOS()) {
     showIOSHint.value = true;
   }
+  refreshInstallButton();
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    // Let the browser show the native install banner.
+    e.preventDefault();
     deferredPrompt = e as InstallPromptEvent;
+    canInstall.value = true;
+    refreshInstallButton();
   });
 
   window.addEventListener('appinstalled', () => {
@@ -97,6 +111,7 @@ export const setupInstallPrompt = (): InstallPromptState => {
     canInstall.value = false;
     showIOSHint.value = false;
     isInstalled.value = true;
+    refreshInstallButton();
   });
 
   return state();
@@ -109,10 +124,12 @@ const promptInstall = async (): Promise<InstallPromptOutcome> => {
     const { outcome } = await deferredPrompt.userChoice;
     deferredPrompt = null;
     canInstall.value = false;
+    refreshInstallButton();
     return outcome;
   } catch {
     deferredPrompt = null;
     canInstall.value = false;
+    refreshInstallButton();
     return 'unavailable';
   }
 };
@@ -123,6 +140,7 @@ const dismiss = (): void => {
 
 const state = (): InstallPromptState => ({
   canInstall,
+  showInstallButton,
   isInstalled,
   showIOSHint,
   isMobile,
@@ -136,6 +154,7 @@ export const useInstallPrompt = (): InstallPromptState => state();
 // Test-only reset. Not exported from a barrel; tests import this path directly.
 export const __resetInstallPromptForTests = (): void => {
   canInstall.value = false;
+  showInstallButton.value = false;
   isInstalled.value = false;
   showIOSHint.value = false;
   isMobile.value = false;

@@ -67,6 +67,11 @@ describe('ListItemRow', () => {
     expect(wrapper.find('[data-testid="row-custom-badge"]').exists()).toBe(true);
   });
 
+  it('shows category icon for custom item when category is set', () => {
+    const wrapper = mountRow(makeItem({ name: 'Babà', category: 'dairy' }));
+    expect(wrapper.find('[data-testid="row-icon"]').text()).toBe('🧀');
+  });
+
   it('renders the inline quantity indicator on the row', () => {
     const wrapper = mountRow(makeItem({ quantity: '2L' }));
     expect(wrapper.find('[data-testid="row-quantity"]').exists()).toBe(true);

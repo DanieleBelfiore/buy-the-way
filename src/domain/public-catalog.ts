@@ -1,3 +1,4 @@
+import { CATEGORIES } from './categories';
 import type { Category } from './types';
 
 export interface PublicCatalogEntry {
@@ -86,6 +87,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'pollo', name_it: 'Pollo', name_en: 'Chicken', category: 'meat', icon: '🍗' },
   { slug: 'petto-pollo', name_it: 'Petto di pollo', name_en: 'Chicken breast', category: 'meat', icon: '🍗' },
   { slug: 'coscia-pollo', name_it: 'Cosce di pollo', name_en: 'Chicken thighs', category: 'meat', icon: '🍗' },
+  { slug: 'sovracoscia-pollo', name_it: 'Sovracoscia di pollo', name_en: 'Chicken supreme', category: 'meat', icon: '🍗' },
   { slug: 'ali-pollo', name_it: 'Ali di pollo', name_en: 'Chicken wings', category: 'meat', icon: '🍗' },
   { slug: 'tacchino', name_it: 'Tacchino', name_en: 'Turkey', category: 'meat', icon: '🦃' },
   { slug: 'fettine-tacchino', name_it: 'Fettine di tacchino', name_en: 'Turkey slices', category: 'meat', icon: '🍗' },
@@ -1106,9 +1108,14 @@ export const findPublicEntryByName = (
 
 export const GENERIC_ITEM_ICON = '📦';
 
-export const iconForName = (name: string, locale: string): string => {
+export const iconForName = (name: string, locale: string): string =>
+  iconForItem(name, locale, 'other');
+
+/** Catalog product icon when known; otherwise the item's category icon. */
+export const iconForItem = (name: string, locale: string, category: Category): string => {
   const entry = findPublicEntryByName(name, locale);
-  return entry?.icon ?? GENERIC_ITEM_ICON;
+  if (entry) return entry.icon;
+  return CATEGORIES[category].icon;
 };
 
 export const isCustomItemName = (name: string, _locale?: string): boolean => {

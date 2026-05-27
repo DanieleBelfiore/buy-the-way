@@ -111,19 +111,41 @@ describe('installPrompt', () => {
     expect(state.showIOSHint.value).toBe(false);
   });
 
-  it('captures beforeinstallprompt but does not flag canInstall', () => {
+  it('captures beforeinstallprompt and flags canInstall + showInstallButton', () => {
     const state = setupInstallPrompt();
     expect(state.canInstall.value).toBe(false);
+    expect(state.showInstallButton.value).toBe(false);
     window.dispatchEvent(makeBeforeInstallPromptEvent());
-    expect(state.canInstall.value).toBe(false);
+    expect(state.canInstall.value).toBe(true);
+    expect(state.showInstallButton.value).toBe(true);
   });
 
-  it('does not prevent the browser default on beforeinstallprompt', () => {
+  it('prevents the browser default on beforeinstallprompt', () => {
     setupInstallPrompt();
     const event = makeBeforeInstallPromptEvent();
     const spy = vi.spyOn(event, 'preventDefault');
     window.dispatchEvent(event);
-    expect(spy).not.toHaveBeenCalled();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('shows install button on iOS Safari when not installed', () => {
+    setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Safari');
+    const state = setupInstallPrompt();
+    expect(state.showInstallButton.value).toBe(true);
+    expect(state.showIOSHint.value).toBe(true);
+  });
+
+  it('hides install button when already installed', () => {
+    setStandalone(true);
+    const state = setupInstallPrompt();
+    expect(state.showInstallButton.value).toBe(false);
+  });
+
+  it('hides install button on desktop', () => {
+    setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit Chrome/120 Safari');
+    const state = setupInstallPrompt();
+    window.dispatchEvent(makeBeforeInstallPromptEvent());
+    expect(state.showInstallButton.value).toBe(false);
   });
 
   it('promptInstall calls the captured prompt and returns outcome', async () => {
@@ -149,14 +171,15 @@ describe('installPrompt', () => {
     expect(outcome).toBe('unavailable');
   });
 
-  it('appinstalled event sets isInstalled (canInstall remains false)', () => {
+  it('appinstalled event sets isInstalled and hides install button', () => {
     const state = setupInstallPrompt();
     window.dispatchEvent(makeBeforeInstallPromptEvent());
-    expect(state.canInstall.value).toBe(false);
+    expect(state.canInstall.value).toBe(true);
     window.dispatchEvent(new Event('appinstalled'));
     expect(state.canInstall.value).toBe(false);
     expect(state.isInstalled.value).toBe(true);
     expect(state.showIOSHint.value).toBe(false);
+    expect(state.showInstallButton.value).toBe(false);
   });
 
   it('dismiss() flips dismissed flag (in-memory, per tab session)', () => {

@@ -117,6 +117,18 @@ export const findListFavoriteByName = async (
  * add-item path and bumps the count. Use this when the user is acting on
  * the favorite directly (e.g. tapping the star) without adding a new row.
  */
+/** Update canonical name/category on an existing favorite doc (no usage bump). */
+export const patchListFavorite = async (
+  listId: ULID,
+  slug: string,
+  patch: { name: string; category: Category },
+): Promise<void> => {
+  const ref = doc(db, 'lists', listId, 'favoriteState', slug);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  await updateDoc(ref, patch);
+};
+
 export const ensureListFavorite = async (
   listId: ULID,
   name: string,
@@ -134,6 +146,8 @@ export const ensureListFavorite = async (
       lastUsedAt: Date.now(),
     };
     await setDoc(ref, entry);
+  } else {
+    await updateDoc(ref, { name, category });
   }
   return slug;
 };

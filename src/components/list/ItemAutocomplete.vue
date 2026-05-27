@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCatalogStore, type Suggestion } from '@/stores/catalog';
 import { useDebouncedRef } from '@/composables/useDebouncedRef';
-import { normalizeName, iconForName } from '@/domain/public-catalog';
+import { normalizeName, iconForItem } from '@/domain/public-catalog';
 import type { Category } from '@/domain/types';
 
 const props = withDefaults(
@@ -136,7 +136,7 @@ const onKeydown = (e: KeyboardEvent) => {
         @click="commit(entry)"
       >
         <span aria-hidden="true" class="text-base leading-none">
-          {{ entry.icon ?? iconForName(entry.name, locale) }}
+          {{ entry.icon ?? iconForItem(entry.name, locale, entry.category) }}
         </span>
         <span class="truncate">{{ entry.name }}</span>
       </li>

@@ -17,6 +17,7 @@ import {
   setListFavoriteState,
   findListFavoriteByName,
   ensureListFavorite,
+  patchListFavorite,
 } from '@/services/listFavorites.service';
 import { setDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import type { ULID } from '@/domain/id';
@@ -119,16 +120,35 @@ describe('listFavorites.service', () => {
       });
     });
 
-    it('no-op when doc already exists (preserves existing usageCount + flags)', async () => {
+    it('syncs name + category when doc already exists (preserves usageCount + flags)', async () => {
       vi.mocked(getDoc).mockResolvedValue({ exists: () => true } as any);
-      await ensureListFavorite(listId, 'Latte', 'dairy');
+      await ensureListFavorite(listId, 'Latte fresco', 'beverages');
       expect(setDoc).not.toHaveBeenCalled();
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toEqual({ name: 'Latte fresco', category: 'beverages' });
     });
 
     it('returns the slug regardless of create/no-op branch', async () => {
       vi.mocked(getDoc).mockResolvedValue({ exists: () => true } as any);
       const slug = await ensureListFavorite(listId, 'Pane Integrale', 'bakery');
       expect(slug).toBe('pane integrale');
+    });
+  });
+
+  describe('patchListFavorite', () => {
+    it('updates name + category when doc exists', async () => {
+      vi.mocked(getDoc).mockResolvedValue({ exists: () => true } as any);
+      await patchListFavorite(listId, 'baba', { name: 'Babà', category: 'dairy' });
+      expect(updateDoc).toHaveBeenCalledOnce();
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).toEqual({ name: 'Babà', category: 'dairy' });
+    });
+
+    it('no-op when doc missing', async () => {
+      vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as any);
+      await patchListFavorite(listId, 'baba', { name: 'Babà', category: 'dairy' });
+      expect(updateDoc).not.toHaveBeenCalled();
     });
   });
 

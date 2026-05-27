@@ -115,11 +115,11 @@ const colorFor = (uid: string): string => {
           class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 dark:text-red-400"
           @click="emit('demote', m.uid)"
         >
-          <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
+          <ShieldOff :size="14" :stroke-width="2.25" aria-hidden="true" />
         </button>
 
         <button
-          v-if="isSelfAdmin && m.uid !== props.ownerUid && m.uid !== props.selfUid"
+          v-if="isSelfAdmin && m.uid !== props.ownerUid && m.uid !== props.selfUid && !isAdmin(m.uid)"
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"

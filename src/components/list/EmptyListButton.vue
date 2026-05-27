@@ -26,10 +26,10 @@ const onConfirm = (): void => {
       data-testid="empty-list-button"
       type="button"
       :aria-label="t('emptyList.button')"
-      class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-red-700 transition-colors"
+      class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-red-700 transition-colors"
       @click="modalOpen = true"
     >
-      <Trash2 :size="17" :stroke-width="2.25" aria-hidden="true" />
+      <Trash2 :size="20" :stroke-width="2.25" aria-hidden="true" />
     </button>
 
     <ConfirmModal

@@ -306,8 +306,7 @@ const reauthAndRetry = async () => {
 
     </section>
 
-    <div class="mt-auto">
-      <section class="px-5 pt-8">
+    <section class="px-5 pt-6">
         <button
           v-if="user"
           type="button"
@@ -322,9 +321,9 @@ const reauthAndRetry = async () => {
             {{ exporting ? t('settings.exportRunning') : t('settings.exportData') }}
           </span>
         </button>
-      </section>
+    </section>
 
-      <section class="px-5 pt-3 flex flex-row gap-3">
+    <section class="px-5 pt-3 flex flex-row gap-3">
         <button
           v-if="user"
           :disabled="deletingAccount"
@@ -347,28 +346,27 @@ const reauthAndRetry = async () => {
           <LogOut :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
           <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}</span>
         </button>
-      </section>
+    </section>
 
-      <LegalFooter dense />
+    <LegalFooter dense />
 
-      <p
-        data-testid="made-by"
-        class="px-5 text-center text-xs text-muted-gray"
-      >
-        {{ t('app.madeByPrefix') }}<a
-          href="https://www.linkedin.com/in/danielebelfiore/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline"
-        >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
-      </p>
-      <footer
-        data-testid="app-version"
-        class="px-5 pb-6 text-center text-xs text-muted-gray"
-      >
-        v{{ APP_VERSION }}
-      </footer>
-    </div>
+    <p
+      data-testid="made-by"
+      class="px-5 text-center text-xs text-muted-gray"
+    >
+      {{ t('app.madeByPrefix') }}<a
+        href="https://www.linkedin.com/in/danielebelfiore/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="underline"
+      >Daniele Belfiore</a>{{ t('app.madeBySuffix') }}
+    </p>
+    <footer
+      data-testid="app-version"
+      class="px-5 pb-4 text-center text-xs text-muted-gray"
+    >
+      v{{ APP_VERSION }}
+    </footer>
 
     <FeedbackModal
       :open="feedbackOpen"

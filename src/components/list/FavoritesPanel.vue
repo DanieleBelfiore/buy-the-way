@@ -69,7 +69,7 @@ const groups = computed<Array<[Category, ListFavoriteState[]]>>(() =>
         <span aria-hidden="true" :style="{ color: CATEGORIES[category].cssVar }">{{ CATEGORIES[category].icon }}</span>
         <span>{{ t(CATEGORIES[category].labelKey) }}</span>
       </h3>
-      <TransitionGroup name="shelf-tile" tag="div" class="grid grid-cols-2 gap-2">
+      <TransitionGroup name="shelf-tile" tag="div" class="flex flex-col gap-2">
             <ShelfTile
               v-for="entry in items"
               :key="entry.slug"

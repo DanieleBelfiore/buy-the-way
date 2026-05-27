@@ -173,6 +173,19 @@ describe('CollaboratorList', () => {
       wrapper.unmount();
     });
 
+    it('does not show remove-collaborator on admins (only demote)', () => {
+      const wrapper = mountList({
+        members: [owner, bob, eve],
+        ownerUid: 'owner-1',
+        selfUid: 'owner-1',
+        admins: ['owner-1', 'bob-2'],
+      });
+      expect(wrapper.find('[data-testid="demote-bob-2"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="remove-bob-2"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="remove-eve-3"]').exists()).toBe(true);
+      wrapper.unmount();
+    });
+
     it('non-admin sees neither promote nor demote buttons', () => {
       const wrapper = mountList({
         members: [owner, bob, eve],

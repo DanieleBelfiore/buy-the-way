@@ -22,6 +22,7 @@ import FAB from '@/components/ui/FAB.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import AlertMessage from '@/components/ui/AlertMessage.vue';
 import Toast from '@/components/ui/Toast.vue';
+import PwaInstallButton from '@/components/ui/PwaInstallButton.vue';
 import { DuplicateListNameError } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
@@ -444,6 +445,7 @@ watch(
   <main class="flex-1 w-full bg-cream flex flex-col relative">
     <!-- Top bar: icon actions grouped top-right. -->
     <header class="px-5 pt-6 pb-2 flex items-center justify-end gap-1">
+      <PwaInstallButton />
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"

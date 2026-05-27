@@ -3,7 +3,7 @@ import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Flame, Image, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
-import { iconForName, isCustomItemName } from '@/domain/public-catalog';
+import { iconForItem, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
 import type { Item, ItemPriority } from '@/domain/types';
 
@@ -22,7 +22,7 @@ const props = withDefaults(
   }>(),
   { canMoveCopy: true, pinned: false, selectionMode: false, selected: false, possibleDuplicate: false },
 );
-const icon = computed(() => iconForName(props.item.name, locale.value));
+const icon = computed(() => iconForItem(props.item.name, locale.value, props.item.category));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
 
 // Auto-fit the name + custom-badge + note onto one line. Re-measure when
@@ -230,26 +230,26 @@ const nameStateClasses = computed(() => {
         data-testid="row-priority"
         type="button"
         :class="[
-          'inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent transition-colors',
+          'inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent transition-colors',
           priorityBtnClasses,
         ]"
         :aria-label="priorityAria"
         :data-priority="props.item.priority ?? 'none'"
         @click="onRequestPriority"
       >
-        <component :is="priorityIcon" :size="17" :stroke-width="2" aria-hidden="true" />
+        <component :is="priorityIcon" :size="20" :stroke-width="2" aria-hidden="true" />
       </button>
       <button
         data-testid="row-pinned"
         type="button"
-        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-favorite-gold transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-favorite-gold transition-colors"
         :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
         :aria-pressed="props.pinned"
         @click="onTogglePinned"
       >
         <Star
-          :size="17"
-          :stroke-width="props.pinned ? 2.25 : 2.5"
+        :size="20"
+        :stroke-width="props.pinned ? 2.25 : 2.5"
           :fill="props.pinned ? 'currentColor' : 'none'"
           aria-hidden="true"
         />
@@ -258,29 +258,29 @@ const nameStateClasses = computed(() => {
         v-if="canMoveCopy"
         data-testid="row-move-copy"
         type="button"
-        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-charcoal transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-charcoal transition-colors"
         :aria-label="t('item.moveOrCopy')"
         @click="onOpenMoveCopy"
       >
-        <ArrowRightLeft :size="17" :stroke-width="2" aria-hidden="true" />
+        <ArrowRightLeft :size="20" :stroke-width="2" aria-hidden="true" />
       </button>
       <button
         data-testid="row-settings"
         type="button"
-        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-charcoal transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-charcoal transition-colors"
         :aria-label="t('item.openSettings')"
         @click="onOpenSettings"
       >
-        <Settings :size="17" :stroke-width="2" aria-hidden="true" />
+        <Settings :size="20" :stroke-width="2" aria-hidden="true" />
       </button>
       <button
         data-testid="row-remove"
         type="button"
-        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-red-600 transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-red-600 transition-colors"
         :aria-label="t('item.remove')"
         @click="emit('remove')"
       >
-        <Trash2 :size="17" :stroke-width="2" aria-hidden="true" />
+        <Trash2 :size="20" :stroke-width="2" aria-hidden="true" />
       </button>
     </div>
   </div>

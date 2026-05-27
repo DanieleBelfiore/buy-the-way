@@ -63,30 +63,30 @@ onUnmounted(() => detachOutside?.());
         role="menuitem"
         :aria-label="t('shelf.openButton')"
         data-testid="open-favorites"
-        class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-cream text-favorite-gold shadow-sm border border-cream-soft transition-colors"
+        class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream text-favorite-gold shadow-sm border border-cream-soft transition-colors"
         @click="runAction(() => emit('open-favorites'))"
       >
-        <Star :size="18" :stroke-width="2.5" fill="none" aria-hidden="true" />
+        <Star :size="20" :stroke-width="2.5" fill="none" aria-hidden="true" />
       </button>
       <button
         type="button"
         role="menuitem"
         :aria-label="t('item.bulkPaste')"
         data-testid="open-bulk-paste"
-        class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-cream text-charcoal shadow-sm border border-cream-soft transition-colors"
+        class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream text-charcoal shadow-sm border border-cream-soft transition-colors"
         @click="runAction(() => emit('open-bulk'))"
       >
-        <ClipboardList :size="18" :stroke-width="2.25" aria-hidden="true" />
+        <ClipboardList :size="20" :stroke-width="2.25" aria-hidden="true" />
       </button>
       <button
         type="button"
         role="menuitem"
         :aria-label="t('item.voiceAdd')"
         data-testid="open-voice-add"
-        class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-cream text-charcoal shadow-sm border border-cream-soft transition-colors"
+        class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream text-charcoal shadow-sm border border-cream-soft transition-colors"
         @click="runAction(() => emit('open-voice'))"
       >
-        <Mic :size="18" :stroke-width="2.25" aria-hidden="true" />
+        <Mic :size="20" :stroke-width="2.25" aria-hidden="true" />
       </button>
     </div>
 
@@ -96,11 +96,11 @@ onUnmounted(() => detachOutside?.());
       :aria-expanded="open"
       :aria-haspopup="true"
       :aria-label="open ? t('item.hideActions') : t('item.showActions')"
-      class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-charcoal transition-colors"
+      class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
       @click="toggle"
     >
       <Plus
-        :size="20"
+        :size="22"
         :stroke-width="2.25"
         :class="['transition-transform duration-200', open ? 'rotate-45' : 'rotate-0']"
         aria-hidden="true"

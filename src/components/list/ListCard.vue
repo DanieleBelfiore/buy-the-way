@@ -166,10 +166,10 @@ const pinButtonClass = computed(() => {
       </div>
       <div
         :class="[
-          'text-xs mt-0.5',
+          'text-xs mt-0.5 flex flex-col gap-0.5',
           hasWallpaper
-            ? 'inline-flex w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-white wallpaper-overlay-text'
-            : 'flex items-center gap-1.5 text-muted-gray',
+            ? 'text-white wallpaper-overlay-text'
+            : 'text-muted-gray',
         ]"
       >
         <ItemCountWithUrgent
@@ -178,7 +178,6 @@ const pinButtonClass = computed(() => {
           :urgent-count="urgentCount"
           :muted="hasWallpaper"
         />
-        <span v-if="itemCount > 0" aria-hidden="true">·</span>
         <span data-testid="updated-at">{{ updatedLabel }}</span>
       </div>
     </div>

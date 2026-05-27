@@ -443,10 +443,10 @@ watch(
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
         aria-label="Back"
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+        class="flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
         @click="handleBack"
       >
-        <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
+        <ArrowLeft :size="24" :stroke-width="2.5" aria-hidden="true" />
       </button>
       <h1 class="text-xl font-semibold text-charcoal tracking-tight truncate flex-1 min-w-0">
         {{ list?.name ?? '…' }}
@@ -456,18 +456,18 @@ watch(
           v-if="itemCount > 0"
           :aria-label="t('list.share')"
           data-testid="share-list"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal transition-colors"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
           @click="handleShareList"
         >
-          <Share2 :size="18" :stroke-width="2.25" aria-hidden="true" />
+          <Share2 :size="20" :stroke-width="2.25" aria-hidden="true" />
         </button>
         <button
           :aria-label="t('listSettings.title')"
           data-testid="open-list-settings"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
           @click="router.push({ name: 'list-settings', params: { id: listId } })"
         >
-          <SettingsIcon :size="18" :stroke-width="2.25" aria-hidden="true" />
+          <SettingsIcon :size="20" :stroke-width="2.25" aria-hidden="true" />
         </button>
       </div>
     </header>
@@ -646,10 +646,10 @@ watch(
           type="button"
           data-testid="bulk-cancel"
           :aria-label="t('list.cancel')"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
           @click="cancelBulkSelection"
         >
-          <XIcon :size="18" :stroke-width="2" aria-hidden="true" />
+          <XIcon :size="20" :stroke-width="2" aria-hidden="true" />
         </button>
         <span
           data-testid="bulk-selected-count"
@@ -661,11 +661,11 @@ watch(
           type="button"
           data-testid="bulk-priority"
           :aria-label="t('item.bulkPriority')"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
           :disabled="bulkSel.isEmpty.value"
           @click="handleBulkPriority"
         >
-          <FlagIcon :size="18" :stroke-width="2" aria-hidden="true" />
+          <FlagIcon :size="20" :stroke-width="2" aria-hidden="true" />
         </button>
 
         <button
@@ -673,21 +673,21 @@ watch(
           type="button"
           data-testid="bulk-move"
           :aria-label="t('item.move')"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
           :disabled="bulkSel.isEmpty.value"
           @click="openBulkPicker('move')"
         >
-          <MoveIcon :size="18" :stroke-width="2" aria-hidden="true" />
+          <MoveIcon :size="20" :stroke-width="2" aria-hidden="true" />
         </button>
         <button
           type="button"
           data-testid="bulk-delete"
           :aria-label="t('item.delete')"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full text-red-700"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-red-700"
           :disabled="bulkSel.isEmpty.value"
           @click="handleBulkDelete"
         >
-          <Trash2Icon :size="18" :stroke-width="2" aria-hidden="true" />
+          <Trash2Icon :size="20" :stroke-width="2" aria-hidden="true" />
         </button>
       </div>
     </footer>

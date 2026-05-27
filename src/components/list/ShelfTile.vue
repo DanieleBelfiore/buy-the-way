@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { Check, Trash2 } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
 import IconTooltip from '@/components/ui/IconTooltip.vue';
-import { iconForName } from '@/domain/public-catalog';
+import { iconForItem } from '@/domain/public-catalog';
 import type { ListFavoriteState } from '@/domain/types';
 
 const props = defineProps<{
@@ -21,7 +21,9 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n();
 
-const itemIcon = computed(() => iconForName(props.entry.name, locale.value));
+const itemIcon = computed(() =>
+  iconForItem(props.entry.name, locale.value, props.entry.category),
+);
 
 const onClick = (): void => {
   emit('add', props.entry);

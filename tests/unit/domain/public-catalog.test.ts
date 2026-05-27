@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   PUBLIC_CATALOG,
   iconForName,
+  iconForItem,
   isCustomItemName,
   findPublicEntryByName,
   getPublicCatalogName,
@@ -84,8 +85,19 @@ describe('iconForName', () => {
     expect(iconForName('Milk', 'en')).toBe('🥛');
   });
 
-  it('returns generic icon for unknown names', () => {
+  it('returns generic icon for unknown names (defaults to other category)', () => {
     expect(iconForName('Tofu fritto', 'it')).toBe(GENERIC_ITEM_ICON);
+  });
+});
+
+describe('iconForItem', () => {
+  it('returns the catalog icon for known names regardless of category arg', () => {
+    expect(iconForItem('Latte', 'it', 'meat')).toBe('🥛');
+  });
+
+  it('returns the category icon for custom names', () => {
+    expect(iconForItem('Babà', 'it', 'dairy')).toBe('🧀');
+    expect(iconForItem('Zarbo', 'en', 'fruit_vegetables')).toBe('🥕');
   });
 });
 
