@@ -8,6 +8,12 @@ Stack: Vue 3 + Pinia + Vue Router + Vitest + Firebase/Firestore.
 @.claude/docs/vue.md
 @.claude/docs/firebase.md
 
+## Project wiki (LLM-maintained synthesis)
+
+@wiki/SCHEMA.md
+
+Compiled knowledge lives under `wiki/` (overview, concepts, source summaries). Immutable ingests go under `raw/`. **Agent how-to rules stay in `.claude/docs/`** - re-ingest into the wiki when specs or architecture change.
+
 ## Project conventions
 
 - Package manager: `pnpm`

@@ -156,6 +156,8 @@ describe('NotificationsPopover', () => {
       expect(cls).not.toMatch(/truncate|whitespace-nowrap/);
       expect(cls).toContain('break-words');
     }
+    const i18nBody = body.find('[class*="overflow-wrap"]');
+    expect(i18nBody.exists()).toBe(true);
     wrapper.unmount();
   });
 

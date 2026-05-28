@@ -8,7 +8,7 @@ import {
 import { db } from '@/services/firebase';
 import { getUserProfile } from '@/services/users.service';
 import { USER_LISTS_PAGE_LIMIT } from '@/services/lists.service';
-import type { CatalogEntry, Item, List, ListFavoriteState, UserProfile } from '@/domain/types';
+import type { CatalogEntry, Item, List, ListFavoriteState, ListHistoryEntry, UserProfile } from '@/domain/types';
 import pkg from '../../package.json';
 
 /**
@@ -24,7 +24,7 @@ import pkg from '../../package.json';
  *    the same `profile` object via `getUserProfile`
  *  - every list the user collaborates on (lists where
  *    collaboratorUids array-contains uid)
- *  - items + favoriteState subcollections of each list
+ *  - items + favoriteState + history subcollections of each list
  *  - the user's personal catalog (catalog/{uid}/entries)
  *
  * Deliberately does NOT include other collaborators' private state. Lists
@@ -37,6 +37,7 @@ export interface ExportedListBundle {
   list: List;
   items: Item[];
   favoriteState: ListFavoriteState[];
+  history: ListHistoryEntry[];
 }
 
 export interface UserDataExport {
@@ -53,12 +54,20 @@ export interface UserDataExport {
 const fetchListBundle = async (list: List): Promise<ExportedListBundle> => {
   const itemsCol = collection(db, 'lists', list.id, 'items');
   const favsCol = collection(db, 'lists', list.id, 'favoriteState');
-  const [itemsSnap, favsSnap] = await Promise.all([getDocs(itemsCol), getDocs(favsCol)]);
+  const historyCol = collection(db, 'lists', list.id, 'history');
+  const [itemsSnap, favsSnap, historySnap] = await Promise.all([
+    getDocs(itemsCol),
+    getDocs(favsCol),
+    getDocs(historyCol),
+  ]);
   const items = itemsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Item);
   const favoriteState = favsSnap.docs.map(
     (d) => ({ slug: d.id, ...d.data() }) as ListFavoriteState,
   );
-  return { list, items, favoriteState };
+  const history = historySnap.docs.map(
+    (d) => ({ id: d.id, ...d.data() }) as ListHistoryEntry,
+  );
+  return { list, items, favoriteState, history };
 };
 
 const fetchCatalog = async (uid: string): Promise<CatalogEntry[]> => {

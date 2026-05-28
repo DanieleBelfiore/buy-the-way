@@ -1,0 +1,166 @@
+name: Rollback production deploy
+
+# Full pipeline rollback for a given app version:
+#   1. Firebase - redeploy firestore rules, indexes, and storage rules from the
+#      git tag for that version (Firebase has no point-in-time restore API).
+#   2. Netlify - restore the previous production deploy (SPA + functions).
+#
+# Netlify deploy titles are stamped by ci-cd.yml as
+# "vX.Y.Z (<sha>) via GitHub Actions". Older deploys fall back to SHA match.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version to restore (e.g. 1.5.4 or v1.5.4)'
+        required: true
+        type: string
+
+env:
+  HUSKY: 0
+  CI: true
+  FIREBASE_PROJECT: buy-the-way-2ac6e
+
+jobs:
+  resolve:
+    name: resolve version to git tag + netlify deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      git_sha: ${{ steps.resolve.outputs.git_sha }}
+      deploy_id: ${{ steps.resolve.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve git tag and Netlify deploy
+        id: resolve
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          TARGET_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${TARGET_VERSION#v}"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version format: $TARGET_VERSION (expected semver like 1.5.4)"
+            exit 1
+          fi
+
+          git fetch --tags --force
+          if git rev-parse "v${VERSION}^{commit}" >/dev/null 2>&1; then
+            GIT_SHA=$(git rev-parse "v${VERSION}^{commit}")
+          elif git rev-parse "${VERSION}^{commit}" >/dev/null 2>&1; then
+            GIT_SHA=$(git rev-parse "${VERSION}^{commit}")
+          else
+            echo "::error::Git tag v${VERSION} not found. Create the release tag before rolling back."
+            exit 1
+          fi
+
+          PKG_VERSION=$(git show "${GIT_SHA}:package.json" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).version))")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "::warning::Tag v${VERSION} points to package.json version ${PKG_VERSION}"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "git_sha=${GIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Resolved v${VERSION} -> commit ${GIT_SHA}"
+
+          npm install -g netlify-cli@latest
+
+          find_deploy() {
+            local pattern="$1"
+            local page=1
+            while [ "$page" -le 20 ]; do
+              json=$(netlify api listSiteDeploys \
+                --auth "$NETLIFY_AUTH_TOKEN" \
+                --data "{\"site_id\":\"$NETLIFY_SITE_ID\",\"production\":true,\"per_page\":100,\"page\":$page}")
+              count=$(echo "$json" | jq 'length')
+              if [ "$count" -eq 0 ]; then
+                return 1
+              fi
+              id=$(echo "$json" | jq -r --arg re "$pattern" '[.[] | select(.title | test($re))] | .[0].id // empty')
+              if [ -n "$id" ]; then
+                title=$(echo "$json" | jq -r --arg re "$pattern" '[.[] | select(.title | test($re))] | .[0].title')
+                echo "Matched Netlify deploy ${id} (${title})" >&2
+                echo "$id"
+                return 0
+              fi
+              page=$((page + 1))
+            done
+            return 1
+          }
+
+          DEPLOY_ID=""
+          if DEPLOY_ID=$(find_deploy "^v${VERSION}([ (]|$)"); then
+            echo "Found Netlify deploy by version title."
+          else
+            SHORT="${GIT_SHA:0:7}"
+            echo "No version title match; trying commit ${SHORT} in deploy title..."
+            if ! DEPLOY_ID=$(find_deploy "${SHORT}"); then
+              echo "::error::No production Netlify deploy found for v${VERSION} (commit ${SHORT})"
+              exit 1
+            fi
+            echo "Found Netlify deploy by commit SHA in title."
+          fi
+
+          echo "deploy_id=${DEPLOY_ID}" >> "$GITHUB_OUTPUT"
+
+  rollback-firebase:
+    name: rollback firebase rules + indexes + storage
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve.outputs.git_sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools@latest
+
+      - name: Deploy firestore rules + indices + storage rules at v${{ needs.resolve.outputs.version }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes,storage \
+            --project "$FIREBASE_PROJECT" \
+            --token "$FIREBASE_TOKEN" \
+            --non-interactive
+
+  rollback-netlify:
+    name: rollback netlify production
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli@latest
+
+      - name: Restore production deploy v${{ needs.resolve.outputs.version }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          DEPLOY_ID: ${{ needs.resolve.outputs.deploy_id }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          echo "Restoring Netlify deploy ${DEPLOY_ID}..."
+          netlify api restoreSiteDeploy \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --data "{\"site_id\":\"$NETLIFY_SITE_ID\",\"deploy_id\":\"$DEPLOY_ID\"}"
+          echo "Netlify production now serves deploy ${DEPLOY_ID} (v${VERSION})."

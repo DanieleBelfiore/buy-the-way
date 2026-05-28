@@ -8,6 +8,10 @@ const bulkEnter = vi.fn();
 const bulkToggle = vi.fn();
 const bulkExit = vi.fn();
 
+vi.mock('@/services/history.service', () => ({
+  recordListHistory: vi.fn().mockResolvedValue('hist-1'),
+}));
+
 vi.mock('@/services/items.service', () => ({
   addItem: vi.fn().mockResolvedValue(undefined),
   toggleChecked: vi.fn().mockResolvedValue(undefined),
@@ -85,6 +89,11 @@ vi.mock('@/composables/useHaptic', () => ({
   useHaptic: () => ({ pulse: vi.fn() }),
 }));
 
+import { recordListHistory } from '@/services/history.service';
+import {
+  clearListHistoryRecorded,
+  markListHistoryRecorded,
+} from '@/domain/listHistoryCycle';
 import {
   addItem,
   toggleChecked,
@@ -147,6 +156,7 @@ describe('useListDetailActions', () => {
     bulkCount.value = 0;
     previouslyAllChecked.clear();
     localStorage.clear();
+    clearListHistoryRecorded(LIST_ID);
     setActivePinia(createPinia());
     const auth = useAuthStore();
     auth.user = { uid: 'user-1', email: 'u@example.com', displayName: 'User' } as any;
@@ -168,6 +178,7 @@ describe('useListDetailActions', () => {
         name: 'Bread',
         category: 'bakery',
         createdByUid: 'user-1',
+        addedVia: 'autocomplete',
       }),
     );
     expect(expandIfCollapsed).toHaveBeenCalledWith('bakery');
@@ -217,7 +228,21 @@ describe('useListDetailActions', () => {
   it('handleEmptyList clears all item ids via the service', async () => {
     const { handleEmptyList } = setup();
     await handleEmptyList();
+    expect(recordListHistory).toHaveBeenCalledWith(
+      LIST_ID,
+      [sampleItem()],
+      'user-1',
+      'empty_fallback',
+    );
     expect(emptyList).toHaveBeenCalledWith(LIST_ID, [ITEM_ID], { urgentRemoved: 0 });
+  });
+
+  it('handleEmptyList skips history when already recorded this cycle', async () => {
+    markListHistoryRecorded(LIST_ID);
+    const { handleEmptyList } = setup();
+    await handleEmptyList();
+    expect(recordListHistory).not.toHaveBeenCalled();
+    expect(emptyList).toHaveBeenCalledOnce();
   });
 
   it('opens and saves the edit sheet', async () => {
@@ -331,6 +356,7 @@ describe('useListDetailActions', () => {
     expect(bulkAddItems).toHaveBeenCalledWith(
       expect.objectContaining({
         listId: LIST_ID,
+        addedVia: 'bulk',
         rows: expect.arrayContaining([{ name: 'Eggs', category: 'dairy' }]),
       }),
     );
@@ -339,6 +365,9 @@ describe('useListDetailActions', () => {
     voiceAddOpen.value = true;
     await handleVoiceAddSubmit([{ name: 'Butter', category: 'dairy' }]);
     expect(voiceAddOpen.value).toBe(false);
+    expect(bulkAddItems).toHaveBeenLastCalledWith(
+      expect.objectContaining({ addedVia: 'voice' }),
+    );
   });
 
   it('adds shelf favorites and confirms exclude', async () => {
@@ -353,7 +382,7 @@ describe('useListDetailActions', () => {
     const { handleShelfAdd, handleShelfExclude, confirmExclude, excludeModalOpen } = setup();
     await handleShelfAdd(entry);
     expect(addItem).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Milk', category: 'dairy' }),
+      expect.objectContaining({ name: 'Milk', category: 'dairy', addedVia: 'favorite' }),
     );
     handleShelfExclude(entry);
     expect(excludeModalOpen.value).toBe(true);

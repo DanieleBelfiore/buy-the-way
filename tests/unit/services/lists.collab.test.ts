@@ -22,6 +22,10 @@ vi.mock('@/services/users.service', () => ({
   findUserByEmail: vi.fn(),
 }));
 
+vi.mock('@/services/history.service', () => ({
+  deleteAllListHistory: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   addCollaborator,
   removeCollaborator,
@@ -41,6 +45,7 @@ import {
   arrayRemove,
 } from 'firebase/firestore';
 import { findUserByEmail } from '@/services/users.service';
+import { deleteAllListHistory } from '@/services/history.service';
 
 describe('lists.service collaborator ops', () => {
   beforeEach(() => {
@@ -264,6 +269,7 @@ describe('lists.service collaborator ops', () => {
       expect(batchDelete).toHaveBeenCalledTimes(3);
       expect(batchCommit).toHaveBeenCalledOnce();
       expect(deleteDoc).toHaveBeenCalledOnce();
+      expect(deleteAllListHistory).toHaveBeenCalledWith('list-1');
     });
 
     it('still deletes list doc when no items exist', async () => {

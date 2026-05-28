@@ -129,7 +129,7 @@ const onSwipeEnd = (): void => {
       data-testid="toast"
       :class="[
         'fixed left-1/2 bottom-24 z-[200] -translate-x-1/2',
-        'w-[calc(100vw-2rem)] sm:w-max sm:max-w-md',
+        'w-[min(calc(100vw-2rem),28rem)]',
         'flex gap-3 touch-none select-none',
         props.actionLabel ? 'flex-col' : 'items-center',
         'text-white shadow-xl bg-primary',

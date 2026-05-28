@@ -22,6 +22,7 @@ import { isWallpaper, pickRandomWallpaper } from '@/domain/wallpapers';
 import { capitalizeInitial } from '@/domain/text';
 import { notifyListEvent } from '@/services/notify.service';
 import { purgeItemPhotoStorage } from '@/services/itemPhotos.service';
+import { deleteAllListHistory } from '@/services/history.service';
 import type { Category, List, UserProfile } from '@/domain/types';
 
 export class UserNotFoundError extends Error {
@@ -515,6 +516,12 @@ export const deleteList = async (listId: string): Promise<void> => {
     }
   } catch (err) {
     console.warn('[lists] deleteList: cascade item delete failed (list doc already gone):', err);
+  }
+
+  try {
+    await deleteAllListHistory(listId);
+  } catch (err) {
+    console.warn('[lists] deleteList: cascade history delete failed:', err);
   }
 };
 

@@ -1,4 +1,6 @@
 import type { ULID } from './id';
+import type { ListHistoryTrigger } from './history';
+import type { ItemAddedVia } from './itemProvenance';
 
 export type Locale = 'it' | 'en';
 
@@ -73,6 +75,8 @@ export interface Item {
   note: string;
   checked: boolean;
   priority?: ItemPriority;
+  /** Immutable provenance for analytics / future suggest layers. Legacy items may omit. */
+  addedVia?: ItemAddedVia;
   /**
    * S4.2: optional photo attachment. Compressed JPEG stored in Firebase
    * Storage at `lists/{listId}/items/{itemId}/photo.jpg`. The download URL
@@ -92,6 +96,22 @@ export interface CatalogEntry {
   category: Category;
   usageCount: number;
   lastUsedAt: number;
+}
+
+/**
+ * Immutable snapshot of a completed (or emptied) shopping run for one list.
+ * Stored under `lists/{listId}/history/{historyId}`. Items carry the full
+ * live `Item` shape at snapshot time so future suggest/LLM layers can pick
+ * fields without a schema migration.
+ */
+export interface ListHistoryEntry {
+  id: ULID;
+  listId: ULID;
+  completedAt: number;
+  itemCount: number;
+  recordedByUid: string;
+  trigger: ListHistoryTrigger;
+  items: Item[];
 }
 
 /**

@@ -15,6 +15,7 @@ import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
 import type { ULID } from '@/domain/id';
 import type { Item, Category, ItemPriority } from '@/domain/types';
+import type { ItemAddedVia } from '@/domain/itemProvenance';
 import { capitalizeInitial } from '@/domain/text';
 import { countUrgentItems, isUrgentPriority } from '@/domain/priority';
 import { upsertCatalogEntry } from '@/services/catalog.service';
@@ -59,6 +60,7 @@ export const addItem = async (params: {
   note: string;
   createdByUid: string;
   priority?: ItemPriority;
+  addedVia: ItemAddedVia;
 }): Promise<ULID> => {
   const id = newId();
   const now = Date.now();
@@ -75,6 +77,7 @@ export const addItem = async (params: {
     createdByUid: params.createdByUid,
     createdAt: now,
     updatedAt: now,
+    addedVia: params.addedVia,
     ...(params.priority ? { priority: params.priority } : {}),
   };
 
@@ -136,8 +139,9 @@ export const bulkAddItems = async (params: {
   listId: ULID;
   rows: BulkAddRow[];
   createdByUid: string;
+  addedVia: ItemAddedVia;
 }): Promise<ULID[]> => {
-  const { listId, rows, createdByUid } = params;
+  const { listId, rows, createdByUid, addedVia } = params;
   if (rows.length === 0) return [];
 
   const itemsCol = collection(db, 'lists', listId, 'items');
@@ -169,6 +173,7 @@ export const bulkAddItems = async (params: {
         createdByUid,
         createdAt: now,
         updatedAt: now,
+        addedVia,
         ...(row.priority ? { priority: row.priority } : {}),
       };
       batch.set(doc(itemsCol, id), item);
@@ -325,6 +330,7 @@ const buildCopiedItem = (
   byUid: string,
   name: string,
   now: number,
+  addedVia: ItemAddedVia,
 ): Item => ({
   id: newId(),
   listId: dstListId,
@@ -336,6 +342,7 @@ const buildCopiedItem = (
   createdByUid: byUid,
   createdAt: now,
   updatedAt: now,
+  addedVia,
   ...(src.priority ? { priority: src.priority } : {}),
 });
 
@@ -346,7 +353,7 @@ export const copyItem = async (
 ): Promise<ULID> => {
   const name = capitalizeInitial(item.name);
   const now = Date.now();
-  const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
+  const newItem = buildCopiedItem(item, dstListId, byUid, name, now, 'copy');
   const dstItemsCol = collection(db, 'lists', dstListId, 'items');
 
   const batch = writeBatch(db);
@@ -371,7 +378,7 @@ export const moveItem = async (
 ): Promise<ULID> => {
   const name = capitalizeInitial(item.name);
   const now = Date.now();
-  const newItem = buildCopiedItem(item, dstListId, byUid, name, now);
+  const newItem = buildCopiedItem(item, dstListId, byUid, name, now, 'move');
   const srcItemsCol = collection(db, 'lists', srcListId, 'items');
   const dstItemsCol = collection(db, 'lists', dstListId, 'items');
 
@@ -454,7 +461,7 @@ export const bulkCopyItems = async (
     const now = Date.now();
     for (const src of chunk) {
       const name = capitalizeInitial(src.name);
-      const newItem = buildCopiedItem(src, dstListId, byUid, name, now);
+      const newItem = buildCopiedItem(src, dstListId, byUid, name, now, 'copy');
       batch.set(doc(dstItemsCol, newItem.id), newItem);
       ids.push(newItem.id);
       committed.push({ name, category: src.category });
@@ -508,7 +515,7 @@ export const bulkMoveItems = async (
     const now = Date.now();
     for (const src of chunk) {
       const name = capitalizeInitial(src.name);
-      const newItem = buildCopiedItem(src, dstListId, byUid, name, now);
+      const newItem = buildCopiedItem(src, dstListId, byUid, name, now, 'move');
       batch.set(doc(dstItemsCol, newItem.id), newItem);
       batch.delete(doc(srcItemsCol, src.id));
       ids.push(newItem.id);

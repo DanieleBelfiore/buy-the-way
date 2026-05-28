@@ -68,6 +68,13 @@ const defaultAddParams = {
   category: 'dairy' as const,
   note: '',
   createdByUid: 'uid-1',
+  addedVia: 'autocomplete' as const,
+};
+
+const defaultBulkAddParams = {
+  listId,
+  createdByUid: 'uid-1',
+  addedVia: 'bulk' as const,
 };
 
 describe('items.service', () => {
@@ -102,6 +109,7 @@ describe('items.service', () => {
         note: '',
         checked: false,
         createdByUid: 'uid-1',
+        addedVia: 'autocomplete',
       });
       expect(typeof (data as any).createdAt).toBe('number');
       expect(typeof (data as any).updatedAt).toBe('number');
@@ -140,6 +148,12 @@ describe('items.service', () => {
     it('does not write the item via raw setDoc (atomicity I5)', async () => {
       await addItem(defaultAddParams);
       expect(setDoc).not.toHaveBeenCalled();
+    });
+
+    it('persists addedVia on the item doc', async () => {
+      await addItem({ ...defaultAddParams, addedVia: 'favorite' });
+      const [, data] = batchSet.mock.calls[0];
+      expect((data as { addedVia: string }).addedVia).toBe('favorite');
     });
   });
 
@@ -394,16 +408,15 @@ describe('items.service', () => {
       }));
 
     it('no-ops on empty input (no firestore writes)', async () => {
-      const ids = await bulkAddItems({ listId, rows: [], createdByUid: 'uid-1' });
+      const ids = await bulkAddItems({ ...defaultBulkAddParams, rows: [] });
       expect(ids).toEqual([]);
       expect(writeBatchMock).not.toHaveBeenCalled();
     });
 
     it('puts every item AND the itemCount bump into a single batch for ≤499 rows', async () => {
       const ids = await bulkAddItems({
-        listId,
+        ...defaultBulkAddParams,
         rows: mkRows(3),
-        createdByUid: 'uid-1',
       });
       expect(ids).toHaveLength(3);
       expect(writeBatchMock).toHaveBeenCalledOnce();
@@ -416,9 +429,8 @@ describe('items.service', () => {
 
     it('splits exactly at the 499-row boundary into two batches', async () => {
       await bulkAddItems({
-        listId,
+        ...defaultBulkAddParams,
         rows: mkRows(500),
-        createdByUid: 'uid-1',
       });
       expect(writeBatchMock).toHaveBeenCalledTimes(2);
       expect(batchSet).toHaveBeenCalledTimes(500);
@@ -432,12 +444,11 @@ describe('items.service', () => {
 
     it('capitalises names + notes', async () => {
       await bulkAddItems({
-        listId,
+        ...defaultBulkAddParams,
         rows: [
           { name: 'pane', category: 'bakery', note: 'biologico' },
           { name: 'Latte', category: 'dairy', note: 'Manitoba' },
         ],
-        createdByUid: 'uid-1',
       });
       const writes = batchSet.mock.calls.map((c) => c[1] as any);
       expect(writes[0].name).toBe('Pane');
@@ -448,12 +459,11 @@ describe('items.service', () => {
 
     it('forwards each row to catalog + favorite upserts after commit (best-effort)', async () => {
       await bulkAddItems({
-        listId,
+        ...defaultBulkAddParams,
         rows: [
           { name: 'mela', category: 'fruit_vegetables' },
           { name: 'pane', category: 'bakery' },
         ],
-        createdByUid: 'uid-1',
       });
       expect(upsertCatalogEntry).toHaveBeenCalledTimes(2);
       expect(upsertCatalogEntry).toHaveBeenCalledWith('uid-1', 'Mela', 'fruit_vegetables');
@@ -467,9 +477,8 @@ describe('items.service', () => {
       vi.mocked(upsertListFavorite).mockRejectedValueOnce(new Error('quota'));
       await expect(
         bulkAddItems({
-          listId,
+          ...defaultBulkAddParams,
           rows: [{ name: 'Mela', category: 'fruit_vegetables' }],
-          createdByUid: 'uid-1',
         }),
       ).resolves.toBeDefined();
       warn.mockRestore();
@@ -669,7 +678,13 @@ describe('items.service', () => {
       expect(batchSet).toHaveBeenCalledOnce();
       expect(batchCommit).toHaveBeenCalledOnce();
       const [, data] = batchSet.mock.calls[0]!;
-      expect(data).toMatchObject({ listId: dst, name: 'Latte', category: 'dairy' });
+      expect(data).toMatchObject({ listId: dst, name: 'Latte', category: 'dairy', addedVia: 'copy' });
+    });
+
+    it('tags move copies with addedVia move', async () => {
+      await moveItem(listId, sampleItem, '01ARZ3NDEKTSV4RRFFQ69G5OTH' as ULID, 'uid-1');
+      const [, data] = batchSet.mock.calls[0]!;
+      expect((data as { addedVia: string }).addedVia).toBe('move');
     });
 
     it('preserves priority when copying', async () => {

@@ -264,10 +264,11 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
           netlify deploy \
             --prod \
             --dir=dist \
             --functions=netlify/functions \
-            --message="${GITHUB_SHA::7} via GitHub Actions" \
+            --message="v${APP_VERSION} (${GITHUB_SHA::7}) via GitHub Actions" \
             --auth="$NETLIFY_AUTH_TOKEN" \
             --site="$NETLIFY_SITE_ID"

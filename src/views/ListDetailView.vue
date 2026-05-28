@@ -10,6 +10,12 @@ import { notifyListEvent } from '@/services/notify.service';
 import { useSafeBack } from '@/composables/useSafeBack';
 import { VueDraggable } from 'vue-draggable-plus';
 import { reconcileListUrgentCount, setListCategoryOrder } from '@/services/lists.service';
+import { recordListHistory } from '@/services/history.service';
+import {
+  clearListHistoryRecorded,
+  markListHistoryRecorded,
+  wasListHistoryRecorded,
+} from '@/domain/listHistoryCycle';
 import { Undo2, X as XIcon, Trash2 as Trash2Icon, ArrowRightLeft as MoveIcon, Flag as FlagIcon } from '@lucide/vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { CATEGORIES } from '@/domain/categories';
@@ -230,9 +236,25 @@ watch(
   [itemCount, boughtCount],
   ([items, bought]) => {
     const complete = items > 0 && bought === items;
-    if (!complete && items > 0) everHadIncompleteItems.value = true;
+    if (!complete && items > 0) {
+      everHadIncompleteItems.value = true;
+      clearListHistoryRecorded(listId.value);
+    }
     if (complete && !wasComplete.value && everHadIncompleteItems.value) {
       celebrationKey.value += 1;
+      const uid = authStore.user?.uid;
+      if (uid && !wasListHistoryRecorded(listId.value)) {
+        void recordListHistory(
+          listId.value,
+          itemsStore.visibleItems,
+          uid,
+          'completion',
+        )
+          .then(() => markListHistoryRecorded(listId.value))
+          .catch((err) => {
+            console.warn('[ListDetailView] recordListHistory failed:', err);
+          });
+      }
     }
     wasComplete.value = complete;
   },

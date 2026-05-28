@@ -28,12 +28,19 @@ import {
   ensureListFavorite,
   patchListFavorite,
 } from '@/services/listFavorites.service';
+import { recordListHistory } from '@/services/history.service';
+import {
+  clearListHistoryRecorded,
+  markListHistoryRecorded,
+  wasListHistoryRecorded,
+} from '@/domain/listHistoryCycle';
 import { capitalizeInitial } from '@/domain/text';
 import { deleteCatalogEntry, findCatalogEntryByName } from '@/services/catalog.service';
 import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import { isCustomItemName } from '@/domain/public-catalog';
 import { countUrgentItems } from '@/domain/priority';
 import type { Category, Item, ItemPriority, ListFavoriteState } from '@/domain/types';
+import type { ItemAddedVia } from '@/domain/itemProvenance';
 import type { ULID } from '@/domain/id';
 
 const FIRST_CHECK_FLAG = 'btw:tutorialFirstCheckSeen';
@@ -150,6 +157,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         category: params.category,
         note: params.note,
         createdByUid: authStore.user.uid,
+        addedVia: 'autocomplete',
       });
       expandIfCollapsed(params.category);
       previouslyAllChecked.delete(params.category);
@@ -239,8 +247,14 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
   const handleEmptyList = async (): Promise<void> => {
     const items = itemsStore.items;
     const ids = items.map((i) => i.id);
+    const uid = authStore.user?.uid;
     try {
+      if (uid && items.length > 0 && !wasListHistoryRecorded(listId.value)) {
+        await recordListHistory(listId.value, items, uid, 'empty_fallback');
+        markListHistoryRecorded(listId.value);
+      }
       await emptyList(listId.value, ids, { urgentRemoved: countUrgentItems(items) });
+      clearListHistoryRecorded(listId.value);
     } catch (err) {
       console.error('[useListDetailActions] emptyList failed:', err);
     }
@@ -504,6 +518,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         category: entry.category,
         note: '',
         createdByUid: authStore.user.uid,
+        addedVia: 'favorite',
       });
       expandIfCollapsed(entry.category);
       previouslyAllChecked.delete(entry.category);
@@ -539,6 +554,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
 
   const handleBulkPasteSubmit = async (
     rows: Array<{ name: string; category: Category }>,
+    addedVia: ItemAddedVia = 'bulk',
   ): Promise<void> => {
     if (!authStore.user || rows.length === 0) {
       bulkPasteOpen.value = false;
@@ -549,6 +565,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         listId: listId.value,
         rows: rows.map((r) => ({ name: r.name, category: r.category })),
         createdByUid: authStore.user.uid,
+        addedVia,
       });
       const seenCats = new Set<Category>();
       for (const r of rows) {
@@ -570,7 +587,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     rows: Array<{ name: string; category: Category }>,
   ): Promise<void> => {
     voiceAddOpen.value = false;
-    await handleBulkPasteSubmit(rows);
+    await handleBulkPasteSubmit(rows, 'voice');
   };
 
   return {

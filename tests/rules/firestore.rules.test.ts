@@ -402,6 +402,24 @@ describe('firestore.rules - items subcollection', () => {
     await assertSucceeds(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
       id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
       note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
+      addedVia: 'autocomplete',
+    }));
+  });
+
+  it('denies item create without addedVia', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+      id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
+      note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
+    }));
+  });
+
+  it('denies item create with invalid addedVia', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+      id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
+      note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
+      addedVia: 'manual',
     }));
   });
 
@@ -457,6 +475,75 @@ describe('firestore.rules - favoriteState subcollection', () => {
         slug: 'latte', name: 'Latte', category: 'dairy', usageCount: 1, lastUsedAt: 1,
       }),
     );
+  });
+});
+
+describe('firestore.rules - history subcollection', () => {
+  const sampleItem = {
+    id: 'I1',
+    listId: 'L1',
+    name: 'Milk',
+    quantity: '1',
+    category: 'dairy',
+    note: '',
+    checked: true,
+    createdByUid: ALICE,
+    createdAt: 1,
+    updatedAt: 2,
+  };
+
+  const validHistory = (overrides: Record<string, unknown> = {}) => ({
+    id: 'H1',
+    listId: 'L1',
+    completedAt: 100,
+    itemCount: 1,
+    recordedByUid: ALICE,
+    trigger: 'completion',
+    items: [sampleItem],
+    ...overrides,
+  });
+
+  it('allows a collaborator to read history entries', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'history', 'H1'), validHistory());
+    });
+    await assertSucceeds(getDoc(doc(bobCtx() as any, 'lists', 'L1', 'history', 'H1')));
+  });
+
+  it('allows a collaborator to create a history entry', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(
+      setDoc(doc(aliceCtx() as any, 'lists', 'L1', 'history', 'H1'), validHistory()),
+    );
+  });
+
+  it('denies create when itemCount does not match items length', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await assertFails(
+      setDoc(
+        doc(aliceCtx() as any, 'lists', 'L1', 'history', 'H1'),
+        validHistory({ itemCount: 2 }),
+      ),
+    );
+  });
+
+  it('denies update (immutable)', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'history', 'H1'), validHistory());
+    });
+    await assertFails(
+      updateDoc(doc(aliceCtx() as any, 'lists', 'L1', 'history', 'H1'), { itemCount: 99 }),
+    );
+  });
+
+  it('denies a non-collaborator from reading history', async () => {
+    await seedList('L1', ALICE, [ALICE]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'history', 'H1'), validHistory());
+    });
+    await assertFails(getDoc(doc(bobCtx() as any, 'lists', 'L1', 'history', 'H1')));
   });
 });
 

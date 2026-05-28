@@ -42,13 +42,13 @@ describe('export.service', () => {
   });
 
   describe('buildExportPayload', () => {
-    it('aggregates profile + lists (with items + favoriteState) + catalog into a single payload', async () => {
+    it('aggregates profile + lists (with items + favoriteState + history) + catalog into a single payload', async () => {
       // getUserProfile reads top-level + private/state in parallel
       getDocMock
         .mockResolvedValueOnce(mockProfileTopLevel)
         .mockResolvedValueOnce(mockPrivateState);
 
-      // getDocs is called for: user lists, catalog, then per-list items + favoriteState.
+      // getDocs is called for: user lists, catalog, then per-list items + favoriteState + history.
       getDocsMock.mockImplementation(async (ref: { __path?: string }) => {
         const path = ref?.__path ?? '';
         if (path === 'lists') {
@@ -108,6 +108,24 @@ describe('export.service', () => {
             ],
           };
         }
+        if (path === 'lists/L1/history') {
+          return {
+            docs: [
+              {
+                id: 'H1',
+                data: () => ({
+                  id: 'H1',
+                  listId: 'L1',
+                  completedAt: 500,
+                  itemCount: 1,
+                  recordedByUid: UID,
+                  trigger: 'completion',
+                  items: [],
+                }),
+              },
+            ],
+          };
+        }
         return { docs: [] };
       });
 
@@ -124,6 +142,8 @@ describe('export.service', () => {
       expect(out.lists[0].items[0].name).toBe('Bread');
       expect(out.lists[0].favoriteState).toHaveLength(1);
       expect(out.lists[0].favoriteState[0].slug).toBe('milk');
+      expect(out.lists[0].history).toHaveLength(1);
+      expect(out.lists[0].history[0].trigger).toBe('completion');
       expect(out.catalog).toHaveLength(1);
       expect(out.catalog[0].name).toBe('Milk');
     });

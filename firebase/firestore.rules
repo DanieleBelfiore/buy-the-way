@@ -209,6 +209,10 @@ service cloud.firestore {
             || data.priority in ['urgent', 'optional'];
         }
 
+        function validAddedVia(data) {
+          return data.addedVia in ['autocomplete', 'favorite', 'bulk', 'voice', 'copy', 'move'];
+        }
+
         allow read, delete: if isListCollaborator(listId);
         allow create: if isListCollaborator(listId)
           && request.resource.data.id == itemId
@@ -225,7 +229,8 @@ service cloud.firestore {
           && request.resource.data.createdAt is number
           && request.resource.data.updatedAt is number
           && validPriority(request.resource.data)
-          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt']);
+          && validAddedVia(request.resource.data)
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt', 'addedVia']);
         allow update: if isListCollaborator(listId)
           && request.resource.data.id == resource.data.id
           && request.resource.data.listId == resource.data.listId
@@ -265,6 +270,29 @@ service cloud.firestore {
           && validOptionalBool(request.resource.data, 'excluded')
           && validOptionalBool(request.resource.data, 'dismissedFavorite')
           && request.resource.data.keys().hasOnly(['slug', 'name', 'category', 'usageCount', 'lastUsedAt', 'pinned', 'excluded', 'dismissedFavorite']);
+      }
+
+      // Completed-shopping snapshots for future suggest/LLM layers. Immutable
+      // after create; collaborators may read/write (delete only for retention
+      // prune and list cascade). No UI surfaces this in v1.
+      match /history/{historyId} {
+        function validHistoryTrigger(data) {
+          return data.trigger in ['completion', 'empty_fallback'];
+        }
+
+        allow read, delete: if isListCollaborator(listId);
+        allow create: if isListCollaborator(listId)
+          && request.resource.data.id == historyId
+          && request.resource.data.listId == listId
+          && request.resource.data.completedAt is number
+          && request.resource.data.itemCount is number
+          && request.resource.data.itemCount > 0
+          && request.resource.data.recordedByUid == uid()
+          && validHistoryTrigger(request.resource.data)
+          && request.resource.data.items is list
+          && request.resource.data.items.size() == request.resource.data.itemCount
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'completedAt', 'itemCount', 'recordedByUid', 'trigger', 'items']);
+        allow update: if false;
       }
     }
 

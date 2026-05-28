@@ -147,23 +147,24 @@ watch(
             class="w-full text-left px-4 py-3 flex items-start hover:bg-black/5 active:bg-black/10 !cursor-default"
             @click="handleRowClick(n)"
           >
-            <span class="min-w-0 flex-1">
-              <span class="block text-sm font-medium text-charcoal break-words">
+            <span class="min-w-0 flex-1 overflow-hidden">
+              <span class="block text-sm font-medium text-charcoal break-words [overflow-wrap:anywhere]">
                 {{ n.listName }}
               </span>
-              <span class="block text-sm text-muted-gray break-words">
+              <span class="block text-sm text-muted-gray min-w-0 break-words [overflow-wrap:anywhere]">
                 <I18nT
                   v-if="n.kind === 'collaborator-added'"
                   :keypath="bodyKey(n)"
                   :locale="n.locale"
                   scope="global"
-                  tag="span"
+                  tag="div"
+                  class="break-words [overflow-wrap:anywhere]"
                 >
                   <template #sender>
-                    <strong class="text-charcoal font-semibold">{{ n.senderName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.senderName }}</strong>
                   </template>
                   <template #list>
-                    <strong class="text-charcoal font-semibold">{{ n.listName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.listName }}</strong>
                   </template>
                 </I18nT>
                 <I18nT
@@ -171,13 +172,14 @@ watch(
                   :keypath="bodyKey(n)"
                   :locale="n.locale"
                   scope="global"
-                  tag="span"
+                  tag="div"
+                  class="break-words [overflow-wrap:anywhere]"
                 >
                   <template #user>
-                    <strong class="text-charcoal font-semibold">{{ n.senderName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.senderName }}</strong>
                   </template>
                   <template #list>
-                    <strong class="text-charcoal font-semibold">{{ n.listName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.listName }}</strong>
                   </template>
                 </I18nT>
                 <I18nT
@@ -185,13 +187,14 @@ watch(
                   :keypath="bodyKey(n)"
                   :locale="n.locale"
                   scope="global"
-                  tag="span"
+                  tag="div"
+                  class="break-words [overflow-wrap:anywhere]"
                 >
                   <template #sender>
-                    <strong class="text-charcoal font-semibold">{{ n.senderName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.senderName }}</strong>
                   </template>
                   <template #item>
-                    <strong class="text-charcoal font-semibold">{{ n.itemName }}</strong>
+                    <strong class="text-charcoal font-semibold break-words [overflow-wrap:anywhere]">{{ n.itemName }}</strong>
                   </template>
                 </I18nT>
               </span>

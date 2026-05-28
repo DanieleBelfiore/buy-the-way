@@ -127,6 +127,12 @@ The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellula
 
 ---
 
+## Project wiki
+
+LLM-maintained markdown knowledge base under [`wiki/`](wiki/) (pattern: ingest sources from `raw/` and repo docs, query via `wiki/index.md`). Maintainer rules: [`wiki/SCHEMA.md`](wiki/SCHEMA.md). Open the repo in Obsidian for graph view and browsing.
+
+---
+
 ## Getting started
 
 ### Prerequisites
