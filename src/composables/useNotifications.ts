@@ -54,6 +54,11 @@ export const useNotifications = (): UseNotifications => {
     if (!uid) return [];
     const snapshot = items.value.slice();
     if (snapshot.length === 0) return [];
+    const consumedIds = new Set(snapshot.map((n) => n.id));
+    // Drop the consumed rows locally immediately so the badge clears without
+    // waiting for the Firestore snapshot round-trip. The listener will
+    // reconcile once the batch delete propagates.
+    items.value = items.value.filter((n) => !consumedIds.has(n.id));
     await deleteNotifications(uid, snapshot.map((n) => n.id));
     return snapshot;
   };

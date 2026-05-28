@@ -423,6 +423,57 @@ describe('firestore.rules - items subcollection', () => {
     }));
   });
 
+  it('allows toggling checked on an item that carries addedVia', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'items', 'I1'), {
+        id: 'I1',
+        listId: 'L1',
+        name: 'Milk',
+        quantity: '1',
+        category: 'dairy',
+        note: '',
+        checked: false,
+        createdByUid: ALICE,
+        createdAt: 1,
+        updatedAt: 1,
+        addedVia: 'autocomplete',
+      });
+    });
+    await assertSucceeds(
+      updateDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+        checked: true,
+        updatedAt: 2,
+      }),
+    );
+  });
+
+  it('denies mutating addedVia on update', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'lists', 'L1', 'items', 'I1'), {
+        id: 'I1',
+        listId: 'L1',
+        name: 'Milk',
+        quantity: '1',
+        category: 'dairy',
+        note: '',
+        checked: false,
+        createdByUid: ALICE,
+        createdAt: 1,
+        updatedAt: 1,
+        addedVia: 'autocomplete',
+      });
+    });
+    await assertFails(
+      updateDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+        checked: true,
+        updatedAt: 2,
+        addedVia: 'voice',
+      }),
+    );
+  });
+
   it('denies a non-collaborator from reading items', async () => {
     await seedList('L1', ALICE, [ALICE]);
     await seedItem('L1', 'I1');

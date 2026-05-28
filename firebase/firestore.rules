@@ -245,7 +245,9 @@ service cloud.firestore {
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.createdByUid == resource.data.createdByUid
           && validPriority(request.resource.data)
-          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt']);
+          && (!('addedVia' in resource.data.keys())
+            || request.resource.data.addedVia == resource.data.addedVia)
+          && request.resource.data.keys().hasOnly(['id', 'listId', 'name', 'quantity', 'category', 'note', 'checked', 'priority', 'photoURL', 'thumbURL', 'createdByUid', 'createdAt', 'updatedAt', 'addedVia']);
       }
 
       // Per-list favorite shelf state - any collaborator on the parent list.

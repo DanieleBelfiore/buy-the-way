@@ -83,6 +83,8 @@ describe('useNotifications', () => {
     expect(deleteMock).toHaveBeenCalledWith('u1', ['n1']);
     expect(consumed).toHaveLength(1);
     expect(consumed[0]!.id).toBe('n1');
+    expect(capture.api!.count.value).toBe(0);
+    expect(capture.api!.items.value).toEqual([]);
   });
 
   it('consume() is a no-op when there is no signed-in user', async () => {

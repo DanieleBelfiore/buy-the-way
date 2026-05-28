@@ -96,6 +96,12 @@ export const addItem = async (params: {
   }));
   await batch.commit();
 
+  void notifyListEvent({
+    listId: params.listId,
+    kind: 'item-modified',
+    itemId: id,
+  });
+
   try {
     await upsertCatalogEntry(params.createdByUid, name, params.category);
   } catch (err) {

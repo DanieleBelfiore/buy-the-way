@@ -468,7 +468,7 @@ watch(
         <span class="relative inline-flex shrink-0 !overflow-visible">
           <Bell :size="18" :stroke-width="2.25" aria-hidden="true" />
           <span
-            v-if="notifications.count.value > 0"
+            v-if="notifications.count.value > 0 && !notificationsOpen"
             data-testid="notifications-badge"
             :aria-label="t('notifications.badgeAria')"
             class="block absolute -top-1 -left-1 w-2 h-2 rounded-full bg-primary shrink-0"

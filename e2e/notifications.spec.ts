@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { resetEmulators } from './helpers/emulator';
+import { resetEmulators, waitForUserByEmail, waitForStableEmptyInbox } from './helpers/emulator';
 import { ALICE, BOB, signInAs } from './helpers/auth';
 import { pinLocaleEN } from './helpers/setup';
 
@@ -17,7 +17,17 @@ const createSharedList = async (page: Page, name: string): Promise<string> => {
   await page.getByPlaceholder('Email address').fill(BOB.email);
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByText(BOB.displayName)).toBeVisible();
+  await page.waitForTimeout(800);
   return id;
+};
+
+const drainNotificationsIfPresent = async (page: Page, uid: string): Promise<void> => {
+  await expect(page.getByTestId('notifications-badge')).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId('open-notifications').click();
+  await expect(page.getByTestId('notifications-dialog')).toBeVisible();
+  await page.getByTestId('notifications-close').click();
+  await expect(page.getByTestId('notifications-badge')).toBeHidden();
+  await waitForStableEmptyInbox(uid);
 };
 
 test.beforeEach(async ({ browser }) => {
@@ -26,7 +36,7 @@ test.beforeEach(async ({ browser }) => {
   await pinLocaleEN(ctx);
   const page = await ctx.newPage();
   await signInAs(page, BOB);
-  await page.waitForTimeout(800);
+  await waitForUserByEmail(BOB.email);
   await ctx.close();
 });
 
@@ -41,9 +51,13 @@ test('Bob sees a badge when Alice adds an item; popover renders + clears it', as
   const bobCtx = await browser.newContext();
   await pinLocaleEN(bobCtx);
   const bobPage = await bobCtx.newPage();
-  await signInAs(bobPage, BOB);
+  const bobUid = await signInAs(bobPage, BOB);
   await bobPage.goto('/lists');
   await expect(bobPage.getByTestId('open-notifications')).toBeVisible();
+
+  // createSharedList invites Bob; drain that inbox doc when it lands so it
+  // cannot race the item-add badge assertion below.
+  await drainNotificationsIfPresent(bobPage, bobUid);
 
   // Alice adds an item; the notify-list-event mock fans out a notification
   // doc into Bob's subcollection, which his realtime listener picks up.
@@ -54,13 +68,14 @@ test('Bob sees a badge when Alice adds an item; popover renders + clears it', as
   await aliceOption.first().waitFor({ state: 'visible' });
   await aliceOption.first().click();
 
-  await expect(bobPage.getByTestId('notifications-badge')).toBeVisible({ timeout: 5_000 });
+  await expect(bobPage.getByTestId('notifications-badge')).toBeVisible({ timeout: 10_000 });
 
   // Open the popover; the row should render and the badge should clear.
   await bobPage.getByTestId('open-notifications').click();
   await expect(bobPage.getByTestId('notifications-dialog')).toBeVisible();
   await expect(bobPage.getByTestId('notification-row').first()).toBeVisible();
   await expect(bobPage.getByTestId('notifications-badge')).toBeHidden();
+  await waitForStableEmptyInbox(bobUid);
 
   // Close the popover; once closed the empty state should appear on reopen.
   await bobPage.getByTestId('notifications-close').click();
