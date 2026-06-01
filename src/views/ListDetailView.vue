@@ -520,7 +520,6 @@ watch(
           class="inline-flex items-center gap-1"
           :aria-label="t('listSettings.stats.users') + ': ' + usersCount"
         >
-          <span>{{ t('listSettings.stats.users') }}:</span>
           <span v-if="visibleMembers.length > 0" class="flex -space-x-1.5">
             <span
               v-for="m in visibleMembers"

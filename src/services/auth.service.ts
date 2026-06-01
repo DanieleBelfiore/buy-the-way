@@ -3,6 +3,7 @@ import {
   signInWithPopup,
   signOut,
   reauthenticateWithPopup,
+  browserPopupRedirectResolver,
   onAuthStateChanged as _onAuthStateChanged,
   isSignInWithEmailLink,
   signInWithEmailLink,
@@ -47,7 +48,9 @@ export class PartialDeletionError extends Error {
 
 export const signInWithGoogle = async (): Promise<void> => {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  // Resolver passed explicitly (not installed at auth init) so the gapi popup
+  // iframe loads on-demand here, not on the LCP critical path at app boot.
+  await signInWithPopup(auth, provider, browserPopupRedirectResolver);
 };
 
 // localStorage key used by Firebase's recommended magic-link flow to remember
@@ -158,7 +161,7 @@ export const reauthenticateGoogle = async (): Promise<void> => {
   const current = auth.currentUser;
   if (!current) throw new NoCurrentUserError();
   const provider = new GoogleAuthProvider();
-  await reauthenticateWithPopup(current, provider);
+  await reauthenticateWithPopup(current, provider, browserPopupRedirectResolver);
 };
 
 export const deleteAccount = async (uid: string): Promise<void> => {

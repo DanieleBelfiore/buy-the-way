@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('firebase/auth', () => ({
   GoogleAuthProvider: class {},
@@ -8,6 +8,7 @@ vi.mock('firebase/auth', () => ({
   isSignInWithEmailLink: vi.fn(),
   signInWithEmailLink: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
+  browserPopupRedirectResolver: {},
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -34,6 +35,8 @@ import {
   signInWithGoogle,
   signOutCurrent,
   onAuthChanged,
+  reauthenticateGoogle,
+  NoCurrentUserError,
   sendMagicLink,
   completeMagicLinkSignIn,
   isMagicLinkCallback,
@@ -43,12 +46,16 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  reauthenticateWithPopup,
+  browserPopupRedirectResolver,
   isSignInWithEmailLink,
   signInWithEmailLink,
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
+import { auth } from '@/services/firebase';
 
 const mSignInWithPopup = vi.mocked(signInWithPopup);
+const mReauthenticateWithPopup = vi.mocked(reauthenticateWithPopup);
 const mSignOut = vi.mocked(signOut);
 const mOnAuthStateChanged = vi.mocked(onAuthStateChanged);
 const mSetDoc = vi.mocked(setDoc);
@@ -70,9 +77,50 @@ describe('auth.service', () => {
       expect(mSignInWithPopup).toHaveBeenCalledOnce();
     });
 
+    // Auth is initialized via initializeAuth() WITHOUT a default
+    // popupRedirectResolver (so the gapi iframe stays off the LCP critical
+    // path at boot). The resolver must therefore be passed explicitly here,
+    // or signInWithPopup throws auth/argument-error at runtime - which the
+    // mocked SDK would not surface. Lock the invariant.
+    it('passes the explicit popup-redirect resolver', async () => {
+      mSignInWithPopup.mockResolvedValue({ user: { uid: 'u1' } } as any);
+      await signInWithGoogle();
+      expect(mSignInWithPopup).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        browserPopupRedirectResolver,
+      );
+    });
+
     it('propagates signInWithPopup errors', async () => {
       mSignInWithPopup.mockRejectedValue(new Error('auth/popup-closed-by-user'));
       await expect(signInWithGoogle()).rejects.toThrow('auth/popup-closed-by-user');
+    });
+  });
+
+  describe('reauthenticateGoogle', () => {
+    afterEach(() => {
+      // currentUser is set on the shared (mocked) auth object - clear it so it
+      // doesn't leak into other tests in this file.
+      delete (auth as { currentUser?: unknown }).currentUser;
+    });
+
+    it('throws NoCurrentUserError when no user is signed in', async () => {
+      delete (auth as { currentUser?: unknown }).currentUser;
+      await expect(reauthenticateGoogle()).rejects.toThrow(NoCurrentUserError);
+      expect(mReauthenticateWithPopup).not.toHaveBeenCalled();
+    });
+
+    it('passes the explicit popup-redirect resolver', async () => {
+      const current = { uid: 'u1' };
+      (auth as { currentUser?: unknown }).currentUser = current;
+      mReauthenticateWithPopup.mockResolvedValue({ user: current } as any);
+      await reauthenticateGoogle();
+      expect(mReauthenticateWithPopup).toHaveBeenCalledWith(
+        current,
+        expect.anything(),
+        browserPopupRedirectResolver,
+      );
     });
   });
 

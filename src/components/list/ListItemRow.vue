@@ -144,7 +144,7 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-toggle"
       type="button"
-      class="flex-1 flex items-center gap-3 pl-10 pr-0 min-h-[44px] text-left select-none"
+      class="flex-1 min-w-0 flex items-center gap-3 pl-10 pr-0 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
       @pointerdown="onPressStart"

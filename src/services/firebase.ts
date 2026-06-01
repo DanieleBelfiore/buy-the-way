@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import {
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  connectAuthEmulator,
+} from 'firebase/auth';
 import {
   initializeFirestore,
   connectFirestoreEmulator,
@@ -18,7 +23,13 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  // No popupRedirectResolver here on purpose: stops Firebase from eager-loading
+  // the gapi iframe (__/auth/iframe.js) at boot, which sat on the LCP critical
+  // path (~2.8s). The resolver is passed explicitly at the popup call sites in
+  // auth.service.ts instead. The app uses popup + email-link only, never redirect.
+});
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });

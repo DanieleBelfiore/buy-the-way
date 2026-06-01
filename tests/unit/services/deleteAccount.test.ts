@@ -6,6 +6,7 @@ vi.mock('firebase/auth', () => ({
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
+  browserPopupRedirectResolver: {},
 }));
 
 vi.mock('firebase/firestore', () => ({
