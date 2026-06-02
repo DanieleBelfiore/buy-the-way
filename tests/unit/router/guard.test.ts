@@ -70,7 +70,16 @@ describe('authGuard', () => {
     expect(result).toEqual({ name: 'lists' });
   });
 
-  it.each(['about', 'privacy', 'terms'])(
+  it('redirects authenticated user away from / (home) to /lists', async () => {
+    mockUseAuth.mockReturnValue({
+      user: ref({ uid: 'user-1', email: 'a@b.com' }),
+      ready: ref(true),
+    });
+    const result = await authGuard(makeRoute('home'), makeRoute('lists'));
+    expect(result).toEqual({ name: 'lists' });
+  });
+
+  it.each(['home', 'about', 'privacy', 'terms'])(
     'allows unauthenticated navigation to public route %s',
     async (name) => {
       mockUseAuth.mockReturnValue({

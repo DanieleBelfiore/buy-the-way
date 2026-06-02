@@ -8,17 +8,19 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 const LIST_ID = '01LIST00000000000000000001';
 const UID = 'user-1';
 
-const { pushItems, captureItemsSubscription, mockRecordListHistory } = vi.hoisted(() => {
-  let onItemsChange: ((items: import('@/domain/types').Item[]) => void) | null = null;
-  const captureItemsSubscription = (cb: (items: import('@/domain/types').Item[]) => void) => {
-    onItemsChange = cb;
-  };
-  return {
-    pushItems: (items: import('@/domain/types').Item[]) => onItemsChange?.(items),
-    captureItemsSubscription,
-    mockRecordListHistory: vi.fn().mockResolvedValue('hist-1'),
-  };
-});
+const { pushItems, captureItemsSubscription, mockRecordListHistory, mockHandleEmptyList } =
+  vi.hoisted(() => {
+    let onItemsChange: ((items: import('@/domain/types').Item[]) => void) | null = null;
+    const captureItemsSubscription = (cb: (items: import('@/domain/types').Item[]) => void) => {
+      onItemsChange = cb;
+    };
+    return {
+      pushItems: (items: import('@/domain/types').Item[]) => onItemsChange?.(items),
+      captureItemsSubscription,
+      mockRecordListHistory: vi.fn().mockResolvedValue('hist-1'),
+      mockHandleEmptyList: vi.fn().mockResolvedValue(undefined),
+    };
+  });
 
 vi.mock('@/services/history.service', () => ({
   recordListHistory: mockRecordListHistory,
@@ -119,7 +121,7 @@ vi.mock('@/composables/useListDetailActions', () => ({
     handleBulkPriority: vi.fn(),
     handleAddItem: vi.fn(),
     handleToggleChecked: vi.fn(),
-    handleEmptyList: vi.fn(),
+    handleEmptyList: mockHandleEmptyList,
     bulkPasteOpen: ref(false),
     voiceAddOpen: ref(false),
     favoritesOpen: ref(false),
@@ -145,6 +147,8 @@ vi.mock('@/stores/catalog', () => ({ useCatalogStore: vi.fn() }));
 vi.mock('@/stores/listFavorites', () => ({ useListFavoritesStore: vi.fn() }));
 
 import ListDetailView from '@/views/ListDetailView.vue';
+import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
+import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
@@ -170,6 +174,10 @@ const i18n = createI18n({
         shareFooter: 'Footer',
         shareCopied: 'Copied',
         shareError: 'Error',
+        completionEmptyTitle: 'All bought!',
+        completionEmptyMessage: 'Empty the list now?',
+        completionEmptyConfirm: 'Empty list',
+        completionEmptyCancel: 'Keep list',
       },
       listSettings: {
         title: 'Settings',
@@ -373,5 +381,104 @@ describe('ListDetailView completion history', () => {
     await flushPromises();
 
     expect(recordListHistory).toHaveBeenCalledOnce();
+  });
+});
+
+describe('ListDetailView completion empty prompt', () => {
+  beforeEach(async () => {
+    sessionStorage.clear();
+    clearListHistoryRecorded(LIST_ID as ULID);
+    vi.clearAllMocks();
+    mockRecordListHistory.mockResolvedValue('hist-1');
+    mockHandleEmptyList.mockResolvedValue(undefined);
+    setActivePinia(createPinia());
+
+    vi.mocked(useListsStore).mockReturnValue({
+      lists: [sampleList],
+      loading: false,
+      error: null,
+      initialized: true,
+      lastSeenListMap: {},
+      subscribe: vi.fn().mockReturnValue(vi.fn()),
+      loadLastSeen: vi.fn().mockResolvedValue(undefined),
+      markSeen: vi.fn().mockResolvedValue(undefined),
+    } as any);
+
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { uid: UID, email: 'u@example.com', displayName: 'User' },
+      profile: null,
+      ensureProfile: vi.fn().mockResolvedValue(undefined),
+      setDefaultListId: vi.fn().mockResolvedValue(undefined),
+    } as any);
+
+    vi.mocked(useCatalogStore).mockReturnValue({
+      subscribe: vi.fn().mockReturnValue(vi.fn()),
+    } as any);
+
+    vi.mocked(useListFavoritesStore).mockReturnValue({
+      rankedEntries: [],
+      subscribe: vi.fn().mockReturnValue(vi.fn()),
+    } as any);
+  });
+
+  const findEmptyPrompt = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
+    wrapper
+      .findAllComponents(ConfirmModal)
+      .find((c) => c.props('title') === 'All bought!');
+
+  const completeList = async (wrapper: Awaited<ReturnType<typeof mountView>>) => {
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
+    pushItems([item('I1', 'Milk', true)]);
+    await flushPromises();
+    wrapper.findComponent(CompletionCelebration).vm.$emit('finished');
+    await flushPromises();
+  };
+
+  it('stays closed until the celebration finishes', async () => {
+    const wrapper = await mountView();
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
+    pushItems([item('I1', 'Milk', true)]);
+    await flushPromises();
+    expect(findEmptyPrompt(wrapper)!.props('open')).toBe(false);
+  });
+
+  it('opens the empty prompt once the celebration finishes', async () => {
+    const wrapper = await mountView();
+    await completeList(wrapper);
+    expect(findEmptyPrompt(wrapper)!.props('open')).toBe(true);
+  });
+
+  it('confirming the prompt empties the list and closes it', async () => {
+    const wrapper = await mountView();
+    await completeList(wrapper);
+    findEmptyPrompt(wrapper)!.vm.$emit('confirm');
+    await flushPromises();
+    expect(mockHandleEmptyList).toHaveBeenCalledOnce();
+    expect(findEmptyPrompt(wrapper)!.props('open')).toBe(false);
+  });
+
+  it('cancelling the prompt closes it without emptying', async () => {
+    const wrapper = await mountView();
+    await completeList(wrapper);
+    findEmptyPrompt(wrapper)!.vm.$emit('cancel');
+    await flushPromises();
+    expect(mockHandleEmptyList).not.toHaveBeenCalled();
+    expect(findEmptyPrompt(wrapper)!.props('open')).toBe(false);
+  });
+
+  it('does not open if an item is unchecked again during the celebration', async () => {
+    const wrapper = await mountView();
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
+    pushItems([item('I1', 'Milk', true)]);
+    await flushPromises();
+    // User unchecks during the animation, then it finishes.
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
+    wrapper.findComponent(CompletionCelebration).vm.$emit('finished');
+    await flushPromises();
+    expect(findEmptyPrompt(wrapper)!.props('open')).toBe(false);
   });
 });

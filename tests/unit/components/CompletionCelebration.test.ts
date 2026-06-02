@@ -95,6 +95,44 @@ describe('CompletionCelebration', () => {
     expect(wrapper.find('[data-testid="celebration-overlay"]').exists()).toBe(false);
   });
 
+  it('emits finished when the lottie completes', async () => {
+    const wrapper = mountIt({ triggerKey: 0 });
+    await wrapper.setProps({ triggerKey: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="celebration-lottie"]').trigger('click');
+    await nextTick();
+    expect(wrapper.emitted('finished')).toHaveLength(1);
+  });
+
+  it('emits finished after the fallback timer fires', async () => {
+    const wrapper = mountIt({ triggerKey: 0 });
+    await wrapper.setProps({ triggerKey: 1 });
+    await flushPromises();
+    vi.advanceTimersByTime(3600);
+    await nextTick();
+    expect(wrapper.emitted('finished')).toHaveLength(1);
+  });
+
+  it('emits finished immediately (no overlay) under reduced motion', async () => {
+    setReducedMotion(true);
+    const wrapper = mountIt({ triggerKey: 0 });
+    await wrapper.setProps({ triggerKey: 1 });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="celebration-overlay"]').exists()).toBe(false);
+    expect(wrapper.emitted('finished')).toHaveLength(1);
+  });
+
+  it('emits finished only once when complete clears the fallback timer', async () => {
+    const wrapper = mountIt({ triggerKey: 0 });
+    await wrapper.setProps({ triggerKey: 1 });
+    await flushPromises();
+    await wrapper.get('[data-testid="celebration-lottie"]').trigger('click');
+    await nextTick();
+    vi.advanceTimersByTime(3600);
+    await nextTick();
+    expect(wrapper.emitted('finished')).toHaveLength(1);
+  });
+
   it('does not retrigger when triggerKey stays the same', async () => {
     const wrapper = mountIt({ triggerKey: 1 });
     await flushPromises();

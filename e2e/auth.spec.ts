@@ -13,8 +13,16 @@ test('login page renders Google CTA and passes axe', async ({ page }) => {
   await expectNoA11yIssues(page, '/login');
 });
 
-test('unauthenticated user is redirected from / to /login', async ({ page }) => {
+test('unauthenticated user sees the landing page at / and passes axe', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByTestId('home-cta')).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expectNoA11yIssues(page, '/');
+});
+
+test('landing CTA leads to /login', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('home-cta').click();
   await page.waitForURL('**/login');
   await expect(page).toHaveURL(/\/login$/);
 });

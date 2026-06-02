@@ -7,11 +7,21 @@ const props = defineProps<{
   triggerKey: number;
 }>();
 
+const emit = defineEmits<{
+  /** Fires once the celebration ends (lottie complete, fallback timer, or
+   *  immediately under reduced motion) so the parent can chain a follow-up
+   *  prompt without depending on the animation. */
+  finished: [];
+}>();
+
 const reduced = useReducedMotion();
 const visible = ref(false);
 const playKey = ref(0);
 
 let _timer: ReturnType<typeof setTimeout> | null = null;
+// Guards against a double `finished` emit when both the lottie complete event
+// and the fallback timer race for the same celebration.
+let awaitingFinish = false;
 const FALLBACK_MS = 3500;
 
 const close = (): void => {
@@ -22,21 +32,33 @@ const close = (): void => {
   }
 };
 
+const finish = (): void => {
+  if (!awaitingFinish) return;
+  awaitingFinish = false;
+  emit('finished');
+};
+
 const onComplete = (): void => {
   close();
+  finish();
 };
 
 watch(
   () => props.triggerKey,
   (next, prev) => {
     if (next <= 0 || next === prev) return;
-    if (reduced.value) return;
+    if (reduced.value) {
+      emit('finished');
+      return;
+    }
+    awaitingFinish = true;
     playKey.value += 1;
     visible.value = true;
     if (_timer) clearTimeout(_timer);
     _timer = setTimeout(() => {
       visible.value = false;
       _timer = null;
+      finish();
     }, FALLBACK_MS);
   },
 );

@@ -60,7 +60,11 @@
     "shareTitle": "🛒 List: {name}",
     "shareFooter": "Buy The Way - Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev",
     "shareNoteLabel": "Note",
-    "deletedWithUndo": "List \"{name}\" deleted"
+    "deletedWithUndo": "List \"{name}\" deleted",
+    "completionEmptyTitle": "All bought!",
+    "completionEmptyMessage": "You have checked off every item. Empty the list now?",
+    "completionEmptyConfirm": "Empty list",
+    "completionEmptyCancel": "Keep list"
   },
   "item": {
     "addPlaceholder": "Add an item",
@@ -359,10 +363,35 @@
       }
     ]
   },
+  "home": {
+    "heroTitle": "Shopping lists your whole family shares",
+    "heroSubtitle": "Buy The Way keeps everyone in sync in real time. Add items, check them off, and never buy the same thing twice. Free, offline-ready, no ads.",
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "Learn more",
+    "highlightsTitle": "Why Buy The Way",
+    "highlights": [
+      {
+        "title": "Real-time sync",
+        "body": "Every change appears instantly on every device you and your family use."
+      },
+      {
+        "title": "Works offline",
+        "body": "Shop without signal. Your edits sync the moment you reconnect."
+      },
+      {
+        "title": "Private by design",
+        "body": "No ads, no tracking, no analytics. Your lists stay yours."
+      }
+    ]
+  },
   "seo": {
     "login": {
       "title": "Buy The Way",
       "description": "Sign in to Buy The Way and share real-time shopping lists with your family."
+    },
+    "home": {
+      "title": "Buy The Way - Shared shopping lists in real time",
+      "description": "Free mobile-first PWA for grocery lists your family shares in real time. Offline-ready, no ads, no tracking."
     },
     "about": {
       "title": "Buy The Way - Your smart shopping list",

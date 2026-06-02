@@ -60,7 +60,11 @@
     "shareTitle": "🛒 Lista: {name}",
     "shareFooter": "Buy The Way - La tua lista della spesa intelligente\nhttps://buy-the-way.danielebelfiore.dev",
     "shareNoteLabel": "Nota",
-    "deletedWithUndo": "Lista \"{name}\" eliminata"
+    "deletedWithUndo": "Lista \"{name}\" eliminata",
+    "completionEmptyTitle": "Tutto comprato!",
+    "completionEmptyMessage": "Hai spuntato tutti gli articoli. Vuoi svuotare la lista adesso?",
+    "completionEmptyConfirm": "Svuota lista",
+    "completionEmptyCancel": "Mantieni lista"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
@@ -359,10 +363,35 @@
       }
     ]
   },
+  "home": {
+    "heroTitle": "Le liste della spesa che tutta la famiglia condivide",
+    "heroSubtitle": "Buy The Way tiene tutti sincronizzati in tempo reale. Aggiungi articoli, spuntali e non comprare mai due volte la stessa cosa. Gratis, pronta offline, senza pubblicità.",
+    "ctaPrimary": "Inizia ora",
+    "ctaSecondary": "Scopri di più",
+    "highlightsTitle": "Perché Buy The Way",
+    "highlights": [
+      {
+        "title": "Sincronizzazione in tempo reale",
+        "body": "Ogni modifica appare all'istante su tutti i dispositivi tuoi e della tua famiglia."
+      },
+      {
+        "title": "Funziona offline",
+        "body": "Fai la spesa anche senza segnale. Le modifiche si sincronizzano appena torni online."
+      },
+      {
+        "title": "Privata per scelta",
+        "body": "Nessuna pubblicità, nessun tracking, nessuna analytics. Le tue liste restano tue."
+      }
+    ]
+  },
   "seo": {
     "login": {
       "title": "Buy The Way",
       "description": "Accedi a Buy The Way e condividi le liste della spesa in tempo reale con la tua famiglia."
+    },
+    "home": {
+      "title": "Buy The Way - Liste della spesa condivise in tempo reale",
+      "description": "PWA gratuita mobile-first per liste della spesa condivise in tempo reale con la famiglia. Pronta offline, senza pubblicità né tracking."
     },
     "about": {
       "title": "Buy The Way - La tua lista della spesa intelligente",

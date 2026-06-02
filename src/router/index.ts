@@ -33,13 +33,17 @@ export const authGuard = async (
 
   const isAuthenticated = user.value !== null;
   const isLoginRoute = to.name === 'login';
+  const isHomeRoute = to.name === 'home';
   const isPublicRoute = typeof to.name === 'string' && PUBLIC_ROUTE_NAMES.has(to.name);
 
   if (!isAuthenticated && !isPublicRoute) {
     return { name: 'login' };
   }
 
-  if (isAuthenticated && isLoginRoute) {
+  // The landing page and /login are public, but authenticated users have no
+  // reason to see them - send them straight into the app (which then chains to
+  // the default-list boot redirect below).
+  if (isAuthenticated && (isLoginRoute || isHomeRoute)) {
     return { name: 'lists' };
   }
 
@@ -73,7 +77,8 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/lists',
+      name: 'home',
+      component: () => import('@/views/LandingView.vue'),
     },
     {
       path: '/login',

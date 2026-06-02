@@ -26,7 +26,7 @@ onMounted(() => {
 <template>
   <OfflineBanner />
   <router-view v-slot="{ Component }">
-    <Transition v-if="!isE2E" name="view-fade" mode="out-in">
+    <Transition v-if="!isE2E" name="view-fade">
       <KeepAlive :include="['ListsView']">
         <component :is="Component" />
       </KeepAlive>
@@ -43,6 +43,15 @@ onMounted(() => {
 .view-fade-enter-active,
 .view-fade-leave-active {
   transition: opacity 180ms ease, transform 180ms ease;
+}
+/* Views are `position: fixed; inset: 0`, so the entering and leaving views
+   stack during the (simultaneous) fade. We intentionally do NOT use
+   `mode="out-in"` here: that mode triggers a Vue bug where a <KeepAlive>d
+   component (ListsView) fails to re-insert and renders blank when navigated
+   back to. Without out-in the leaving view briefly overlays the entering one,
+   so mark it non-interactive to stop it swallowing taps mid-transition. */
+.view-fade-leave-active {
+  pointer-events: none;
 }
 .view-fade-enter-from {
   opacity: 0;

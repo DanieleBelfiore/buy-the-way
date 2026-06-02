@@ -5,6 +5,11 @@ export interface RouteMeta {
 }
 
 export const ROUTE_META: Record<string, RouteMeta> = {
+  home: {
+    titleKey: 'seo.home.title',
+    descriptionKey: 'seo.home.description',
+    public: true,
+  },
   login: {
     titleKey: 'seo.login.title',
     descriptionKey: 'seo.login.description',

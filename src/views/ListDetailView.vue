@@ -338,6 +338,23 @@ const {
   handleDontSuggestConfirm,
 } = useListDetailActions({ listId, expandIfCollapsed, previouslyAllChecked });
 
+// Post-completion prompt: once the "all bought" celebration ends, offer to
+// empty the list as if the user had tapped the empty-list button.
+const emptyPromptOpen = ref(false);
+
+const onCelebrationFinished = (): void => {
+  // Re-check state: the user may have added or unchecked an item during the
+  // animation, in which case emptying would be surprising.
+  if (itemCount.value > 0 && boughtCount.value === itemCount.value) {
+    emptyPromptOpen.value = true;
+  }
+};
+
+const onCompletionEmptyConfirm = (): void => {
+  emptyPromptOpen.value = false;
+  void handleEmptyList();
+};
+
 const otherLists = computed(() =>
   listsStore.lists.filter((l) => l.id !== listId.value),
 );
@@ -779,7 +796,18 @@ watch(
       @cancel="handlePriorityCancel"
     />
 
-    <CompletionCelebration :trigger-key="celebrationKey" />
+    <CompletionCelebration :trigger-key="celebrationKey" @finished="onCelebrationFinished" />
+
+    <ConfirmModal
+      :open="emptyPromptOpen"
+      :title="t('list.completionEmptyTitle')"
+      :message="t('list.completionEmptyMessage')"
+      :confirm-label="t('list.completionEmptyConfirm')"
+      :cancel-label="t('list.completionEmptyCancel')"
+      destructive
+      @confirm="onCompletionEmptyConfirm"
+      @cancel="emptyPromptOpen = false"
+    />
 
     <Toast
       :open="toggleToastOpen"
