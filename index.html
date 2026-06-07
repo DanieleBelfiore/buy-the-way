@@ -92,9 +92,57 @@
         setMeta('color-scheme', colorScheme);
       })();
     </script>
+    <!--
+      Boot splash. Pure HTML + CSS so it paints before the JS bundle loads and
+      stays on screen through the slowest cold-open step: the auth-guard
+      awaiting the restored Firebase session over the network. Vue replaces the
+      contents of #app on mount, which removes it automatically - no teardown
+      code needed. Colors mirror the theme-color metas above so the splash
+      background matches the resolved light/dark theme with no flash.
+      CSP: covered by `style-src 'unsafe-inline'`; no script, so no hash change.
+    -->
+    <style>
+      .app-boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f7f4ed;
+      }
+      [data-theme='dark'] .app-boot {
+        background: #15151a;
+      }
+      .app-boot__spinner {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 3px solid rgba(0, 0, 0, 0.14);
+        border-top-color: #3a3a3a;
+        animation: app-boot-spin 0.7s linear infinite;
+      }
+      [data-theme='dark'] .app-boot__spinner {
+        border-color: rgba(255, 255, 255, 0.16);
+        border-top-color: #e8e8e8;
+      }
+      @keyframes app-boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .app-boot__spinner {
+          animation-duration: 1.5s;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="app-boot" aria-hidden="true">
+        <span class="app-boot__spinner"></span>
+      </div>
+    </div>
 
     <!--
       Static Netlify Forms detector. Netlify scans the built HTML at deploy

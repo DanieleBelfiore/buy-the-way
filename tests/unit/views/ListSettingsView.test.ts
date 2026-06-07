@@ -104,13 +104,14 @@ const setupStores = (
   list: typeof ownerList | null,
   selfUid: string,
   profile: { uid: string; defaultListId?: string | null } | null = null,
+  opts: { loading?: boolean; initialized?: boolean } = {},
 ) => {
   vi.mocked(useListsStore).mockReturnValue({
     lists: list ? [list] : [],
-    loading: false,
+    loading: opts.loading ?? false,
     error: null,
     lastSeenLists: 0,
-    initialized: true,
+    initialized: opts.initialized ?? true,
     subscribe: mockSubscribe,
     createList: vi.fn(),
     loadLastSeen: vi.fn().mockResolvedValue(undefined),
@@ -140,6 +141,24 @@ describe('ListSettingsView', () => {
     setupStores(null, 'uid-me');
     const wrapper = await mountView();
     await flushPromises();
+    expect(wrapper.text()).toContain('List not found.');
+  });
+
+  it('shows a loading skeleton (not "not found") while the subscription resolves', async () => {
+    // No list yet AND the subscription has not delivered: deep-link / hard
+    // refresh window. Must show skeleton, never the misleading not-found copy.
+    setupStores(null, 'uid-me', null, { loading: true, initialized: false });
+    const wrapper = await mountView();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="list-settings-loading"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('List not found.');
+  });
+
+  it('falls through to not-found once initialized with the id absent', async () => {
+    setupStores(null, 'uid-me', null, { loading: false, initialized: true });
+    const wrapper = await mountView();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="list-settings-loading"]').exists()).toBe(false);
     expect(wrapper.text()).toContain('List not found.');
   });
 

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import OfflineBanner from '@/components/ui/OfflineBanner.vue';
 import UpdatePrompt from '@/components/ui/UpdatePrompt.vue';
 import InstallPrompt from '@/components/ui/InstallPrompt.vue';
+import GlobalLoadingOverlay from '@/components/ui/GlobalLoadingOverlay.vue';
 import { setupButtonTextFit } from '@/composables/useButtonTextFit';
 import { onMounted } from 'vue';
 
@@ -37,6 +38,7 @@ onMounted(() => {
   </router-view>
   <UpdatePrompt />
   <InstallPrompt />
+  <GlobalLoadingOverlay />
 </template>
 
 <style>

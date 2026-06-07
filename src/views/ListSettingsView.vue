@@ -28,6 +28,7 @@ import { ArrowLeft, Check, LogOut, Trash2 } from '@lucide/vue';
 import AddCollaboratorForm from '@/components/collaborators/AddCollaboratorForm.vue';
 import CollaboratorList from '@/components/collaborators/CollaboratorList.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import type { ULID } from '@/domain/id';
 import type { UserProfile } from '@/domain/types';
 
@@ -296,7 +297,22 @@ const handleDelete = async () => {
       </h1>
     </header>
 
-    <div v-if="!list" class="px-5 py-12 text-center">
+    <!-- While the lists subscription is still resolving (deep-link / hard
+         refresh on this route), show a skeleton instead of the "not found"
+         message - the list may well exist, we just haven't received the
+         snapshot yet. Only fall through to not-found once the subscription
+         has delivered at least once and the id is genuinely absent. -->
+    <div
+      v-if="!list && (listsStore.loading || !listsStore.initialized)"
+      data-testid="list-settings-loading"
+      class="px-5 py-4 space-y-2"
+    >
+      <SkeletonCard height-class="h-10" />
+      <SkeletonCard height-class="h-24" />
+      <SkeletonCard height-class="h-10" />
+    </div>
+
+    <div v-else-if="!list" class="px-5 py-12 text-center">
       <p class="text-sm text-muted-gray">{{ t('error.listNotFound') }}</p>
     </div>
 

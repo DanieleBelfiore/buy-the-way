@@ -11,7 +11,8 @@
   },
   "common": {
     "undo": "Undo",
-    "dismissToast": "Dismiss notification"
+    "dismissToast": "Dismiss notification",
+    "loading": "Loading…"
   },
   "auth": {
     "continueWithGoogle": "Sign in with Google",
