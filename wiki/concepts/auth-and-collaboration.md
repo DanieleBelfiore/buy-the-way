@@ -25,7 +25,7 @@ Profile merge: `users.service` reads public doc + `private/state`, with legacy-f
 
 ## Notifications
 
-Opt-in FCM. Server function `notify-list-event` writes notification docs when collaborators add/check/empty/remove.
+In-app inbox (no FCM, no browser permission, no service worker). Server function `notify-list-event` writes one notification doc per recipient into `users/{uid}/notifications` when collaborators add/check/empty/remove; the client renders them in a popover anchored to the lists view and batch-deletes on read. Bodies are templated server-side from Firestore (tamper-proof); inbox is FIFO-capped at 50 docs per user.
 
 ## Netlify (auth-adjacent)
 
@@ -34,7 +34,7 @@ Opt-in FCM. Server function `notify-list-event` writes notification docs when co
 | `send-magic-link` | Magic link email |
 | `send-invite` | Invite email (where used) |
 | `find-user` | Email lookup for collaborator add |
-| `notify-list-event` | Push + notification docs |
+| `notify-list-event` | In-app notification fan-out (one doc per recipient) |
 
 Rate limits in Firestore `rateLimits/*` - server only.
 

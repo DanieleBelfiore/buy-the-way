@@ -36,9 +36,9 @@ Same per-task invariant applies:
 
 ## Private state lives in a subcollection
 
-Per-user state that no collaborator should ever read (push opt-in, onboarding flag, etc.) lives under `users/{uid}/private/state`, not on the public `users/{uid}` doc. The public doc is readable by any signed-in user for the email-lookup flow; the private subcollection is owner-only. Don't add new flags to the public doc - put them in `private/state`.
+Per-user state that no collaborator should ever read (onboarding flag, per-user defaults, etc.) lives under `users/{uid}/private/state`, not on the public `users/{uid}` doc. The public doc is readable by any signed-in user for the email-lookup flow; the private subcollection is owner-only. Don't add new flags to the public doc - put them in `private/state`.
 
-## Server-only collections (rate limits, FCM fan-out state)
+## Server-only collections (rate limits, server-only state)
 
 `rateLimits/{uid}_{funcName}` and any other Firestore doc that only the serverless functions touch must `allow read, write: if false` so the client SDK can't even attempt to read or mutate them. The Netlify functions go through `firebase-admin`, which bypasses rules.
 

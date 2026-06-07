@@ -22,7 +22,7 @@ Documented in `.claude/docs/workflow.md` - see [claude-docs](../sources/claude-d
 ## Hosting
 
 - **Netlify** - SPA + serverless functions
-- **Firebase** - Auth, Firestore, Storage, FCM; rules deployed from `firebase/`
+- **Firebase** - Auth, Firestore, Storage; rules deployed from `firebase/`
 - CSP / `img-src` in `netlify.toml` when adding storage or asset origins
 
 ## Rollback

@@ -34,10 +34,10 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a user, I can attach a photo to any item; the client compresses it to an 800 px photo + 200 px thumbnail and stores both under `lists/{listId}/items/{itemId}/` in Cloud Storage.
 - As a user, I can dictate items by voice (Web Speech API where supported) and paste a free-form text block to bulk-add items.
 - As a user, after deleting one or more items I see an Undo toast with countdown; tapping it restores the items before the commit fires.
-- As a user, I can opt-in to push notifications (FCM Web Push); I receive a notification when a collaborator adds an item, checks one off, empties the list, or removes me from it.
+- As a user, I receive an in-app notification (no FCM, no browser permission) when a collaborator adds an item, checks one off, empties the list, or removes me from it; notifications land in an inbox popover anchored to the lists view.
 - As a user, I can export all my data (lists, items, catalog, profile) as a JSON file from the Settings view (GDPR right-to-portability).
 - As a first-time user, I see an in-app onboarding tour that I can dismiss; the dismissal is persisted in `users/{uid}/private/state.hasSeenOnboarding`.
-- As a user, my private state (push opt-in, onboarding flag) lives in the owner-only subcollection `users/{uid}/private/state`; the public `users/{uid}` doc keeps only the minimum needed for the email-lookup flow.
+- As a user, my private state (onboarding flag, per-user defaults) lives in the owner-only subcollection `users/{uid}/private/state`; the public `users/{uid}` doc keeps only the minimum needed for the email-lookup flow.
 
 **Success definition:**
 
@@ -60,7 +60,7 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 | Styling | Tailwind CSS | ^3.4 |
 | PWA | vite-plugin-pwa (Workbox) | ^0.20 |
 | Head / SEO | @unhead/vue | ^3 (composable + plugin) |
-| Backend (Auth + DB + Realtime + Storage + Push) | Firebase: Auth + Firestore + Storage + FCM | SDK ^12 (modular) |
+| Backend (Auth + DB + Realtime + Storage) | Firebase: Auth + Firestore + Storage | SDK ^12 (modular) |
 | Drag-and-drop | vue-draggable-plus | ^0.6 |
 | Charts | chart.js + vue-chartjs | ^4 / ^5 (lazy-loaded on /stats) |
 | Serverless | Netlify Functions + firebase-admin | latest |
@@ -241,7 +241,6 @@ buy-the-way/
 │   │   ├── itemPhotos.service.ts     # Upload + delete photo/thumb + purge helper for cascades
 │   │   ├── catalog.service.ts        # Personal catalog + ranking + pin/exclude
 │   │   ├── listFavorites.service.ts  # Favorites shelf state
-│   │   ├── push.service.ts           # FCM token register/unregister + permission
 │   │   ├── notify.service.ts         # Client wrapper for the notify-list-event function
 │   │   ├── invites.service.ts        # Client wrapper for the send-invite function
 │   │   └── export.service.ts         # GDPR JSON export builder
@@ -297,7 +296,7 @@ buy-the-way/
 │   └── functions/
 │       ├── send-invite.ts            # Resend-backed email invites (rate-limited)
 │       ├── find-user.ts              # Server-side email -> uid lookup
-│       ├── notify-list-event.ts      # FCM Web Push fan-out with stale-token pruning
+│       ├── notify-list-event.ts      # In-app notification fan-out (one doc per recipient)
 │       └── _lib/                     # Shared rate-limit + firestore-admin helpers
 ├── .github/workflows/
 │   └── ci-cd.yml                     # Lint + typecheck + unit + rules + e2e + deploy (Firebase + Netlify)
@@ -587,7 +586,7 @@ const onToggle = () => {
 - [ ] Privacy Policy enumerates Firebase + Resend as sub-processors; describes self-service account-deletion as the right-to-erasure path and GDPR JSON export as the right-to-portability path.
 - [ ] Custom items flagged with `UserPlus` badge on `ListItemRow`; exclude-from-suggestions one-tap from the edit sheet.
 - [ ] Item names auto-capitalized on add and edit (shared `capitalizeInitial`).
-- [ ] FCM Web Push opt-in from Settings persists a per-device token under `users/{uid}/fcmTokens/{tokenId}`; server-side fan-out templates the notification body from Firestore and prunes stale tokens.
+- [ ] In-app notifications inbox: server-side fan-out (`notify-list-event`) writes one templated doc per recipient under `users/{uid}/notifications/{id}`; the client renders an anchored popover and batch-deletes on read; FIFO-capped at 50 docs per user (no FCM, no browser permission, no service worker).
 - [ ] Item photos: client-side compressed to 800 px photo + 200 px thumb; stored under `lists/{listId}/items/{itemId}/` with collaborator-gated Storage rules (allow-list `image/jpeg | image/png | image/webp`, 5 MiB cap).
 - [ ] Category reorder via drag-and-drop, open to all collaborators (not admin-only), persisted in `lists/{listId}.categoryOrder`.
 - [ ] Undo delete for single + bulk item removal via toast + countdown; new schedules chain on the in-flight commit.
@@ -599,7 +598,7 @@ const onToggle = () => {
 None blocking. All v1 decisions locked. Status of previously out-of-scope items after Sprints 1-4:
 
 - ~~Rate limiting on serverless endpoints: deferred.~~ **Shipped.** Firestore-backed token bucket (`rateLimits/{uid}_{funcName}`) used by `send-invite` and `notify-list-event`.
-- ~~Push notifications: out of scope for v1.~~ **Shipped in Sprint 3** (FCM Web Push + dedicated `firebase-messaging-sw.js`, per-recipient `pushEnabled` gate, stale-token pruning).
+- ~~Push notifications: out of scope for v1.~~ **Shipped in Sprint 3** (FCM Web Push + dedicated `firebase-messaging-sw.js`, per-recipient `pushEnabled` gate, stale-token pruning), then **replaced in Sprint 4 (S4.2) by an in-app notifications inbox**: the OS-level surface bothered users who weren't actively in the app and required browser permission + a service worker. FCM Web Push, `push.service.ts`, `firebase-messaging-sw.js`, and `fcmTokens` were removed; `notify-list-event` now writes one doc per recipient into `users/{uid}/notifications/{id}`, rendered in an anchored popover and FIFO-capped at 50 docs/user.
 - ~~Ownership transfer: out of scope for v1.~~ **Shipped** as part of the account-deletion cascade.
 - ~~Dark theme: rejected.~~ **Shipped in Sprint 4** with system-following default + manual override.
 - ~~Trash / soft-delete with recovery: rejected for v1.~~ **Shipped as Undo delete in Sprint 2** (toast countdown + commit chain) for items; list deletion remains immediate hard-delete with a confirm modal.

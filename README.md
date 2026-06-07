@@ -60,7 +60,7 @@ The whole UX is tuned for one-handed use at 375 px, in a supermarket, on cellula
 ### Undo + safety nets
 - **Undo delete** for single and bulk item removal via a toast with countdown (`useUndoDelete`). Tasks chain: a new undo schedule waits for the in-flight commit to settle before starting.
 - **Confirm modal** for destructive list-level actions (empty, leave, delete).
-- **Account deletion cascade**: solo lists hard-deleted; shared lists transfer ownership to the next collaborator; guest memberships auto-left. Then catalog, profile, photos, FCM tokens, and Firebase Auth identity removed.
+- **Account deletion cascade**: solo lists hard-deleted; shared lists transfer ownership to the next collaborator; guest memberships auto-left. Then catalog, profile, photos, notifications inbox, and Firebase Auth identity removed.
 
 ### Favorites & catalog
 - **Favorites shelf** at the top surfaces your most-used items (recency-weighted, 14-day half-life) for one-tap re-adding.

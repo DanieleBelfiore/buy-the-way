@@ -14,7 +14,7 @@ Firestore is default-deny; every new path needs a rule in the **same task** as t
 | Path | Purpose |
 |------|---------|
 | `users/{uid}` | Public profile: `uid`, `email`, `displayName`, `photoURL` (readable by any signed-in user for lookup/avatars) |
-| `users/{uid}/private/state` | Owner-only: onboarding, `defaultListId`, `lastSeenLists`, push prefs, etc. |
+| `users/{uid}/private/state` | Owner-only: onboarding, `defaultListId`, `lastSeenLists`, etc. |
 | `users/{uid}/notifications/{id}` | In-app notification feed; server write, owner read/delete |
 | `lists/{listId}` | `ownerUid`, `collaboratorUids`, `admins`, name, wallpaper, `categoryOrder`, counts |
 | `lists/{listId}/items/{itemId}` | Item fields: name, qty, category, checked, priority, photos URLs, timestamps, optional immutable `addedVia` |

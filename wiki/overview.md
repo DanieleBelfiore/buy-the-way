@@ -15,7 +15,7 @@ updated: 2026-05-28
 |-------|--------|
 | UI | Vue 3 Composition API, Pinia, Vue Router, Tailwind |
 | i18n | vue-i18n (it + en) |
-| Backend | Firebase Auth, Firestore, Storage, FCM |
+| Backend | Firebase Auth, Firestore, Storage |
 | Serverless | Netlify Functions + firebase-admin |
 | Build / host | Vite, Netlify |
 | Tests | Vitest (≥80% coverage), Playwright e2e, Firestore rules tests |
@@ -40,7 +40,7 @@ SPEC.md             # product source of truth
 1. **Auth** - Google one-tap or email magic link; profile in `users/{uid}` + private state subcollection.
 2. **Lists** - Owner creates lists; adds collaborators by registered email; realtime item sync.
 3. **Items** - Autocomplete from personal + public catalog; categories, photos, voice, bulk paste, favorites algorithm.
-4. **Notifications** - Opt-in FCM; server writes `users/{uid}/notifications` on list events.
+4. **Notifications** - In-app inbox (no FCM, no browser permission); server function `notify-list-event` writes `users/{uid}/notifications` on list events.
 
 ## Where to read next
 
