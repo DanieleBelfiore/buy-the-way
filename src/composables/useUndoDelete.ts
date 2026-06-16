@@ -19,7 +19,7 @@ export interface UndoTask {
   id: string;
   /** User-facing copy shown in the toast. */
   message: string;
-  /** Auto-commit timeout in milliseconds. Defaults to 5_000. */
+  /** Auto-commit timeout in milliseconds. Defaults to 1_000. */
   durationMs?: number;
   /** Firestore (or other authoritative) call to run when the window expires. */
   commit: () => Promise<void> | void;
@@ -31,7 +31,7 @@ interface ActiveTask extends Required<Omit<UndoTask, 'onUndo'>> {
   onUndo?: () => void;
 }
 
-const DEFAULT_DURATION_MS = 5_000;
+const DEFAULT_DURATION_MS = 1_000;
 
 export const useUndoDelete = () => {
   const _pending = ref<ActiveTask | null>(null);

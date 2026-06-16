@@ -112,13 +112,13 @@ describe('useUndoDelete', () => {
     expect(commit).toHaveBeenCalledOnce();
   });
 
-  it('uses default 5000 ms when durationMs is omitted', async () => {
+  it('uses default 1000 ms when durationMs is omitted', async () => {
     const commit = vi.fn().mockResolvedValue(undefined);
     const capture: { api?: ReturnType<typeof useUndoDelete> } = {};
     mount(hostFor(capture));
 
     capture.api!.schedule({ id: 'a', message: 'a', commit });
-    await vi.advanceTimersByTimeAsync(4999);
+    await vi.advanceTimersByTimeAsync(999);
     expect(commit).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(commit).toHaveBeenCalledOnce();

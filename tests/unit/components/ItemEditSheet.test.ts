@@ -29,7 +29,7 @@ const i18n = createI18n({
       },
       shelf: { title: 'Favorites' },
       listSettings: { save: 'Save' },
-      emptyList: { cancel: 'Cancel' },
+      list: { cancel: 'Cancel' },
       category: {
         label: 'Category',
         fruit_vegetables: 'Fruit & Veg',

@@ -1,22 +1,45 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ListX } from '@lucide/vue';
+import { Check, ListX } from '@lucide/vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import DualChoiceModal from '@/components/ui/DualChoiceModal.vue';
 
-const props = defineProps<{ count: number }>();
-const emit = defineEmits<{ empty: [] }>();
+export type EmptyListScope = 'all' | 'checked';
+
+const props = defineProps<{ count: number; boughtCount: number }>();
+const emit = defineEmits<{ empty: [scope: EmptyListScope] }>();
 
 const { t } = useI18n();
-const modalOpen = ref(false);
+const choiceModalOpen = ref(false);
+const completionModalOpen = ref(false);
 
-const confirmMessage = computed(() =>
-  t('emptyList.confirmMessage', { count: props.count }),
+const allBought = computed(
+  () => props.count > 0 && props.boughtCount === props.count,
 );
 
-const onConfirm = (): void => {
-  modalOpen.value = false;
-  emit('empty');
+const onButtonClick = (): void => {
+  if (allBought.value) {
+    completionModalOpen.value = true;
+    return;
+  }
+  choiceModalOpen.value = true;
+};
+
+const onChooseAll = (): void => {
+  choiceModalOpen.value = false;
+  emit('empty', 'all');
+};
+
+const onChooseBought = (): void => {
+  if (props.boughtCount === 0) return;
+  choiceModalOpen.value = false;
+  emit('empty', 'checked');
+};
+
+const onCompletionConfirm = (): void => {
+  completionModalOpen.value = false;
+  emit('empty', 'all');
 };
 </script>
 
@@ -27,20 +50,34 @@ const onConfirm = (): void => {
       type="button"
       :aria-label="t('emptyList.button')"
       class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-red-700 transition-colors"
-      @click="modalOpen = true"
+      @click="onButtonClick"
     >
       <ListX :size="20" :stroke-width="2.25" aria-hidden="true" />
     </button>
 
-    <ConfirmModal
-      :open="modalOpen"
+    <DualChoiceModal
+      :open="choiceModalOpen"
       :title="t('emptyList.confirmTitle')"
-      :message="confirmMessage"
-      :confirm-label="t('emptyList.confirm')"
-      :cancel-label="t('emptyList.cancel')"
+      :message="t('emptyList.confirmMessage')"
+      :left-label="t('emptyList.confirmAll')"
+      :right-label="t('emptyList.confirmBought')"
+      :left-icon="ListX"
+      :right-icon="Check"
+      :right-disabled="props.boughtCount === 0"
+      @left="onChooseAll"
+      @right="onChooseBought"
+      @cancel="choiceModalOpen = false"
+    />
+
+    <ConfirmModal
+      :open="completionModalOpen"
+      :title="t('list.completionEmptyTitle')"
+      :message="t('list.completionEmptyMessage')"
+      :confirm-label="t('list.completionEmptyConfirm')"
+      :cancel-label="t('list.completionEmptyCancel')"
       destructive
-      @confirm="onConfirm"
-      @cancel="modalOpen = false"
+      @confirm="onCompletionConfirm"
+      @cancel="completionModalOpen = false"
     />
   </template>
 </template>

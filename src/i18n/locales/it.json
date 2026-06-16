@@ -142,10 +142,10 @@
   },
   "emptyList": {
     "button": "Rimuovi tutti gli articoli",
-    "confirmTitle": "Rimuovere tutti gli articoli?",
-    "confirmMessage": "Verranno rimossi tutti i {count} articoli.\nQuesta azione è irreversibile.",
-    "confirm": "Rimuovi tutti",
-    "cancel": "Annulla"
+    "confirmTitle": "Svuotare la lista?",
+    "confirmMessage": "Cosa vuoi rimuovere dalla lista?",
+    "confirmAll": "Tutti",
+    "confirmBought": "Solo comprati"
   },
   "shelf": {
     "title": "I tuoi preferiti | Il tuo articolo preferito | I tuoi {count} articoli preferiti",

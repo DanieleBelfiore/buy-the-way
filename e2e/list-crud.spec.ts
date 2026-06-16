@@ -91,7 +91,7 @@ test('empty list removes all items', async ({ page }) => {
   await addItem(page, 'Bread');
 
   await page.getByTestId('empty-list-button').click();
-  await page.getByTestId('confirm-modal-confirm').click();
+  await page.getByTestId('dual-choice-modal-left').click();
 
   await expect(page.getByText('No items yet')).toBeVisible();
 });

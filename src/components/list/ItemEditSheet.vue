@@ -358,7 +358,7 @@ watch(
           @click="emit('cancel')"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
-          {{ t('emptyList.cancel') }}
+          {{ t('list.cancel') }}
         </button>
         <button
           data-testid="edit-save"

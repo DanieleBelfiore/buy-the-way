@@ -666,7 +666,11 @@ watch(
             @open-voice="openVoiceAdd"
             @open-bulk="openBulkPaste"
           />
-          <EmptyListButton :count="itemCount" @empty="handleEmptyList" />
+          <EmptyListButton
+            :count="itemCount"
+            :bought-count="boughtCount"
+            @empty="(scope) => void handleEmptyList(scope)"
+          />
         </div>
       </div>
     </footer>
@@ -824,7 +828,7 @@ watch(
     />
 
     <!-- S3.1: undo toast. Auto-dismisses after the same window the composable
-         uses (5s) - when it closes, the composable's timer also fires and
+         uses (1s) - when it closes, the composable's timer also fires and
          the firestore commit runs. Action button hands control back to the
          composable's undo path. -->
     <Toast
@@ -833,7 +837,7 @@ watch(
       :action-label="t('common.undo')"
       :action-icon="Undo2"
       :dismiss-label="t('common.dismissToast')"
-      :duration-ms="undoItemDelete.pending.value?.durationMs ?? 5000"
+      :duration-ms="undoItemDelete.pending.value?.durationMs ?? 1000"
       dismissible
       swipeable
       auto-dismiss-with-action

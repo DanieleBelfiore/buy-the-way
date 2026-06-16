@@ -237,6 +237,24 @@ describe('useListDetailActions', () => {
     expect(emptyList).toHaveBeenCalledWith(LIST_ID, [ITEM_ID], { urgentRemoved: 0 });
   });
 
+  it('handleEmptyList with checked scope removes bought items and records them in history', async () => {
+    const bought = { ...sampleItem(), id: '01ITEM000000000000000000002' as ULID, checked: true };
+    useItemsStore().items = [sampleItem(), bought];
+    const { handleEmptyList } = setup();
+    await handleEmptyList('checked');
+    expect(recordListHistory).toHaveBeenCalledWith(
+      LIST_ID,
+      [bought],
+      'user-1',
+      'empty_fallback',
+    );
+    expect(emptyList).toHaveBeenCalledWith(
+      LIST_ID,
+      [bought.id],
+      { urgentRemoved: 0 },
+    );
+  });
+
   it('handleEmptyList skips history when already recorded this cycle', async () => {
     markListHistoryRecorded(LIST_ID);
     const { handleEmptyList } = setup();

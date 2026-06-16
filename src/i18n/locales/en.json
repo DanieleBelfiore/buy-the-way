@@ -142,10 +142,10 @@
   },
   "emptyList": {
     "button": "Remove all items",
-    "confirmTitle": "Remove all items?",
-    "confirmMessage": "This will remove all {count} items.\nThis cannot be undone.",
-    "confirm": "Remove all",
-    "cancel": "Cancel"
+    "confirmTitle": "Empty the list?",
+    "confirmMessage": "Choose what to remove from the list.",
+    "confirmAll": "All",
+    "confirmBought": "Bought only"
   },
   "shelf": {
     "title": "Your favorites | Your favorite item | Your {count} favorite items",

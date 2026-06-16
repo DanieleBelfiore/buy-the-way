@@ -227,7 +227,6 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     undoItemDelete.schedule({
       id: target.id,
       message: t('item.deletedWithUndo'),
-      durationMs: 5000,
       commit: async () => {
         try {
           await removeItem(listId.value, target.id);
@@ -244,17 +243,26 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     });
   };
 
-  const handleEmptyList = async (): Promise<void> => {
+  const handleEmptyList = async (scope: 'all' | 'checked' = 'all'): Promise<void> => {
     const items = itemsStore.items;
-    const ids = items.map((i) => i.id);
+    const targets = scope === 'checked' ? items.filter((i) => i.checked) : items;
+    const ids = targets.map((i) => i.id);
+    if (ids.length === 0) return;
     const uid = authStore.user?.uid;
+    const historyItems = scope === 'checked' ? targets : items;
     try {
-      if (uid && items.length > 0 && !wasListHistoryRecorded(listId.value)) {
-        await recordListHistory(listId.value, items, uid, 'empty_fallback');
+      if (
+        uid &&
+        historyItems.length > 0 &&
+        !wasListHistoryRecorded(listId.value)
+      ) {
+        await recordListHistory(listId.value, historyItems, uid, 'empty_fallback');
         markListHistoryRecorded(listId.value);
       }
-      await emptyList(listId.value, ids, { urgentRemoved: countUrgentItems(items) });
-      clearListHistoryRecorded(listId.value);
+      await emptyList(listId.value, ids, { urgentRemoved: countUrgentItems(targets) });
+      if (ids.length === items.length) {
+        clearListHistoryRecorded(listId.value);
+      }
     } catch (err) {
       console.error('[useListDetailActions] emptyList failed:', err);
     }
@@ -280,7 +288,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     undoItemDelete.schedule({
       id: targetIds.join(','),
       message: t('item.bulkDeletedWithUndo', { n: targets.length }, targets.length),
-      durationMs: 6000,
+      durationMs: 3000,
       commit: async () => {
         try {
           await bulkRemoveItems(listId.value, targetIds, {
