@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { AlertTriangle } from '@lucide/vue';
 import { useCatalogStore, type Suggestion } from '@/stores/catalog';
 import { useDebouncedRef } from '@/composables/useDebouncedRef';
 import { normalizeName, iconForItem } from '@/domain/public-catalog';
-import type { Category } from '@/domain/types';
+import { suggestionMatchesListItem } from '@/domain/item-identity';
+import InfoHint from '@/components/ui/InfoHint.vue';
+import type { Category, Item } from '@/domain/types';
 
 const props = withDefaults(
   defineProps<{
     /** Open suggestions above the input when the field sits in a bottom footer. */
     dropdownPlacement?: 'above' | 'below';
+    /** Visible list rows used to flag suggestions that would duplicate an entry. */
+    listItems?: readonly Item[];
   }>(),
-  { dropdownPlacement: 'below' },
+  { dropdownPlacement: 'below', listItems: () => [] },
 );
 
 /** Visible rows before the list scrolls. Row height matches `h-11` (2.75rem). */
@@ -43,6 +48,9 @@ const typedMatchesSuggestion = computed(() => {
 const showCustom = computed(() => hasText.value && !typedMatchesSuggestion.value);
 
 const totalOptions = computed(() => suggestions.value.length + (showCustom.value ? 1 : 0));
+
+const isSuggestionDuplicate = (entry: Suggestion): boolean =>
+  suggestionMatchesListItem(props.listItems, entry);
 
 const listboxPlacementClass = computed(() =>
   props.dropdownPlacement === 'above' ? 'bottom-full mb-1' : 'top-full mt-1',
@@ -135,10 +143,25 @@ const onKeydown = (e: KeyboardEvent) => {
         data-testid="suggestion-option"
         @click="commit(entry)"
       >
-        <span aria-hidden="true" class="text-base leading-none">
+        <span aria-hidden="true" class="text-base leading-none shrink-0">
           {{ entry.icon ?? iconForItem(entry.name, locale, entry.category) }}
         </span>
-        <span class="truncate">{{ entry.name }}</span>
+        <span class="flex-1 min-w-0 flex items-center gap-1">
+          <span class="truncate">{{ entry.name }}</span>
+          <InfoHint
+            v-if="isSuggestionDuplicate(entry)"
+            :message="t('item.possibleDuplicateHint')"
+            test-id="suggestion-duplicate-badge"
+            class="shrink-0"
+          >
+            <AlertTriangle
+              :size="13"
+              :stroke-width="2"
+              class="text-amber-500"
+              aria-hidden="true"
+            />
+          </InfoHint>
+        </span>
       </li>
 
       <li

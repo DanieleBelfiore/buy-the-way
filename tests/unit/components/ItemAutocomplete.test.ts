@@ -9,7 +9,8 @@ vi.mock('@/stores/catalog', () => ({
 
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import { useCatalogStore, type Suggestion } from '@/stores/catalog';
-import type { Category } from '@/domain/types';
+import type { Category, Item } from '@/domain/types';
+import type { ULID } from '@/domain/id';
 
 const i18n = createI18n({
   legacy: false,
@@ -19,6 +20,7 @@ const i18n = createI18n({
       item: {
         addPlaceholder: 'Add an item',
         addCustom: 'Add "{name}" as a custom item',
+        possibleDuplicateHint: 'Another row matches this item exactly.',
       },
     },
   },
@@ -33,6 +35,19 @@ const makeEntry = (name: string, category: Category = 'dairy'): Suggestion => ({
 });
 
 const mockSuggestionsFor = vi.fn();
+
+const makeListItem = (name: string, category: Category = 'dairy'): Item => ({
+  id: '01ITEM000000000000000000001' as ULID,
+  listId: '01LIST00000000000000000001' as ULID,
+  name,
+  quantity: '',
+  note: '',
+  category,
+  checked: false,
+  createdByUid: 'user-1',
+  createdAt: 1,
+  updatedAt: 1,
+});
 
 const mountComponent = (props: Record<string, unknown> = {}) =>
   mount(ItemAutocomplete, {
@@ -223,7 +238,7 @@ describe('ItemAutocomplete', () => {
 
   it('still shows all suggestions even when an item by that name is already in the list', async () => {
     mockSuggestionsFor.mockReturnValue([makeEntry('Latte'), makeEntry('Latte Scremato')]);
-    const wrapper = mountComponent();
+    const wrapper = mountComponent({ listItems: [makeListItem('Latte')] });
     const input = wrapper.find('input');
     await input.setValue('lat');
     await input.trigger('input');
@@ -231,6 +246,18 @@ describe('ItemAutocomplete', () => {
 
     const options = wrapper.findAll('[data-testid="suggestion-option"]');
     expect(options).toHaveLength(2);
+  });
+
+  it('shows duplicate warning on suggestions that match an existing row', async () => {
+    mockSuggestionsFor.mockReturnValue([makeEntry('Latte'), makeEntry('Pane', 'bakery')]);
+    const wrapper = mountComponent({ listItems: [makeListItem('Latte')] });
+    const input = wrapper.find('input');
+    await input.setValue('l');
+    await input.trigger('input');
+    await flushPromises();
+
+    const badges = wrapper.findAll('[data-testid="suggestion-duplicate-badge"]');
+    expect(badges).toHaveLength(1);
   });
 
   it('Enter commits even when the typed name already exists in the list (duplicates allowed)', async () => {

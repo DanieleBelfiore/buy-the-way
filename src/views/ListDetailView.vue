@@ -657,6 +657,7 @@ watch(
         <ItemAutocomplete
           class="flex-1 min-w-0 [&_input]:h-11 [&_input]:box-border [&_input]:py-0 [&_input]:px-3 [&_input]:leading-[2.75rem]"
           dropdown-placement="above"
+          :list-items="itemsStore.visibleItems"
           @add-item="handleAddItem"
         />
         <div class="flex items-center -space-x-1 shrink-0">

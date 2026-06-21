@@ -5,6 +5,7 @@ import {
   favoritePresenceKey,
   favoritePresenceKeys,
   itemPresenceKey,
+  suggestionMatchesListItem,
 } from '@/domain/item-identity';
 import type { Item } from '@/domain/types';
 
@@ -57,5 +58,14 @@ describe('item-identity', () => {
     ]);
     expect(keys.has(favoritePresenceKey('latte', 'dairy'))).toBe(true);
     expect(keys.has(itemPresenceKey(baseItem({ name: 'Pane', category: 'bakery' })))).toBe(true);
+  });
+
+  it('suggestionMatchesListItem matches plain catalog picks only', () => {
+    const items = [
+      baseItem({ name: 'Latte', category: 'dairy' }),
+      baseItem({ id: '2', name: 'Latte', category: 'dairy', note: 'bio' }),
+    ];
+    expect(suggestionMatchesListItem(items, { name: 'Latte', category: 'dairy' })).toBe(true);
+    expect(suggestionMatchesListItem(items, { name: 'Pane', category: 'bakery' })).toBe(false);
   });
 });

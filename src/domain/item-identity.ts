@@ -18,6 +18,26 @@ export const itemIdentityKey = (item: ItemIdentityFields): string => {
   ].join('|');
 };
 
+/** Identity key for a catalog/autocomplete pick (empty note, quantity, photo). */
+export const suggestionIdentityKey = (
+  suggestion: Pick<ItemIdentityFields, 'name' | 'category'>,
+): string =>
+  itemIdentityKey({
+    name: suggestion.name,
+    category: suggestion.category,
+    note: '',
+    quantity: '',
+  });
+
+/** True when picking this suggestion would match an existing row exactly. */
+export const suggestionMatchesListItem = (
+  items: readonly Item[],
+  suggestion: Pick<ItemIdentityFields, 'name' | 'category'>,
+): boolean => {
+  const key = suggestionIdentityKey(suggestion);
+  return items.some((item) => itemIdentityKey(item) === key);
+};
+
 /** Keys shared by more than one visible item (exact duplicates). */
 export const duplicateItemIds = (items: readonly Item[]): ReadonlySet<string> => {
   const counts = new Map<string, number>();
