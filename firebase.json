@@ -4,6 +4,7 @@
     "indexes": "firebase/firestore.indexes.json"
   },
   "storage": {
+    "bucket": "buy-the-way-2ac6e.firebasestorage.app",
     "rules": "firebase/storage.rules"
   },
   "emulators": {
