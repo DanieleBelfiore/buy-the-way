@@ -201,6 +201,8 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
+          echo "bytes: $(wc -c < "$GOOGLE_APPLICATION_CREDENTIALS")"
+          node -e "const c=require(process.env.GOOGLE_APPLICATION_CREDENTIALS); console.log('type:',c.type,'| project:',c.project_id,'| email_set:',!!c.client_email,'| pk_head:',JSON.stringify((c.private_key||'').slice(0,28)))"
           firebase deploy \
             --only firestore:rules,firestore:indexes,storage \
             --project buy-the-way-2ac6e \
