@@ -132,13 +132,15 @@ jobs:
 
       - name: Deploy firestore rules + indices + storage rules at v${{ needs.resolve.outputs.version }}
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-key.json
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
           firebase deploy \
             --only firestore:rules,firestore:indexes,storage \
             --project "$FIREBASE_PROJECT" \
-            --token "$FIREBASE_TOKEN" \
             --non-interactive
+          rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
 
   rollback-netlify:
     name: rollback netlify production
