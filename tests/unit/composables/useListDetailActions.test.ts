@@ -296,6 +296,24 @@ describe('useListDetailActions', () => {
     expect(editSheetOpen.value).toBe(false);
   });
 
+  it('pins a not-yet-favorited item on save via ensureListFavorite', async () => {
+    // No existing favorite record for this item, and it is not currently pinned.
+    vi.mocked(findListFavoriteByName).mockResolvedValue(null);
+    const bread: Item = { ...sampleItem(), name: 'Bread', category: 'bakery' };
+    useItemsStore().items = [bread];
+    const { handleOpenItemEdit, handleEditSave } = setup();
+    await handleOpenItemEdit(bread);
+    await handleEditSave({
+      name: 'Bread',
+      quantity: '',
+      note: '',
+      category: 'bakery',
+      pinned: true,
+    });
+    expect(ensureListFavorite).toHaveBeenCalledWith(LIST_ID, 'Bread', 'bakery');
+    expect(setListFavoriteState).toHaveBeenCalledWith(LIST_ID, 'slug-1', true);
+  });
+
   it('handleEditCancel closes the edit sheet', async () => {
     const { handleOpenItemEdit, handleEditCancel, editSheetOpen } = setup();
     await handleOpenItemEdit(sampleItem());

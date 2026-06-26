@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useId, toRef, type Component } from 'vue';
+import { ref, useId, toRef, type Component } from 'vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 const props = withDefaults(
   defineProps<{
@@ -22,6 +23,8 @@ const titleId = useId();
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 </script>
 
 <template>
@@ -32,6 +35,7 @@ useModalBack(openRef, () => emit('cancel'));
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

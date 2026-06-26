@@ -178,8 +178,8 @@ const reauthAndRetry = async () => {
     <div class="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-y-contain">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
-        :aria-label="t('settings.title')"
+        class="flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
+        :aria-label="t('common.back')"
         @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.25" aria-hidden="true" />

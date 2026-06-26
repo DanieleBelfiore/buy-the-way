@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertTriangle, ArrowRightLeft, CircleDashed, Flag, Flame, Image, Settings, Star, Trash2, UserPlus } from '@lucide/vue';
+import { AlertTriangle, CircleDashed, Flag, Flame, Image, Settings, Trash2, UserPlus } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
 import { iconForItem, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
@@ -11,8 +11,6 @@ const { t, locale } = useI18n();
 const props = withDefaults(
   defineProps<{
     item: Item;
-    canMoveCopy?: boolean;
-    pinned?: boolean;
     /** S3.2: when true the row participates in bulk selection (tap = toggle). */
     selectionMode?: boolean;
     /** S3.2: whether this row is currently selected. */
@@ -20,7 +18,7 @@ const props = withDefaults(
     /** True when another list row is an exact duplicate of this item. */
     possibleDuplicate?: boolean;
   }>(),
-  { canMoveCopy: true, pinned: false, selectionMode: false, selected: false, possibleDuplicate: false },
+  { selectionMode: false, selected: false, possibleDuplicate: false },
 );
 const icon = computed(() => iconForItem(props.item.name, locale.value, props.item.category));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
@@ -37,8 +35,6 @@ const emit = defineEmits<{
   /** Open the item edit sheet - fired by the per-row Settings icon. */
   'open-edit': [Item];
   'request-priority': [Item];
-  'move-copy': [Item];
-  'toggle-pinned': [Item];
   /** S3.2: long-press → enter bulk-selection mode anchored on this row. */
   'select-enter': [Item];
   /** S3.2: tap while in selection mode → toggle this row's inclusion. */
@@ -97,16 +93,6 @@ const onRequestPriority = (e: MouseEvent): void => {
 const onOpenSettings = (e: MouseEvent): void => {
   e.stopPropagation();
   emit('open-edit', props.item);
-};
-
-const onOpenMoveCopy = (e: MouseEvent): void => {
-  e.stopPropagation();
-  emit('move-copy', props.item);
-};
-
-const onTogglePinned = (e: MouseEvent): void => {
-  e.stopPropagation();
-  emit('toggle-pinned', props.item);
 };
 
 const priorityIcon = computed(() => {
@@ -238,31 +224,6 @@ const nameStateClasses = computed(() => {
         @click="onRequestPriority"
       >
         <component :is="priorityIcon" :size="20" :stroke-width="2" aria-hidden="true" />
-      </button>
-      <button
-        data-testid="row-pinned"
-        type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-favorite-gold transition-colors"
-        :aria-label="props.pinned ? t('item.unpinFavorite') : t('item.pinFavorite')"
-        :aria-pressed="props.pinned"
-        @click="onTogglePinned"
-      >
-        <Star
-        :size="20"
-        :stroke-width="props.pinned ? 2.25 : 2.5"
-          :fill="props.pinned ? 'currentColor' : 'none'"
-          aria-hidden="true"
-        />
-      </button>
-      <button
-        v-if="canMoveCopy"
-        data-testid="row-move-copy"
-        type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-charcoal transition-colors"
-        :aria-label="t('item.moveOrCopy')"
-        @click="onOpenMoveCopy"
-      >
-        <ArrowRightLeft :size="20" :stroke-width="2" aria-hidden="true" />
       </button>
       <button
         data-testid="row-settings"

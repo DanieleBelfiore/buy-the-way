@@ -12,7 +12,8 @@
   "common": {
     "undo": "Undo",
     "dismissToast": "Dismiss notification",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "back": "Back"
   },
   "auth": {
     "continueWithGoogle": "Sign in with Google",

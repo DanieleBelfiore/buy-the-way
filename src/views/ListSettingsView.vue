@@ -286,8 +286,8 @@ const handleDelete = async () => {
   >
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
-        aria-label="Back"
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+        :aria-label="t('common.back')"
+        class="flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
         @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />

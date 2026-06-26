@@ -14,6 +14,7 @@ import {
 } from '@/domain/stats';
 import TopItemsChart from '@/components/stats/TopItemsChart.vue';
 import CategoryDonut from '@/components/stats/CategoryDonut.vue';
+import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -80,8 +81,8 @@ const totalCards = computed(() => [
   >
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
-        :aria-label="t('stats.title')"
-        class="flex items-center justify-center w-10 h-10 rounded-full text-charcoal"
+        :aria-label="t('common.back')"
+        class="flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
         @click="handleBack"
       >
         <ArrowLeft :size="22" :stroke-width="2.5" aria-hidden="true" />
@@ -91,8 +92,19 @@ const totalCards = computed(() => [
       </h1>
     </header>
 
-    <div v-if="loading" class="px-5 py-12 text-center text-muted-gray text-sm">
-      {{ t('stats.loading') }}
+    <div
+      v-if="loading"
+      data-testid="stats-loading"
+      role="status"
+      aria-busy="true"
+      class="px-5 space-y-6"
+    >
+      <span class="sr-only">{{ t('stats.loading') }}</span>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <SkeletonCard v-for="i in 5" :key="i" height-class="h-16" />
+      </div>
+      <SkeletonCard height-class="h-48" />
+      <SkeletonCard height-class="h-48" />
     </div>
 
     <div

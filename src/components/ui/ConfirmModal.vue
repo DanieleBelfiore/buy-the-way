@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, useId, toRef } from 'vue';
+import { computed, ref, useId, toRef } from 'vue';
 import { Check, Trash2, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +28,8 @@ const confirmClasses = computed(() =>
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 </script>
 
 <template>
@@ -37,6 +40,7 @@ useModalBack(openRef, () => emit('cancel'));
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

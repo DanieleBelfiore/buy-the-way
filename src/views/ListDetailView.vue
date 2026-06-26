@@ -272,7 +272,6 @@ const {
   undoItemDelete,
   inferCategoryForBulk,
   closeDontSuggest,
-  pinnedNames,
   editingItem,
   editSheetOpen,
   editingPinned,
@@ -331,7 +330,6 @@ const {
   closeFavorites,
   handleBulkPasteSubmit,
   handleVoiceAddSubmit,
-  handleTogglePinned,
   toggleToastOpen,
   toggleToastMessage,
   dontSuggestCandidate,
@@ -481,7 +479,7 @@ watch(
   <main class="fixed inset-0 bg-cream flex flex-col overflow-hidden">
     <header class="px-5 pt-6 pb-4 flex items-center gap-3">
       <button
-        aria-label="Back"
+        :aria-label="t('common.back')"
         class="flex items-center justify-center w-11 h-11 rounded-full text-charcoal"
         @click="handleBack"
       >
@@ -628,8 +626,6 @@ watch(
           :category="category"
           :items="items"
           :collapsed="isCollapsed(category)"
-          :can-move-copy="canMoveCopy"
-          :pinned-names="pinnedNames"
           :selection-mode="bulkSel.active.value"
           :selected-ids="bulkSel.selected.value"
           :duplicate-item-ids="possibleDuplicateIds"
@@ -638,8 +634,6 @@ watch(
           @toggle-collapse="(c) => toggleCollapsed(c)"
           @open-edit="handleOpenItemEdit"
           @request-priority="handleRequestPriority"
-          @move-copy="handleOpenMoveCopy"
-          @toggle-pinned="handleTogglePinned"
           @select-enter="handleSelectEnter"
           @select-toggle="handleSelectToggle"
         />
@@ -739,9 +733,11 @@ watch(
       :open="editSheetOpen"
       :item="editingItem"
       :pinned="editingPinned"
+      :can-move-copy="canMoveCopy"
       :photo-busy="photoBusy"
       @save="handleEditSave"
       @cancel="handleEditCancel"
+      @move-copy="handleOpenMoveCopy"
       @upload-photo="handleEditUploadPhoto"
       @remove-photo="handleEditRemovePhoto"
     />

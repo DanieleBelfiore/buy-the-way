@@ -12,7 +12,8 @@
   "common": {
     "undo": "Annulla",
     "dismissToast": "Chiudi avviso",
-    "loading": "Caricamento…"
+    "loading": "Caricamento…",
+    "back": "Indietro"
   },
   "auth": {
     "continueWithGoogle": "Accedi con Google",

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, useId, toRef } from 'vue';
+import { computed, ref, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Star, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import FavoritesPanel from '@/components/list/FavoritesPanel.vue';
 import type { ListFavoriteState } from '@/domain/types';
 
@@ -24,6 +25,8 @@ const titleId = useId();
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 const count = computed(() => props.entries.length);
 const empty = computed(() => count.value === 0);
@@ -40,6 +43,7 @@ const empty = computed(() => count.value === 0);
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

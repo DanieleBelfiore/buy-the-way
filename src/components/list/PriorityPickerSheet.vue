@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useId, toRef } from 'vue';
+import { ref, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CircleDashed, Flag, Flame, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import type { Item, ItemPriority } from '@/domain/types';
 
 const props = defineProps<{
@@ -24,6 +25,8 @@ const onSelect = (p: ItemPriority | null): void => emit('select', p);
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 </script>
 
 <template>
@@ -37,6 +40,7 @@ useModalBack(openRef, () => emit('cancel'));
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

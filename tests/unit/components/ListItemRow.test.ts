@@ -263,67 +263,27 @@ describe('ListItemRow', () => {
     });
   });
 
-  describe('pinned star button', () => {
-    it('renders an unfilled gold star by default', () => {
-      const wrapper = mountRow(makeItem());
-      const btn = wrapper.get('[data-testid="row-pinned"]');
-      expect(btn.attributes('aria-pressed')).toBe('false');
-      expect(btn.attributes('aria-label')).toBe('Pin to favorites');
-      expect(btn.classes().join(' ')).toContain('text-favorite-gold');
-    });
-
-    it('renders filled gold star when pinned', () => {
+  describe('relocated actions (favorite + move/copy moved to the edit sheet)', () => {
+    // The star and move/copy buttons were removed from the row to declutter it;
+    // both now live inside ItemEditSheet, opened via the inline settings gear.
+    it('does not render the pinned star button', () => {
       const wrapper = mount(ListItemRow, {
         props: { item: makeItem(), pinned: true },
         global: { plugins: [i18n] },
       });
-      const btn = wrapper.get('[data-testid="row-pinned"]');
-      expect(btn.attributes('aria-pressed')).toBe('true');
-      expect(btn.attributes('aria-label')).toBe('Unpin from favorites');
-      expect(btn.classes().join(' ')).toContain('text-favorite-gold');
+      expect(wrapper.find('[data-testid="row-pinned"]').exists()).toBe(false);
     });
 
-    it('emits toggle-pinned with the item when clicked', async () => {
-      const item = makeItem();
-      const wrapper = mountRow(item);
-      await wrapper.get('[data-testid="row-pinned"]').trigger('click');
-      expect(wrapper.emitted('toggle-pinned')?.[0]).toEqual([item]);
-    });
-  });
-
-  describe('canMoveCopy gate', () => {
-    it('hides move-copy button when canMoveCopy=false', () => {
-      const wrapper = mount(ListItemRow, {
-        props: { item: makeItem(), canMoveCopy: false },
-        global: { plugins: [i18n] },
-      });
+    it('does not render the move-copy button', () => {
+      const wrapper = mountRow(makeItem());
       expect(wrapper.find('[data-testid="row-move-copy"]').exists()).toBe(false);
     });
 
-    it('shows move-copy button when canMoveCopy=true (default)', () => {
+    it('keeps the inline action set to priority, settings and remove', () => {
       const wrapper = mountRow(makeItem());
-      expect(wrapper.find('[data-testid="row-move-copy"]').exists()).toBe(true);
-    });
-  });
-
-  describe('move-copy shortcut button', () => {
-    it('renders the move-copy button with aria-label "Move or copy"', () => {
-      const wrapper = mountRow(makeItem());
-      const btn = wrapper.get('[data-testid="row-move-copy"]');
-      expect(btn.attributes('aria-label')).toBe('Move or copy');
-    });
-
-    it('emits move-copy with the item when clicked', async () => {
-      const item = makeItem();
-      const wrapper = mountRow(item);
-      await wrapper.get('[data-testid="row-move-copy"]').trigger('click');
-      expect(wrapper.emitted('move-copy')?.[0]).toEqual([item]);
-    });
-
-    it('does not emit toggle-checked when move-copy button clicked', async () => {
-      const wrapper = mountRow(makeItem());
-      await wrapper.get('[data-testid="row-move-copy"]').trigger('click');
-      expect(wrapper.emitted('toggle-checked')).toBeFalsy();
+      expect(wrapper.find('[data-testid="row-priority"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="row-settings"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="row-remove"]').exists()).toBe(true);
     });
   });
 

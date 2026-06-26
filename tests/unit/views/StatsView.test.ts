@@ -169,5 +169,7 @@ describe('StatsView', () => {
     } as any);
     const wrapper = mountView();
     expect(wrapper.text()).toContain('Loading');
+    expect(wrapper.find('[data-testid="stats-loading"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-testid="skeleton-card"]').length).toBeGreaterThan(0);
   });
 });

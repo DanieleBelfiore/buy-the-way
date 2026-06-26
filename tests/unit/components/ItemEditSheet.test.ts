@@ -16,6 +16,8 @@ const i18n = createI18n({
         quantity: 'Quantity',
         note: 'Note',
         pinFavorite: 'Pin to favorites',
+        unpinFavorite: 'Unpin from favorites',
+        moveOrCopy: 'Move or copy',
         customBadge: 'Custom item',
         photoReplace: 'Replace',
         photoCamera: 'Camera',
@@ -214,5 +216,62 @@ describe('ItemEditSheet', () => {
     await (zoom as HTMLElement).click();
     expect(document.querySelector('[data-testid="edit-photo-zoom"]')).toBeNull();
     wrapper.unmount();
+  });
+
+  describe('relocated row actions: favorite + move/copy', () => {
+    it('renders the favorite toggle and move/copy buttons', () => {
+      const wrapper = mountSheet(true, makeItem());
+      expect(wrapper.find('[data-testid="edit-pin"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="edit-move-copy"]').exists()).toBe(true);
+      wrapper.unmount();
+    });
+
+    it('favorite toggle is unpressed by default and labelled "Pin to favorites"', () => {
+      const wrapper = mountSheet(true, makeItem());
+      const pin = wrapper.get('[data-testid="edit-pin"]');
+      expect(pin.attributes('aria-pressed')).toBe('false');
+      expect(pin.attributes('aria-label')).toBe('Pin to favorites');
+      wrapper.unmount();
+    });
+
+    it('starts pressed when the pinned prop is true', () => {
+      const wrapper = mount(ItemEditSheet, {
+        props: { open: true, item: makeItem(), pinned: true, photoBusy: false },
+        global: { plugins: [i18n] },
+        attachTo: document.body,
+      });
+      const pin = wrapper.get('[data-testid="edit-pin"]');
+      expect(pin.attributes('aria-pressed')).toBe('true');
+      expect(pin.attributes('aria-label')).toBe('Unpin from favorites');
+      wrapper.unmount();
+    });
+
+    it('toggling the favorite carries pinned:true into the save payload', async () => {
+      const wrapper = mountSheet(true, makeItem());
+      await wrapper.get('[data-testid="edit-pin"]').trigger('click');
+      expect(wrapper.get('[data-testid="edit-pin"]').attributes('aria-pressed')).toBe('true');
+      await wrapper.get('[data-testid="edit-save"]').trigger('click');
+      const payload = wrapper.emitted('save')![0]![0] as { pinned: boolean };
+      expect(payload.pinned).toBe(true);
+      wrapper.unmount();
+    });
+
+    it('emits move-copy with the item when the move/copy button is tapped', async () => {
+      const item = makeItem();
+      const wrapper = mountSheet(true, item);
+      await wrapper.get('[data-testid="edit-move-copy"]').trigger('click');
+      expect(wrapper.emitted('move-copy')?.[0]).toEqual([item]);
+      wrapper.unmount();
+    });
+
+    it('hides the move/copy button when canMoveCopy is false', () => {
+      const wrapper = mount(ItemEditSheet, {
+        props: { open: true, item: makeItem(), canMoveCopy: false, photoBusy: false },
+        global: { plugins: [i18n] },
+        attachTo: document.body,
+      });
+      expect(wrapper.find('[data-testid="edit-move-copy"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
   });
 });

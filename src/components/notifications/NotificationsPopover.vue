@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, useId, toRef, watch } from 'vue';
+import { computed, ref, useId, toRef } from 'vue';
 import { useI18n, Translation as I18nT } from 'vue-i18n';
 import { Bell, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import type { NotificationDoc } from '@/domain/types';
 
 /**
@@ -41,6 +42,8 @@ const formatTimestamp = (ms: number): string => {
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('close'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 const empty = computed(() => props.items.length === 0);
 
@@ -70,19 +73,6 @@ const bodyKey = (n: NotificationDoc): string => {
 const handleRowClick = (n: NotificationDoc): void => {
   emit('open-list', n.listId);
 };
-
-// Auto-focus the dialog when it opens so screen-readers announce the title
-// and ESC works without a pre-click. Re-runs on every open transition.
-watch(
-  () => props.open,
-  (isOpen) => {
-    if (!isOpen) return;
-    void Promise.resolve().then(() => {
-      const el = document.querySelector<HTMLElement>('[data-testid="notifications-dialog"]');
-      el?.focus();
-    });
-  },
-);
 </script>
 
 <template>
@@ -97,6 +87,7 @@ watch(
       @click="emit('close')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

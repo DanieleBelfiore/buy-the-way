@@ -3,6 +3,7 @@ import { ref, useId, watch, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Send, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import pkg from '../../../package.json';
 
 const props = defineProps<{ open: boolean }>();
@@ -41,6 +42,8 @@ const cancel = (): void => {
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, cancel);
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 const submit = async (): Promise<void> => {
   const text = message.value.trim();
@@ -90,6 +93,7 @@ const submit = async (): Promise<void> => {
       @click="cancel"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

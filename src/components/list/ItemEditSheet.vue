@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, useId, toRef, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Check, X, Camera, Images, Trash2 } from '@lucide/vue';
+import { Check, X, Camera, Images, Trash2, Star, ArrowRightLeft } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import { CATEGORY_ORDER, CATEGORIES } from '@/domain/categories';
 import type { Item, Category } from '@/domain/types';
 
@@ -11,10 +12,12 @@ const props = withDefaults(
     open: boolean;
     item: Item | null;
     pinned?: boolean;
+    /** Whether other lists exist to move/copy into - gates the move/copy button. */
+    canMoveCopy?: boolean;
     /** True while upload/remove is in flight (parent-owned). */
     photoBusy?: boolean;
   }>(),
-  { pinned: false, photoBusy: false },
+  { pinned: false, canMoveCopy: true, photoBusy: false },
 );
 
 const emit = defineEmits<{
@@ -28,6 +31,8 @@ const emit = defineEmits<{
     },
   ];
   cancel: [];
+  /** User tapped Move/Copy - parent closes this sheet and opens the picker. */
+  'move-copy': [Item];
   /** S4.2: user picked a file - parent runs `uploadItemPhoto`. */
   'upload-photo': [Item, File];
   /** S4.2: user tapped Remove on the existing photo. */
@@ -60,6 +65,8 @@ const titleId = useId();
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 const onSave = (): void => {
   const trimmed = nameRef.value.trim();
@@ -95,6 +102,14 @@ const onFileChosen = (e: Event): void => {
 };
 const onRemovePhoto = (): void => {
   if (props.item) emit('remove-photo', props.item);
+};
+
+const togglePinned = (): void => {
+  pinnedRef.value = !pinnedRef.value;
+};
+
+const onMoveCopy = (): void => {
+  if (props.item) emit('move-copy', props.item);
 };
 
 const photoSrc = computed(
@@ -169,6 +184,7 @@ watch(
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
@@ -346,6 +362,43 @@ watch(
               {{ t('item.photoGallery') }}
             </button>
           </div>
+        </div>
+
+        <!-- Secondary actions relocated from the row: favorite toggle + move/copy. -->
+        <div data-testid="edit-actions" class="flex flex-row gap-2">
+          <button
+            type="button"
+            data-testid="edit-pin"
+            :aria-pressed="pinnedRef"
+            :aria-label="pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite')"
+            :class="[
+              'flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border transition-colors',
+              pinnedRef
+                ? 'bg-favorite-gold-soft border-favorite-gold text-charcoal'
+                : 'bg-offwhite border-cream-soft text-charcoal hover:bg-black/5 active:bg-black/10',
+            ]"
+            @click="togglePinned"
+          >
+            <Star
+              :size="16"
+              :stroke-width="2"
+              :fill="pinnedRef ? 'currentColor' : 'none'"
+              class="text-favorite-gold"
+              aria-hidden="true"
+            />
+            {{ pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite') }}
+          </button>
+          <button
+            v-if="props.canMoveCopy"
+            type="button"
+            data-testid="edit-move-copy"
+            :aria-label="t('item.moveOrCopy')"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+            @click="onMoveCopy"
+          >
+            <ArrowRightLeft :size="16" :stroke-width="2" aria-hidden="true" />
+            {{ t('item.moveOrCopy') }}
+          </button>
         </div>
 
       </div>

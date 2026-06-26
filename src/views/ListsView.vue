@@ -453,7 +453,7 @@ watch(
       <button
         :aria-label="t('stats.title')"
         data-testid="open-stats"
-        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
         @click="router.push({ name: 'stats' })"
       >
         <BarChart3 :size="18" :stroke-width="2.25" aria-hidden="true" />
@@ -462,7 +462,7 @@ watch(
         type="button"
         :aria-label="t('notifications.title')"
         data-testid="open-notifications"
-        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
         @click="openNotifications"
       >
         <span class="relative inline-flex shrink-0 !overflow-visible">
@@ -478,7 +478,7 @@ watch(
       <button
         :aria-label="t('settings.title')"
         data-testid="open-settings"
-        class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
         @click="router.push({ name: 'settings' })"
       >
         <SettingsIcon :size="18" :stroke-width="2.25" aria-hidden="true" />

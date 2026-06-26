@@ -3,6 +3,7 @@ import { ref, computed, useId, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Mic, X, Check } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import {
   useSpeechRecognition,
   splitTranscriptIntoItems,
@@ -36,6 +37,8 @@ const titleId = useId();
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 const speech = useSpeechRecognition();
 
@@ -113,6 +116,7 @@ const errorMessageKey = computed<string | null>(() => {
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

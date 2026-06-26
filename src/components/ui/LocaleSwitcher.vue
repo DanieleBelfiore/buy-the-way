@@ -47,7 +47,7 @@ const segmentedBtnClass = (active: boolean): string =>
         props.variant === 'segmented'
           ? segmentedBtnClass(current === 'it')
           : [
-              'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
+              'inline-flex items-center justify-center w-11 h-11 rounded-full text-xl leading-none transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/40',
               current === 'it'
                 ? 'scale-110 opacity-100'
                 : 'opacity-60 hover:opacity-100 active:opacity-100',
@@ -68,7 +68,7 @@ const segmentedBtnClass = (active: boolean): string =>
         props.variant === 'segmented'
           ? segmentedBtnClass(current === 'en')
           : [
-              'inline-flex items-center justify-center w-9 h-9 rounded-full text-xl leading-none transition-all focus:outline-none',
+              'inline-flex items-center justify-center w-11 h-11 rounded-full text-xl leading-none transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/40',
               current === 'en'
                 ? 'scale-110 opacity-100'
                 : 'opacity-60 hover:opacity-100 active:opacity-100',

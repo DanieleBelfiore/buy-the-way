@@ -156,7 +156,7 @@ const useAnotherMagicLinkEmail = (): void => {
                  border border-charcoal/15
                  hover:bg-cream active:bg-cream
                  flex items-center justify-center gap-3
-                 focus:outline-none"
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/40"
           @click="toggleMagicLink"
         >
           {{ t('auth.magicLink.show') }}
@@ -184,7 +184,7 @@ const useAnotherMagicLinkEmail = (): void => {
                        border border-charcoal/15
                        hover:bg-cream active:bg-cream
                        flex items-center justify-center gap-3
-                       focus:outline-none
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/40
                        disabled:opacity-50 disabled:cursor-not-allowed"
                 @click="toggleMagicLink"
               >
@@ -228,7 +228,7 @@ const useAnotherMagicLinkEmail = (): void => {
               class="w-full h-12 px-5 bg-cream-soft text-charcoal text-base font-medium rounded-full
                      border border-charcoal/15
                      hover:bg-cream active:bg-cream
-                     focus:outline-none"
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/40"
               @click="useAnotherMagicLinkEmail"
             >
               {{ t('auth.magicLink.useAnotherEmail') }}

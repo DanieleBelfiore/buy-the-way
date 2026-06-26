@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useId, toRef } from 'vue';
+import { ref, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ArrowRightLeft, Copy, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import type { List } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -28,6 +29,8 @@ const onMove = (id: ULID): void => emit('move', id);
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 </script>
 
 <template>
@@ -41,6 +44,7 @@ useModalBack(openRef, () => emit('cancel'));
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
@@ -56,7 +60,7 @@ useModalBack(openRef, () => emit('cancel'));
           data-testid="list-picker-cancel"
           type="button"
           :aria-label="t('list.cancel')"
-          class="inline-flex items-center justify-center w-9 h-9 rounded-full text-muted-gray"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-muted-gray"
           @click="emit('cancel')"
         >
           <X :size="18" :stroke-width="2" aria-hidden="true" />

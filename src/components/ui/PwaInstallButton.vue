@@ -27,7 +27,7 @@ const onInstall = async (): Promise<void> => {
       type="button"
       data-testid="pwa-install-button"
       :aria-label="t('pwa.installButton')"
-      class="inline-flex items-center justify-center w-10 h-10 rounded-full text-charcoal dark:text-white transition-colors"
+      class="inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
       @click="onInstall"
     >
       <Download :size="18" :stroke-width="2.25" aria-hidden="true" />

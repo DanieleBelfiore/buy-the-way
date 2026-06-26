@@ -488,9 +488,15 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
           name: capitalizeInitial(patch.name),
           category: patch.category,
         });
-        if (patch.pinned !== previousPinned) {
-          await setListFavoriteState(listId.value, fav.slug, patch.pinned);
-        }
+      }
+      // Pin toggled from the edit sheet: persist it even when no favorite
+      // record exists yet (mirrors the row-star path via ensureListFavorite),
+      // otherwise pinning a never-favorited item would silently no-op.
+      if (patch.pinned !== previousPinned) {
+        const slug = fav
+          ? fav.slug
+          : await ensureListFavorite(listId.value, patch.name, patch.category);
+        await setListFavoriteState(listId.value, slug, patch.pinned);
       }
     } catch (err) {
       console.error('[useListDetailActions] updateItem failed:', err);

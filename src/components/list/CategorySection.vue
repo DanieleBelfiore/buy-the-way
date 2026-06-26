@@ -10,8 +10,6 @@ const props = withDefaults(
     category: Category;
     items: Item[];
     collapsed?: boolean;
-    canMoveCopy?: boolean;
-    pinnedNames?: ReadonlySet<string>;
     /** S3.2: per-section selection state passthrough. */
     selectionMode?: boolean;
     selectedIds?: ReadonlySet<string>;
@@ -19,8 +17,6 @@ const props = withDefaults(
   }>(),
   {
     collapsed: false,
-    canMoveCopy: true,
-    pinnedNames: () => new Set<string>(),
     selectionMode: false,
     selectedIds: () => new Set<string>(),
     duplicateItemIds: () => new Set<string>(),
@@ -32,8 +28,6 @@ const emit = defineEmits<{
   'toggle-collapse': [category: Category];
   'open-edit': [item: Item];
   'request-priority': [item: Item];
-  'move-copy': [item: Item];
-  'toggle-pinned': [item: Item];
   'select-enter': [item: Item];
   'select-toggle': [item: Item];
 }>();
@@ -97,8 +91,6 @@ const onLeave = (el: Element, done: () => void): void => {
           v-for="item in props.items"
           :key="item.id"
           :item="item"
-          :can-move-copy="props.canMoveCopy"
-          :pinned="props.pinnedNames.has(item.name)"
           :selection-mode="props.selectionMode"
           :selected="props.selectedIds.has(item.id)"
           :possible-duplicate="props.duplicateItemIds.has(item.id)"
@@ -106,8 +98,6 @@ const onLeave = (el: Element, done: () => void): void => {
           @remove="emit('remove-item', item.id)"
           @open-edit="(it) => emit('open-edit', it)"
           @request-priority="(it) => emit('request-priority', it)"
-          @move-copy="(it) => emit('move-copy', it)"
-          @toggle-pinned="(it) => emit('toggle-pinned', it)"
           @select-enter="(it) => emit('select-enter', it)"
           @select-toggle="(it) => emit('select-toggle', it)"
         />

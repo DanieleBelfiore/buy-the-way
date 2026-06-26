@@ -3,6 +3,7 @@ import { ref, computed, useId, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Check, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
+import { useFocusTrap } from '@/composables/useFocusTrap';
 import { CATEGORIES } from '@/domain/categories';
 import type { Category } from '@/domain/types';
 
@@ -30,6 +31,8 @@ const submitting = ref(false);
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
+const dialogRef = ref<HTMLElement | null>(null);
+useFocusTrap(openRef, dialogRef);
 
 // Reset the textarea every time the sheet opens.
 watch(
@@ -79,6 +82,7 @@ const onSubmit = (): void => {
       @click="emit('cancel')"
     />
     <div
+      ref="dialogRef"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"

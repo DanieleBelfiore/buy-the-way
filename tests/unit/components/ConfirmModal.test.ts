@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 
@@ -87,5 +87,26 @@ describe('ConfirmModal', () => {
     const dialog = wrapper.get('[role="dialog"]');
     expect(dialog.attributes('aria-modal')).toBe('true');
     expect(dialog.attributes('aria-labelledby')).toBeTruthy();
+  });
+
+  it('traps focus: moves focus into the dialog on open and restores it on close', async () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const wrapper = mountModal({ open: false });
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+    // Cancel is the first focusable control - a safe default for a destructive modal.
+    expect(document.activeElement).toBe(
+      wrapper.get('[data-testid="confirm-modal-cancel"]').element,
+    );
+
+    await wrapper.setProps({ open: false });
+    expect(document.activeElement).toBe(trigger);
+
+    wrapper.unmount();
+    trigger.remove();
   });
 });
