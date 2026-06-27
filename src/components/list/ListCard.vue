@@ -106,10 +106,14 @@ const pinButtonClass = computed(() => {
     role="button"
     tabindex="0"
     :class="[
-      'w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3 cursor-pointer',
+      'group w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3 cursor-pointer',
+      'transition-[box-shadow,border-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
       hasWallpaper
-        ? 'text-white border-transparent shadow-sm'
-        : 'bg-offwhite text-charcoal border-cream-soft',
+        ? 'text-white border-transparent shadow-sm hover:shadow-md'
+        : 'bg-offwhite text-charcoal border-cream-soft hover:border-charcoal/15 hover:shadow-sm',
+      props.isDefault
+        ? (hasWallpaper ? 'ring-1 ring-white/40' : 'ring-1 ring-primary/30')
+        : '',
       { 'list-card-no-drag': props.isDefault },
     ]"
     :style="cardStyle"
@@ -201,7 +205,7 @@ const pinButtonClass = computed(() => {
 
     <svg
       :class="[
-        'shrink-0',
+        'shrink-0 transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0',
         hasWallpaper ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]' : 'text-muted-gray',
       ]"
       width="16"

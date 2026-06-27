@@ -26,7 +26,10 @@ const titleId = useId();
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
 const dialogRef = ref<HTMLElement | null>(null);
-useFocusTrap(openRef, dialogRef);
+// Focus the dialog itself, not the first favorite tile: auto-focusing a tile
+// deep in the scroll area makes the browser scroll it into view, clipping the
+// first category/item rows at the top on open.
+useFocusTrap(openRef, dialogRef, { initialFocus: 'container' });
 
 const count = computed(() => props.entries.length);
 const empty = computed(() => count.value === 0);

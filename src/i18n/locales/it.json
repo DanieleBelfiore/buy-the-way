@@ -83,6 +83,7 @@
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
     "quantity": "Quantità",
     "note": "Nota",
+    "actions": "Azioni",
     "remove": "Rimuovi articolo",
     "delete": "Elimina",
     "removeConfirmTitle": "Eliminare l'articolo?",

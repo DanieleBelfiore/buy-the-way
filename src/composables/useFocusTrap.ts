@@ -36,15 +36,31 @@ const focusablesWithin = (container: HTMLElement): HTMLElement[] =>
 export const useFocusTrap = (
   isOpen: Ref<boolean>,
   containerRef: Ref<HTMLElement | null>,
+  options?: {
+    /**
+     * Where focus lands on open. `'first'` (default) focuses the first control
+     * - good for forms. `'container'` focuses the dialog itself, leaving every
+     * control unfocused: use it when auto-focusing a field is undesirable
+     * (e.g. it would pop the mobile keyboard, or scroll a long picker so its
+     * first rows are clipped).
+     */
+    initialFocus?: 'first' | 'container';
+  },
 ): void => {
   let previouslyFocused: HTMLElement | null = null;
+  const initialFocus = options?.initialFocus ?? 'first';
 
   const restoreFocus = (): void => {
     const target = previouslyFocused;
     previouslyFocused = null;
     if (target && typeof target.focus === 'function' && document.contains(target)) {
-      target.focus();
+      target.focus({ preventScroll: true });
     }
+  };
+
+  const focusContainer = (container: HTMLElement): void => {
+    if (!container.hasAttribute('tabindex')) container.setAttribute('tabindex', '-1');
+    container.focus({ preventScroll: true });
   };
 
   const focusFirst = async (): Promise<void> => {
@@ -52,11 +68,10 @@ export const useFocusTrap = (
     const container = containerRef.value;
     if (!container) return;
     const focusables = focusablesWithin(container);
-    if (focusables.length > 0) {
-      focusables[0]?.focus();
+    if (initialFocus === 'first' && focusables.length > 0) {
+      focusables[0]?.focus({ preventScroll: true });
     } else {
-      if (!container.hasAttribute('tabindex')) container.setAttribute('tabindex', '-1');
-      container.focus();
+      focusContainer(container);
     }
   };
 
@@ -71,17 +86,17 @@ export const useFocusTrap = (
     const focusables = focusablesWithin(container);
     if (focusables.length === 0) {
       e.preventDefault();
-      container.focus();
+      focusContainer(container);
       return;
     }
     const first = focusables[0]!;
     const last = focusables[focusables.length - 1]!;
     if (e.shiftKey && active === first) {
       e.preventDefault();
-      last.focus();
+      last.focus({ preventScroll: true });
     } else if (!e.shiftKey && active === last) {
       e.preventDefault();
-      first.focus();
+      first.focus({ preventScroll: true });
     }
   };
 

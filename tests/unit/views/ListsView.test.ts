@@ -170,6 +170,18 @@ describe('ListsView', () => {
     expect(wrapper.find('[aria-label="New list"]').exists()).toBe(false);
   });
 
+  it('autofocuses the name input when the create input opens', async () => {
+    const wrapper = mount(ListsView, {
+      global: { plugins: [i18n, router] },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    await wrapper.find('[aria-label="New list"]').trigger('click');
+    await flushPromises();
+    expect(document.activeElement).toBe(wrapper.find('input').element);
+    wrapper.unmount();
+  });
+
   it('cancel button hides create input', async () => {
     const wrapper = mountView();
     await wrapper.find('[aria-label="New list"]').trigger('click');

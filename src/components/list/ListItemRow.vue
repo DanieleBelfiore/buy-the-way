@@ -123,7 +123,7 @@ const nameStateClasses = computed(() => {
 <template>
   <div
     :class="[
-      'flex items-center min-h-[44px]',
+      'flex items-center min-h-[44px] transition-colors active:bg-charcoal/5',
       props.selectionMode && props.selected ? 'bg-primary/10' : '',
     ]"
   >
@@ -148,7 +148,7 @@ const nameStateClasses = computed(() => {
       </span>
       <span
         ref="nameContainerRef"
-        :class="['flex-1 min-w-0 text-sm', nameStateClasses]"
+        :class="['flex-1 min-w-0 text-sm transition-colors duration-200', nameStateClasses]"
         data-testid="row-name-container"
         style="overflow: hidden;"
       >

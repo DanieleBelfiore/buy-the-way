@@ -66,7 +66,9 @@ const titleId = useId();
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
 const dialogRef = ref<HTMLElement | null>(null);
-useFocusTrap(openRef, dialogRef);
+// Focus the dialog itself, not the name field: auto-focusing the input pops the
+// mobile keyboard on open, which the user does not want here.
+useFocusTrap(openRef, dialogRef, { initialFocus: 'container' });
 
 const onSave = (): void => {
   const trimmed = nameRef.value.trim();
@@ -274,21 +276,21 @@ watch(
                 type="button"
                 data-testid="edit-photo-camera"
                 :disabled="photoBusy"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+                class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
                 @click="onPickFromCamera"
               >
-                <Camera :size="16" :stroke-width="2" aria-hidden="true" />
-                {{ t('item.photoCamera') }}
+                <Camera :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+                <span>{{ t('item.photoCamera') }}</span>
               </button>
               <button
                 type="button"
                 data-testid="edit-photo-gallery"
                 :disabled="photoBusy"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+                class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
                 @click="onPickFromGallery"
               >
-                <Images :size="16" :stroke-width="2" aria-hidden="true" />
-                {{ t('item.photoGallery') }}
+                <Images :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+                <span>{{ t('item.photoGallery') }}</span>
               </button>
             </div>
             <button
@@ -346,59 +348,64 @@ watch(
             <button
               type="button"
               data-testid="edit-photo-camera"
-              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
               @click="onPickFromCamera"
             >
-              <Camera :size="16" :stroke-width="2" aria-hidden="true" />
-              {{ t('item.photoCamera') }}
+              <Camera :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+              <span>{{ t('item.photoCamera') }}</span>
             </button>
             <button
               type="button"
               data-testid="edit-photo-gallery"
-              class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
               @click="onPickFromGallery"
             >
-              <Images :size="16" :stroke-width="2" aria-hidden="true" />
-              {{ t('item.photoGallery') }}
+              <Images :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+              <span>{{ t('item.photoGallery') }}</span>
             </button>
           </div>
         </div>
 
         <!-- Secondary actions relocated from the row: favorite toggle + move/copy. -->
-        <div data-testid="edit-actions" class="flex flex-row gap-2">
-          <button
-            type="button"
-            data-testid="edit-pin"
-            :aria-pressed="pinnedRef"
-            :aria-label="pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite')"
-            :class="[
-              'flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border transition-colors',
-              pinnedRef
-                ? 'bg-favorite-gold-soft border-favorite-gold text-charcoal'
-                : 'bg-offwhite border-cream-soft text-charcoal hover:bg-black/5 active:bg-black/10',
-            ]"
-            @click="togglePinned"
-          >
-            <Star
-              :size="16"
-              :stroke-width="2"
-              :fill="pinnedRef ? 'currentColor' : 'none'"
-              class="text-favorite-gold"
-              aria-hidden="true"
-            />
-            {{ pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite') }}
-          </button>
-          <button
-            v-if="props.canMoveCopy"
-            type="button"
-            data-testid="edit-move-copy"
-            :aria-label="t('item.moveOrCopy')"
-            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
-            @click="onMoveCopy"
-          >
-            <ArrowRightLeft :size="16" :stroke-width="2" aria-hidden="true" />
-            {{ t('item.moveOrCopy') }}
-          </button>
+        <div data-testid="edit-actions-section">
+          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+            {{ t('item.actions') }}
+          </label>
+          <div data-testid="edit-actions" class="flex flex-row gap-2">
+            <button
+              type="button"
+              data-testid="edit-pin"
+              :aria-pressed="pinnedRef"
+              :aria-label="pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite')"
+              :class="[
+                'flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border transition-colors',
+                pinnedRef
+                  ? 'bg-favorite-gold-soft border-favorite-gold text-charcoal'
+                  : 'bg-offwhite border-cream-soft text-charcoal hover:bg-black/5 active:bg-black/10',
+              ]"
+              @click="togglePinned"
+            >
+              <Star
+                :size="16"
+                :stroke-width="2"
+                :fill="pinnedRef ? 'currentColor' : 'none'"
+                class="text-favorite-gold shrink-0"
+                aria-hidden="true"
+              />
+              <span>{{ pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite') }}</span>
+            </button>
+            <button
+              v-if="props.canMoveCopy"
+              type="button"
+              data-testid="edit-move-copy"
+              :aria-label="t('item.moveOrCopy')"
+              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              @click="onMoveCopy"
+            >
+              <ArrowRightLeft :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
+              <span>{{ t('item.moveOrCopy') }}</span>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -417,7 +424,7 @@ watch(
           data-testid="edit-save"
           type="button"
           :disabled="!nameRef.trim()"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition active:scale-[0.98] motion-reduce:active:scale-100 hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="onSave"
         >
           <Check :size="16" :stroke-width="2.25" aria-hidden="true" />

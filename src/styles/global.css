@@ -15,6 +15,9 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Drop the grey flash on tap (iOS/Android): press feedback comes from each
+     control's own :active state, which reads cleaner and more native. */
+  -webkit-tap-highlight-color: transparent;
   font-size: 17px;
   background-color: var(--cream);
   /* Tell the UA which system chrome palette to use (Android PWA nav bar). */

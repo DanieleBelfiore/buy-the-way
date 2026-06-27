@@ -98,6 +98,26 @@ describe('useFocusTrap', () => {
     wrapper.unmount();
   });
 
+  it('focuses the container, not a child, when initialFocus is "container"', async () => {
+    const ContainerHost = defineComponent({
+      props: { open: { type: Boolean, default: false } },
+      setup(props) {
+        const container = ref<HTMLElement | null>(null);
+        useFocusTrap(toRef(props, 'open'), container, { initialFocus: 'container' });
+        return { container };
+      },
+      template: `<div><button id="outside">outside</button><div v-if="open" ref="container" role="dialog"><input id="field" /></div></div>`,
+    });
+    const wrapper = mount(ContainerHost, { attachTo: document.body });
+    document.getElementById('outside')!.focus();
+    await wrapper.setProps({ open: true });
+    await wrapper.vm.$nextTick();
+    const container = wrapper.find('[role="dialog"]').element as HTMLElement;
+    expect(document.activeElement).toBe(container);
+    expect(container.getAttribute('tabindex')).toBe('-1');
+    wrapper.unmount();
+  });
+
   it('falls back to focusing the container when it has no focusable children', async () => {
     const Empty = defineComponent({
       props: { open: { type: Boolean, default: false } },

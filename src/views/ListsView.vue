@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, onActivated, onDeactivated, onBeforeUpdate, onUpdated } from 'vue';
+import { computed, ref, watch, nextTick, onMounted, onUnmounted, onActivated, onDeactivated, onBeforeUpdate, onUpdated } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
@@ -43,6 +43,7 @@ const authStore = useAuthStore();
 
 const showCreateInput = ref(false);
 const newListName = ref('');
+const newListInputRef = ref<HTMLInputElement | null>(null);
 const creating = ref(false);
 const createError = ref<string | null>(null);
 
@@ -125,6 +126,9 @@ onUnmounted(() => {
 const openCreateInput = () => {
   showCreateInput.value = true;
   newListName.value = '';
+  // `autofocus` only fires on initial page load, not when this input is
+  // toggled in via v-if - focus it explicitly once it renders.
+  void nextTick(() => newListInputRef.value?.focus());
 };
 
 const cancelCreate = () => {
@@ -519,6 +523,7 @@ watch(
     <div v-if="showCreateInput" class="shrink-0 px-5 mb-4 space-y-2">
       <AlertMessage v-if="createError" :message="createError" />
       <input
+        ref="newListInputRef"
         v-model="newListName"
         :aria-label="t('list.newPlaceholder')"
         :placeholder="t('list.newPlaceholder')"
@@ -540,6 +545,7 @@ watch(
         <button
           :disabled="creating || !newListName.trim()"
           class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl
+                 transition active:scale-[0.98] motion-reduce:active:scale-100
                  hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
           @click="submitCreate"
         >

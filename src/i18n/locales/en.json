@@ -83,6 +83,7 @@
     "addCustom": "Add \"{name}\" as a custom item",
     "quantity": "Quantity",
     "note": "Note",
+    "actions": "Actions",
     "remove": "Remove item",
     "delete": "Delete",
     "removeConfirmTitle": "Delete this item?",

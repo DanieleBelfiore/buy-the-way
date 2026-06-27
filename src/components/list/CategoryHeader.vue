@@ -60,7 +60,7 @@ const onClick = (): void => {
       data-testid="category-all-bought"
       :size="16"
       :stroke-width="2.75"
-      class="text-charcoal shrink-0"
+      class="text-emerald-600 dark:text-emerald-400 shrink-0"
       :aria-label="t('category.allBought')"
     />
     <span class="flex-1" aria-hidden="true" />
