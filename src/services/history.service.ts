@@ -7,6 +7,7 @@ import {
   orderBy,
   limit as fbLimit,
   writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
@@ -38,6 +39,23 @@ export const recordListHistory = async (
   const col = collection(db, 'lists', listId, 'history');
   await setDoc(doc(col, id), entry);
   await pruneListHistory(listId);
+
+  // Per-user lifetime tally of completed shopping runs, kept in the owner-only
+  // private state doc so no collaborator can read it. Only genuine completions
+  // count - the empty_fallback snapshot is a safety net, not a real shop. A
+  // failure here must not undo the (already persisted) history record.
+  if (trigger === 'completion') {
+    try {
+      await setDoc(
+        doc(db, 'users', recordedByUid, 'private', 'state'),
+        { completedShopCount: increment(1), lastCompletedShopAt: now },
+        { merge: true },
+      );
+    } catch (err) {
+      console.warn('[history] Failed to bump completedShopCount:', err);
+    }
+  }
+
   return id;
 };
 

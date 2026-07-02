@@ -17,3 +17,6 @@ test-results
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Generated admin reports - contain PII, never commit
+scripts/out

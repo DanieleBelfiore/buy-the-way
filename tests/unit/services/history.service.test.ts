@@ -12,6 +12,7 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((ref) => ref),
   orderBy: vi.fn(),
   limit: vi.fn((n: number) => ({ __limit: n })),
+  increment: vi.fn((n: number) => ({ __inc: n })),
   writeBatch: () => writeBatchMock(),
 }));
 
@@ -68,7 +69,8 @@ describe('history.service', () => {
     it('writes a full-item snapshot and returns the new id', async () => {
       const id = await recordListHistory(LIST_ID, [sampleItem()], UID, 'completion');
       expect(id).toBe('01HIST00000000000000000001');
-      expect(setDocMock).toHaveBeenCalledOnce();
+      // Two writes on completion: the history snapshot, then the per-user tally.
+      expect(setDocMock).toHaveBeenCalledTimes(2);
       const [, data] = setDocMock.mock.calls[0];
       expect(data).toMatchObject({
         id: '01HIST00000000000000000001',
@@ -85,6 +87,46 @@ describe('history.service', () => {
       const id = await recordListHistory(LIST_ID, [], UID, 'empty_fallback');
       expect(id).toBeNull();
       expect(setDocMock).not.toHaveBeenCalled();
+    });
+
+    it('bumps the per-user completed-shop tally on completion', async () => {
+      const now = 1_700_000_000_000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+      await recordListHistory(LIST_ID, [sampleItem()], UID, 'completion');
+      const counterCall = setDocMock.mock.calls.find(
+        ([ref]) => (ref as { id: string }).id === 'state',
+      );
+      expect(counterCall).toBeDefined();
+      const [, data, opts] = counterCall!;
+      expect(data).toEqual({
+        completedShopCount: { __inc: 1 },
+        lastCompletedShopAt: now,
+      });
+      expect(opts).toEqual({ merge: true });
+    });
+
+    it('does not touch the per-user tally on empty_fallback', async () => {
+      await recordListHistory(LIST_ID, [sampleItem()], UID, 'empty_fallback');
+      const counterCall = setDocMock.mock.calls.find(
+        ([ref]) => (ref as { id: string }).id === 'state',
+      );
+      expect(counterCall).toBeUndefined();
+      expect(setDocMock).toHaveBeenCalledOnce();
+    });
+
+    it('still returns the id (and warns) when the tally write fails', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // History write resolves; the follow-up counter write rejects.
+      setDocMock.mockResolvedValueOnce(undefined).mockRejectedValueOnce(
+        new Error('boom'),
+      );
+      const id = await recordListHistory(LIST_ID, [sampleItem()], UID, 'completion');
+      expect(id).toBe('01HIST00000000000000000001');
+      expect(warn).toHaveBeenCalledWith(
+        '[history] Failed to bump completedShopCount:',
+        expect.any(Error),
+      );
+      warn.mockRestore();
     });
 
     it('prunes after insert when over the cap', async () => {

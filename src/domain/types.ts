@@ -163,6 +163,15 @@ export interface UserProfile {
    * Missing / `false` triggers the tour on the next `/lists` mount.
    */
   onboardingSeen?: boolean;
+  /**
+   * Lifetime count of shopping runs this user has completed (trigger
+   * `completion` only - the empty_fallback snapshot does not count). Bumped
+   * atomically via `increment(1)` in the private subcollection so it never
+   * leaks through cross-user profile reads. Absent means zero.
+   */
+  completedShopCount?: number;
+  /** Epoch ms of the user's most recent completed shopping run. */
+  lastCompletedShopAt?: number;
 }
 
 /**
