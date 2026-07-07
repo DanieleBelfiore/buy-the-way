@@ -131,6 +131,11 @@ describe('ListItemRow', () => {
     expect(wrapper.html()).not.toContain('line-through');
   });
 
+  it('applies muted-gray text color when checked', () => {
+    const wrapper = mountRow(makeItem({ checked: true }));
+    expect(wrapper.find('[data-testid="row-name-container"]').classes()).toContain('text-muted-gray/70');
+  });
+
   describe('long-press removed', () => {
     // Long-press to open the edit sheet was dropped because the per-row
     // Settings icon already covers the same intent visibly. Hold should be

@@ -113,7 +113,7 @@ const priorityBtnClasses = computed(() => {
 });
 
 const nameStateClasses = computed(() => {
-  if (props.item.checked) return 'text-ink-40';
+  if (props.item.checked) return 'text-muted-gray/70';
   if (props.item.priority === 'urgent') return 'text-orange-500 font-semibold';
   if (props.item.priority === 'optional') return 'text-muted-gray';
   return 'text-charcoal';
