@@ -8,8 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci-cd.yml"><img src="https://github.com/DanieleBelfiore/buy-the-way/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="CI/CD" /></a>
-  <img src="https://img.shields.io/badge/tests-1009%20passing-brightgreen" alt="Tests" />
-  <img src="https://img.shields.io/badge/coverage-80%25%20branches-brightgreen" alt="Coverage" />
+  <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/DanieleBelfiore/737a93d16a10bb3e1f7165ec817a87ab/raw/buy-the-way-coverage.json" alt="Coverage" />
   <img src="https://img.shields.io/badge/PWA-installable-blueviolet" alt="PWA" />
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT" />
 </p>
@@ -222,8 +221,8 @@ netlify/
   functions/          # send-invite, find-user, notify-list-event
   functions/_lib/     # Shared rate-limit + firestore-admin helpers
 tests/
-  rules/              # Firestore security-rule tests (~75 against emulator)
-  unit/               # Vitest unit + component tests (~1009)
+  rules/              # Firestore security-rule tests (against emulator)
+  unit/               # Vitest unit + component tests
   e2e/                # Playwright specs
 firebase/
   firestore.rules     # Server-side authorization rules
@@ -366,7 +365,7 @@ Repo → Settings → Secrets and variables → Actions.
 
 | Name | Purpose |
 |---|---|
-| `FIREBASE_TOKEN` | `firebase deploy` token for rules + indices + storage rules |
+| `FIREBASE_SERVICE_ACCOUNT` | service-account JSON key; written to a temp file and exported as `GOOGLE_APPLICATION_CREDENTIALS` so `firebase deploy` can ship rules + indices + storage rules non-interactively |
 | `NETLIFY_AUTH_TOKEN` | Netlify Personal Access Token, used by `netlify deploy` |
 | `NETLIFY_SITE_ID` | Netlify site API ID (Site settings → General → Site information) |
 | `VITE_FIREBASE_API_KEY` | Firebase web SDK config - baked into the build |
@@ -375,8 +374,37 @@ Repo → Settings → Secrets and variables → Actions.
 | `VITE_FIREBASE_STORAGE_BUCKET` | ditto |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | ditto |
 | `VITE_FIREBASE_APP_ID` | ditto |
+| `GIST_TOKEN` | GitHub PAT, **`gist` scope only**, used to republish the coverage badge |
 
-`RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `INVITE_FROM_ADDRESS`, `APP_URL` stay on **Netlify** as runtime env vars for the serverless functions.
+`RESEND_API_KEY`, `INVITE_FROM_ADDRESS`, `APP_URL` stay on **Netlify** as runtime env vars for the serverless functions.
+
+`FIREBASE_SERVICE_ACCOUNT` is the one credential that must exist in **both** places, with the same value: GitHub Actions uses it to deploy rules, and the Netlify functions read it at runtime through `netlify/functions/_lib/firebase-admin.ts`. Rotating the key means updating both, or one of the two halves breaks.
+
+Repo variables (same page, **Variables** tab):
+
+| Name | Purpose |
+|---|---|
+| `COVERAGE_GIST_ID` | id of the public gist holding `buy-the-way-coverage.json` |
+| `E2E_ENABLED` | `'true'` enables the Playwright gate |
+
+### Coverage badge
+
+The README coverage badge is not hardcoded: on every push to `main` the `quality`
+job runs `pnpm test:coverage` and writes the real `total.branches.pct` from
+`coverage/coverage-summary.json` into a public gist, which shields.io renders
+through its `endpoint` API.
+
+One-off setup:
+
+1. Create a **public** gist with a single file named `buy-the-way-coverage.json`
+   (any placeholder content, the workflow overwrites it).
+2. Copy the gist id from its URL into the `COVERAGE_GIST_ID` repo variable.
+3. Create a PAT with the `gist` scope only and store it as the `GIST_TOKEN` secret.
+4. Replace `COVERAGE_GIST_ID` in the badge URL at the top of this file with the
+   real id.
+
+PR runs skip the publish step: forks have no access to `GIST_TOKEN`, and a PR
+must not overwrite the badge for `main`.
 
 ### Netlify configuration (one-off)
 

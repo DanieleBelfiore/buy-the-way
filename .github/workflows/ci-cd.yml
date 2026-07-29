@@ -54,8 +54,35 @@ jobs:
       - name: CSP hash check
         run: pnpm csp:hash
 
-      - name: Unit tests
-        run: pnpm test:run
+      - name: Unit tests + coverage
+        run: pnpm test:coverage
+
+      # The README coverage badge reads a gist that shields.io renders through
+      # its `endpoint` API. Republishing it here is what keeps the badge from
+      # drifting into a lie: the number always comes from the run that just
+      # passed the 80% threshold gate in vitest.config.ts.
+      #
+      # Gated on push-to-main because pull_request runs (forks especially) have
+      # no access to GIST_TOKEN, and a PR must not overwrite main's badge.
+      - name: Read branch coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: coverage
+        run: |
+          pct=$(node -p "require('./coverage/coverage-summary.json').total.branches.pct")
+          echo "pct=$pct" >> "$GITHUB_OUTPUT"
+
+      - name: Publish coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: schneegans/dynamic-badges-action@v1.9.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: buy-the-way-coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.pct }}% branches
+          valColorRange: ${{ steps.coverage.outputs.pct }}
+          minColorRange: 60
+          maxColorRange: 95
 
       - name: Build production bundle
         env:

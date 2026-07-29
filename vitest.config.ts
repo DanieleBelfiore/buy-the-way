@@ -16,7 +16,9 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', 'tests/rules/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      // json-summary produces coverage/coverage-summary.json, which the CI
+      // badge step reads to publish the real percentage to the shields gist.
+      reporter: ['text', 'json', 'json-summary', 'html'],
       thresholds: {
         statements: 80,
         branches: 80,
