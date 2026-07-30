@@ -92,6 +92,13 @@ describe('catalog.service', () => {
       expect(typeof (data as any).lastUsedAt).toBe('number');
     });
 
+    it('updates category on existing entry so future defaults use the corrected value', async () => {
+      vi.mocked(getDocs).mockResolvedValue(existingSnap as any);
+      await upsertCatalogEntry('uid-1', 'Latte', 'beverages');
+      const [, data] = vi.mocked(updateDoc).mock.calls[0];
+      expect((data as any).category).toBe('beverages');
+    });
+
     it('queries by name to detect existing entry', async () => {
       vi.mocked(getDocs).mockResolvedValue(emptySnap as any);
       const { where } = await import('firebase/firestore');

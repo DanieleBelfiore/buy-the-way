@@ -23,6 +23,7 @@
     "storage:cors": "bash scripts/apply-storage-cors.sh",
     "firebase:wipe:prod": "node scripts/wipe-firestore.mjs",
     "report:users": "node scripts/report-users.mjs",
+    "report:custom-products": "node scripts/report-custom-products.mjs",
     "csp:hash": "node scripts/check-csp-hash.mjs",
     "release:patch": "pnpm version patch -m \"🦄 RELEASE: v%s\"",
     "release:minor": "pnpm version minor -m \"🦄 RELEASE: v%s\"",

@@ -35,7 +35,11 @@ import {
   wasListHistoryRecorded,
 } from '@/domain/listHistoryCycle';
 import { capitalizeInitial } from '@/domain/text';
-import { deleteCatalogEntry, findCatalogEntryByName } from '@/services/catalog.service';
+import {
+  deleteCatalogEntry,
+  findCatalogEntryByName,
+  upsertCatalogEntry,
+} from '@/services/catalog.service';
 import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import { isCustomItemName } from '@/domain/public-catalog';
 import { countUrgentItems } from '@/domain/priority';
@@ -473,7 +477,9 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     if (!editingItem.value || !authStore.user) return;
     const id = editingItem.value.id;
     const itemName = editingItem.value.name;
+    const previousCategory = editingItem.value.category;
     const previousPinned = editingPinned.value;
+    const uid = authStore.user.uid;
     editingItemId.value = null;
     try {
       await updateItem(listId.value, id, {
@@ -482,6 +488,9 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         note: patch.note,
         category: patch.category,
       });
+      if (patch.category !== previousCategory) {
+        await upsertCatalogEntry(uid, capitalizeInitial(patch.name), patch.category);
+      }
       const fav = await findListFavoriteByName(listId.value, itemName);
       if (fav) {
         await patchListFavorite(listId.value, fav.slug, {

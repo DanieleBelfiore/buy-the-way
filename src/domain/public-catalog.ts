@@ -80,7 +80,8 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'ricotta', name_it: 'Ricotta', name_en: 'Ricotta', category: 'dairy', icon: '🧀' },
   { slug: 'gorgonzola', name_it: 'Gorgonzola', name_en: 'Gorgonzola', category: 'dairy', icon: '🧀' },
   { slug: 'stracchino', name_it: 'Stracchino', name_en: 'Stracchino', category: 'dairy', icon: '🧀' },
-  { slug: 'philadelphia', name_it: 'Formaggio spalmabile', name_en: 'Cream cheese', category: 'dairy', icon: '🧀' },
+  { slug: 'philadelphia', name_it: 'Philadelphia', name_en: 'Philadelphia', category: 'dairy', icon: '🧀' },
+  { slug: 'formaggio-spalmabile', name_it: 'Formaggio spalmabile', name_en: 'Cream cheese', category: 'dairy', icon: '🧀' },
   { slug: 'uova', name_it: 'Uova', name_en: 'Eggs', category: 'dairy', icon: '🥚' },
 
   // meat
@@ -438,6 +439,13 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'tofu', name_it: 'Tofu', name_en: 'Tofu', category: 'dairy', icon: '🧈' },
   { slug: 'tempeh', name_it: 'Tempeh', name_en: 'Tempeh', category: 'dairy', icon: '🧈' },
   { slug: 'seitan', name_it: 'Seitan', name_en: 'Seitan', category: 'dairy', icon: '🧈' },
+  { slug: 'fiocchi-latte', name_it: 'Fiocchi di latte', name_en: 'Cottage cheese', category: 'dairy', icon: '🧀' },
+  { slug: 'certosa', name_it: 'Certosa', name_en: 'Certosa cheese', category: 'dairy', icon: '🧀' },
+  { slug: 'stracchino-light', name_it: 'Stracchino light', name_en: 'Light stracchino', category: 'dairy', icon: '🧀' },
+  { slug: 'sottilette', name_it: 'Sottilette', name_en: 'Sottilette', category: 'dairy', icon: '🧀' },
+  { slug: 'formaggio-fette', name_it: 'Formaggio a fette', name_en: 'Cheese slices', category: 'dairy', icon: '🧀' },
+  { slug: 'sottilette-cheddar', name_it: 'Sottilette cheddar', name_en: 'Sottilette cheddar', category: 'dairy', icon: '🧀' },
+  { slug: 'budino', name_it: 'Budino', name_en: 'Pudding', category: 'dairy', icon: '🍮' },
 
   // --- meat (expansion)
   { slug: 'vitello', name_it: 'Vitello', name_en: 'Veal', category: 'meat', icon: '🥩' },
@@ -492,6 +500,9 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'pollo-arrosto', name_it: 'Pollo arrosto', name_en: 'Roast chicken', category: 'meat', icon: '🍗' },
   { slug: 'pollo-griglia', name_it: 'Pollo alla griglia', name_en: 'Grilled chicken', category: 'meat', icon: '🍗' },
   { slug: 'rost-beef', name_it: 'Roast beef', name_en: 'Roast beef', category: 'meat', icon: '🥩' },
+  { slug: 'cotoletta-soia', name_it: 'Cotoletta di soia', name_en: 'Soy cutlet', category: 'meat', icon: '🥩' },
+  { slug: 'bocconcini-soia', name_it: 'Bocconcini di soia', name_en: 'Soy nuggets', category: 'meat', icon: '🥩' },
+  { slug: 'salsiccia-pollo', name_it: 'Salsiccia di pollo', name_en: 'Chicken sausage', category: 'meat', icon: '🌭' },
 
   // --- fish (expansion)
   { slug: 'dentice', name_it: 'Dentice', name_en: 'Dentex', category: 'fish', icon: '🐟' },
@@ -531,6 +542,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'paté-tonno', name_it: 'Paté di tonno', name_en: 'Tuna pâté', category: 'fish', icon: '🥫' },
   { slug: 'paté-acciughe', name_it: 'Paté di acciughe', name_en: 'Anchovy pâté', category: 'fish', icon: '🥫' },
   { slug: 'frutti-mare', name_it: 'Frutti di mare misti', name_en: 'Mixed seafood', category: 'fish', icon: '🦪' },
+  { slug: 'cuore-tonno', name_it: 'Cuore di tonno', name_en: 'Tuna heart', category: 'fish', icon: '🥫' },
 
   // --- bakery (expansion) - bread, pasta, rice, baking, sweets, condiments
   { slug: 'pane-bianco', name_it: 'Pane bianco', name_en: 'White bread', category: 'bakery', icon: '🍞' },
@@ -726,6 +738,8 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'semi-chia', name_it: 'Semi di chia', name_en: 'Chia seeds', category: 'bakery', icon: '🌾' },
   { slug: 'semi-sesamo', name_it: 'Semi di sesamo', name_en: 'Sesame seeds', category: 'bakery', icon: '🌾' },
   { slug: 'arachidi', name_it: 'Arachidi', name_en: 'Peanuts', category: 'bakery', icon: '🥜' },
+  { slug: 'agar-agar', name_it: 'Agar agar', name_en: 'Agar agar', category: 'bakery', icon: '🌾' },
+  { slug: 'pangrattato', name_it: 'Pangrattato', name_en: 'Breadcrumbs', category: 'bakery', icon: '🌾' },
 
   // --- beverages (expansion)
   { slug: 'acqua-naturale', name_it: 'Acqua naturale', name_en: 'Still water', category: 'beverages', icon: '💧' },
@@ -814,6 +828,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'vino-frizzante', name_it: 'Vino frizzante', name_en: 'Sparkling wine', category: 'beverages', icon: '🍾' },
   { slug: 'vino-passito', name_it: 'Vino passito', name_en: 'Passito wine', category: 'beverages', icon: '🍷' },
   { slug: 'marsala', name_it: 'Marsala', name_en: 'Marsala wine', category: 'beverages', icon: '🍷' },
+  { slug: 'succo-frutta', name_it: 'Succo di frutta', name_en: 'Fruit juice', category: 'beverages', icon: '🧃' },
 
   // --- frozen (expansion)
   { slug: 'fragole-surgelate', name_it: 'Fragole surgelate', name_en: 'Frozen strawberries', category: 'frozen', icon: '🍓' },
@@ -866,6 +881,8 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'croissant-surgelati', name_it: 'Croissant surgelati', name_en: 'Frozen croissants', category: 'frozen', icon: '🥐' },
   { slug: 'tiramisu-surgelato', name_it: 'Tiramisù surgelato', name_en: 'Frozen tiramisu', category: 'frozen', icon: '🍰' },
   { slug: 'granita', name_it: 'Granita', name_en: 'Granita', category: 'frozen', icon: '🧊' },
+  { slug: 'bistecca-mare', name_it: 'Bistecca di mare', name_en: 'Breaded fish steaks', category: 'frozen', icon: '🐟' },
+  { slug: 'misto-verdure-surgelato', name_it: 'Misto di verdure surgelato', name_en: 'Mixed frozen vegetables', category: 'frozen', icon: '🥦' },
 
   // --- cleaning (expansion)
   { slug: 'detersivo-forno', name_it: 'Detersivo per forno', name_en: 'Oven cleaner', category: 'cleaning', icon: '🧴' },
@@ -922,6 +939,10 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'lucida-scarpe', name_it: 'Lucida scarpe', name_en: 'Shoe polish', category: 'cleaning', icon: '👞' },
   { slug: 'salviette-pavimento', name_it: 'Salviette pavimento', name_en: 'Floor wipes', category: 'cleaning', icon: '🧻' },
   { slug: 'spazzola-vestiti', name_it: 'Spazzola per vestiti', name_en: 'Clothes brush', category: 'cleaning', icon: '🧥' },
+  { slug: 'cura-lavatrice', name_it: 'Cura lavatrice', name_en: 'Washing machine cleaner', category: 'cleaning', icon: '🧺' },
+  { slug: 'cura-lavastoviglie', name_it: 'Cura lavastoviglie', name_en: 'Dishwasher cleaner', category: 'cleaning', icon: '🧴' },
+  { slug: 'detersivo-pavimenti', name_it: 'Detersivo per pavimenti', name_en: 'Floor detergent', category: 'cleaning', icon: '🧴' },
+  { slug: 'ammorbidente-concentrato', name_it: 'Ammorbidente concentrato', name_en: 'Concentrated fabric softener', category: 'cleaning', icon: '🧴' },
 
   // --- hygiene (expansion)
   { slug: 'sbiancante-denti', name_it: 'Sbiancante denti', name_en: 'Teeth whitener', category: 'hygiene', icon: '🦷' },
@@ -983,6 +1004,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'dentifricio-bambino', name_it: 'Dentifricio bambini', name_en: 'Kids toothpaste', category: 'hygiene', icon: '🪥' },
   { slug: 'soluzione-fisiologica', name_it: 'Soluzione fisiologica', name_en: 'Saline solution', category: 'hygiene', icon: '🧴' },
   { slug: 'fazzoletti', name_it: 'Fazzoletti di carta', name_en: 'Tissues', category: 'hygiene', icon: '🧻' },
+  { slug: 'kleenex', name_it: 'Kleenex', name_en: 'Kleenex', category: 'hygiene', icon: '🧻' },
   { slug: 'cerotti', name_it: 'Cerotti', name_en: 'Band-aids', category: 'hygiene', icon: '🩹' },
   { slug: 'garza', name_it: 'Garze sterili', name_en: 'Sterile gauze', category: 'hygiene', icon: '🩹' },
   { slug: 'alcool-denaturato', name_it: 'Alcool denaturato', name_en: 'Denatured alcohol', category: 'hygiene', icon: '🧴' },
@@ -1082,6 +1104,7 @@ export const PUBLIC_CATALOG: ReadonlyArray<PublicCatalogEntry> = [
   { slug: 'fiocchi-regalo', name_it: 'Fiocchi regalo', name_en: 'Gift bows', category: 'other', icon: '🎁' },
   { slug: 'sacchetti-cellophane', name_it: 'Sacchetti cellophane', name_en: 'Cellophane bags', category: 'other', icon: '🛍️' },
   { slug: 'sacchetti-frigo', name_it: 'Sacchetti per congelatore', name_en: 'Freezer bags', category: 'other', icon: '🥶' },
+  { slug: 'effervescente', name_it: 'Effervescente', name_en: 'Effervescent', category: 'other', icon: '💊' },
 ];
 
 export const normalizeName = (name: string): string =>

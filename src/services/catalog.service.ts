@@ -42,6 +42,7 @@ export const upsertCatalogEntry = async (
 
   if (!snap.empty) {
     await updateDoc(snap.docs[0].ref, {
+      category,
       usageCount: increment(1),
       lastUsedAt: Date.now(),
     });

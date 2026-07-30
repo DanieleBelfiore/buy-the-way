@@ -38,6 +38,7 @@ vi.mock('@/services/listFavorites.service', () => ({
 vi.mock('@/services/catalog.service', () => ({
   findCatalogEntryByName: vi.fn(),
   deleteCatalogEntry: vi.fn(),
+  upsertCatalogEntry: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/services/itemPhotos.service', () => ({
@@ -113,7 +114,11 @@ import {
   setListFavoriteExcluded,
   findListFavoriteByName,
 } from '@/services/listFavorites.service';
-import { findCatalogEntryByName, deleteCatalogEntry } from '@/services/catalog.service';
+import {
+  findCatalogEntryByName,
+  deleteCatalogEntry,
+  upsertCatalogEntry,
+} from '@/services/catalog.service';
 import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import { useListDetailActions } from '@/composables/useListDetailActions';
 import { useAuthStore } from '@/stores/auth';
@@ -294,6 +299,24 @@ describe('useListDetailActions', () => {
     });
     expect(setListFavoriteState).toHaveBeenCalledWith(LIST_ID, 'milk', false);
     expect(editSheetOpen.value).toBe(false);
+    // Same category as before ('dairy') - no catalog re-sync needed.
+    expect(upsertCatalogEntry).not.toHaveBeenCalled();
+  });
+
+  it('persists a corrected category to the catalog so future adds default to it', async () => {
+    vi.mocked(findListFavoriteByName).mockResolvedValue(null);
+    const custom: Item = { ...sampleItem(), name: 'Kombucha', category: 'other' };
+    useItemsStore().items = [custom];
+    const { handleOpenItemEdit, handleEditSave } = setup();
+    await handleOpenItemEdit(custom);
+    await handleEditSave({
+      name: 'Kombucha',
+      quantity: '',
+      note: '',
+      category: 'beverages',
+      pinned: false,
+    });
+    expect(upsertCatalogEntry).toHaveBeenCalledWith('user-1', 'Kombucha', 'beverages');
   });
 
   it('pins a not-yet-favorited item on save via ensureListFavorite', async () => {
