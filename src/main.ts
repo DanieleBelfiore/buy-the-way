@@ -6,6 +6,7 @@ import App from './App.vue';
 import router from './router/index';
 import { i18n } from './i18n/index';
 import { useAuthStore } from '@/stores/auth';
+import { consumeRedirectResult } from '@/services/auth.service';
 import { useThemeStore } from '@/stores/theme';
 import { installSafeBackTracker } from '@/composables/useSafeBack';
 import { setupServiceWorker } from '@/pwa/registerSW';
@@ -28,6 +29,13 @@ useThemeStore().init();
 // so the Firebase listener must be registered first or the guard waits forever.
 const authStore = useAuthStore();
 authStore.init();
+
+// Installed PWAs sign in via signInWithRedirect (popups never report back in
+// iOS standalone), so a pending redirect credential has to be claimed at boot.
+// initializeAuth() carries no default popupRedirectResolver, so the SDK will
+// not do it on its own. Fire-and-forget: the listener registered just above
+// picks up the resulting auth-state change, and the call never rejects.
+void consumeRedirectResult();
 
 app.use(router);
 app.use(i18n);

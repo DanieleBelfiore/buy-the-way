@@ -27,8 +27,20 @@ export const auth = initializeAuth(app, {
   persistence: [indexedDBLocalPersistence, browserLocalPersistence],
   // No popupRedirectResolver here on purpose: stops Firebase from eager-loading
   // the gapi iframe (__/auth/iframe.js) at boot, which sat on the LCP critical
-  // path (~2.8s). The resolver is passed explicitly at the popup call sites in
-  // auth.service.ts instead. The app uses popup + email-link only, never redirect.
+  // path (~2.8s). The resolver is passed explicitly at the call sites in
+  // auth.service.ts instead.
+  //
+  // Consequence: the SDK will NOT auto-complete a pending signInWithRedirect.
+  // Installed PWAs use the redirect flow (popups never report back in iOS
+  // standalone), so `consumeRedirectResult()` runs explicitly at boot in
+  // main.ts. Do not drop that call when touching this block.
+  //
+  // The redirect flow also needs `authDomain` to be first-party: since
+  // firebase-js-sdk 9.15 Safari's storage partitioning breaks redirect
+  // sign-in when authDomain is <project>.firebaseapp.com. Production proxies
+  // /__/auth/* through the app domain (see netlify.toml) and sets
+  // VITE_FIREBASE_AUTH_DOMAIN to that domain. Local dev keeps the
+  // firebaseapp.com value, since the vite dev server has no such proxy.
 });
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),

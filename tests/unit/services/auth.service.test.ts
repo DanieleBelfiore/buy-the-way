@@ -3,11 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('firebase/auth', () => ({
   GoogleAuthProvider: class {},
   signInWithPopup: vi.fn(),
+  signInWithRedirect: vi.fn(),
+  getRedirectResult: vi.fn(),
   signOut: vi.fn(),
   onAuthStateChanged: vi.fn(),
   isSignInWithEmailLink: vi.fn(),
   signInWithEmailLink: vi.fn(),
   reauthenticateWithPopup: vi.fn(),
+  reauthenticateWithRedirect: vi.fn(),
   browserPopupRedirectResolver: {},
 }));
 
@@ -36,6 +39,8 @@ import {
   signOutCurrent,
   onAuthChanged,
   reauthenticateGoogle,
+  consumeRedirectResult,
+  isStandaloneDisplay,
   NoCurrentUserError,
   sendMagicLink,
   completeMagicLinkSignIn,
@@ -44,9 +49,12 @@ import {
 } from '@/services/auth.service';
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   reauthenticateWithPopup,
+  reauthenticateWithRedirect,
   browserPopupRedirectResolver,
   isSignInWithEmailLink,
   signInWithEmailLink,
@@ -55,16 +63,47 @@ import { setDoc, doc } from 'firebase/firestore';
 import { auth } from '@/services/firebase';
 
 const mSignInWithPopup = vi.mocked(signInWithPopup);
+const mSignInWithRedirect = vi.mocked(signInWithRedirect);
+const mGetRedirectResult = vi.mocked(getRedirectResult);
 const mReauthenticateWithPopup = vi.mocked(reauthenticateWithPopup);
+const mReauthenticateWithRedirect = vi.mocked(reauthenticateWithRedirect);
 const mSignOut = vi.mocked(signOut);
 const mOnAuthStateChanged = vi.mocked(onAuthStateChanged);
 const mSetDoc = vi.mocked(setDoc);
+
+/**
+ * Fakes the installed-PWA display mode. `navigator.standalone` is the iOS
+ * signal; `matchMedia('(display-mode: standalone)')` covers Android/desktop.
+ *
+ * jsdom ships no `window.matchMedia` at all, so this defines the property
+ * rather than spying on it - which is also why the production helper guards
+ * with a `typeof` check before calling it.
+ */
+const setStandalone = (on: boolean, via: 'ios' | 'mediaQuery' = 'mediaQuery'): void => {
+  Object.defineProperty(window.navigator, 'standalone', {
+    value: on && via === 'ios' ? true : undefined,
+    configurable: true,
+  });
+  Object.defineProperty(window, 'matchMedia', {
+    value: (q: string) =>
+      ({
+        matches: on && via === 'mediaQuery' && q === '(display-mode: standalone)',
+        media: q,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+    writable: true,
+    configurable: true,
+  });
+};
 
 describe('auth.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(doc).mockReturnValue({ id: 'mock-ref' } as any);
     mSetDoc.mockResolvedValue(undefined);
+    // Default every test to browser-tab mode; the standalone suites opt in.
+    setStandalone(false);
     // Module-level uid tracker debounces "did the signed-in identity change?".
     // Reset between tests so each callback invocation looks like a new sign-in.
     __resetAuthLastSeenUid();
@@ -96,6 +135,77 @@ describe('auth.service', () => {
       mSignInWithPopup.mockRejectedValue(new Error('auth/popup-closed-by-user'));
       await expect(signInWithGoogle()).rejects.toThrow('auth/popup-closed-by-user');
     });
+
+    // An installed PWA has no usable popup: on iOS standalone `window.open`
+    // hands the URL to a detached Safari view with no `window.opener` back to
+    // the app, so the resolver's postMessage handshake never lands and
+    // signInWithPopup hangs forever on "signing in". Redirect is the only
+    // flow that completes there.
+    it('uses signInWithRedirect when running as an installed PWA (media query)', async () => {
+      setStandalone(true, 'mediaQuery');
+      mSignInWithRedirect.mockResolvedValue(undefined as never);
+      await signInWithGoogle();
+      expect(mSignInWithRedirect).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        browserPopupRedirectResolver,
+      );
+      expect(mSignInWithPopup).not.toHaveBeenCalled();
+    });
+
+    it('uses signInWithRedirect on iOS standalone (navigator.standalone)', async () => {
+      setStandalone(true, 'ios');
+      mSignInWithRedirect.mockResolvedValue(undefined as never);
+      await signInWithGoogle();
+      expect(mSignInWithRedirect).toHaveBeenCalledOnce();
+      expect(mSignInWithPopup).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('isStandaloneDisplay', () => {
+    it('is false in a browser tab', () => {
+      setStandalone(false);
+      expect(isStandaloneDisplay()).toBe(false);
+    });
+
+    it('tolerates a missing matchMedia implementation', () => {
+      Object.defineProperty(window.navigator, 'standalone', {
+        value: undefined,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'matchMedia', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+      expect(isStandaloneDisplay()).toBe(false);
+    });
+  });
+
+  describe('consumeRedirectResult', () => {
+    it('returns the uid when a redirect sign-in was pending', async () => {
+      mGetRedirectResult.mockResolvedValue({ user: { uid: 'u9' } } as any);
+      await expect(consumeRedirectResult()).resolves.toBe('u9');
+      expect(mGetRedirectResult).toHaveBeenCalledWith(
+        expect.anything(),
+        browserPopupRedirectResolver,
+      );
+    });
+
+    it('returns null when there was no pending redirect', async () => {
+      mGetRedirectResult.mockResolvedValue(null as any);
+      await expect(consumeRedirectResult()).resolves.toBeNull();
+    });
+
+    // Runs at boot, before the router guard resolves. A rejection here must
+    // never propagate or the whole app fails to start.
+    it('swallows errors so app boot is never blocked', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mGetRedirectResult.mockRejectedValue(new Error('auth/invalid-credential'));
+      await expect(consumeRedirectResult()).resolves.toBeNull();
+      expect(warn).toHaveBeenCalled();
+      warn.mockRestore();
+    });
   });
 
   describe('reauthenticateGoogle', () => {
@@ -121,6 +231,22 @@ describe('auth.service', () => {
         expect.anything(),
         browserPopupRedirectResolver,
       );
+    });
+
+    // Same popup dead-end as sign-in: in an installed PWA the reauth popup
+    // never reports back, so account deletion would hang on the confirm step.
+    it('uses reauthenticateWithRedirect when running as an installed PWA', async () => {
+      setStandalone(true, 'ios');
+      const current = { uid: 'u1' };
+      (auth as { currentUser?: unknown }).currentUser = current;
+      mReauthenticateWithRedirect.mockResolvedValue(undefined as never);
+      await reauthenticateGoogle();
+      expect(mReauthenticateWithRedirect).toHaveBeenCalledWith(
+        current,
+        expect.anything(),
+        browserPopupRedirectResolver,
+      );
+      expect(mReauthenticateWithPopup).not.toHaveBeenCalled();
     });
   });
 

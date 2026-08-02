@@ -1,8 +1,11 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   reauthenticateWithPopup,
+  reauthenticateWithRedirect,
   browserPopupRedirectResolver,
   onAuthStateChanged as _onAuthStateChanged,
   isSignInWithEmailLink,
@@ -46,11 +49,54 @@ export class PartialDeletionError extends Error {
   }
 }
 
+/**
+ * True when the app runs as an installed PWA (iOS home-screen, Android WebAPK,
+ * installed desktop window) rather than in a browser tab.
+ *
+ * Why it matters: an installed PWA has no usable popup. On iOS standalone,
+ * `window.open` hands the URL to a detached Safari view with no `window.opener`
+ * back-reference, so the credential postMessage that `signInWithPopup` waits
+ * for never arrives and the promise never settles - the sign-in button spins
+ * forever. Redirect is the only flow that completes there.
+ */
+export const isStandaloneDisplay = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  // iOS-only, non-standard, and the only reliable signal on older iOS.
+  if ((window.navigator as { standalone?: boolean }).standalone === true) return true;
+  if (typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(display-mode: standalone)').matches;
+};
+
 export const signInWithGoogle = async (): Promise<void> => {
   const provider = new GoogleAuthProvider();
   // Resolver passed explicitly (not installed at auth init) so the gapi popup
   // iframe loads on-demand here, not on the LCP critical path at app boot.
+  if (isStandaloneDisplay()) {
+    // Navigates away: the credential is picked up by `consumeRedirectResult`
+    // on the next boot. Nothing after this line runs on the happy path.
+    await signInWithRedirect(auth, provider, browserPopupRedirectResolver);
+    return;
+  }
   await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+};
+
+/**
+ * Completes a `signInWithRedirect` (or `reauthenticateWithRedirect`) started in
+ * a previous page life. Must run at boot: `initializeAuth` in
+ * `services/firebase.ts` deliberately omits `popupRedirectResolver`, so the SDK
+ * will not process a pending redirect on its own.
+ *
+ * Resolves to the signed-in uid, or null when nothing was pending. Never
+ * rejects - a bad redirect must not block app boot behind the router guard.
+ */
+export const consumeRedirectResult = async (): Promise<string | null> => {
+  try {
+    const credential = await getRedirectResult(auth, browserPopupRedirectResolver);
+    return credential?.user.uid ?? null;
+  } catch (err) {
+    console.warn('[auth] Redirect sign-in could not be completed:', err);
+    return null;
+  }
 };
 
 // localStorage key used by Firebase's recommended magic-link flow to remember
@@ -161,6 +207,14 @@ export const reauthenticateGoogle = async (): Promise<void> => {
   const current = auth.currentUser;
   if (!current) throw new NoCurrentUserError();
   const provider = new GoogleAuthProvider();
+  if (isStandaloneDisplay()) {
+    // Same popup dead-end as sign-in (see `isStandaloneDisplay`). Note the UX
+    // cost: the redirect reloads the app, so the caller's delete-account flow
+    // does not resume automatically - the user re-triggers it with a fresh
+    // token. Still strictly better than a confirm step that hangs forever.
+    await reauthenticateWithRedirect(current, provider, browserPopupRedirectResolver);
+    return;
+  }
   await reauthenticateWithPopup(current, provider, browserPopupRedirectResolver);
 };
 
