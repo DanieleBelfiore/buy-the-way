@@ -44,8 +44,17 @@
 # standalone), so this proxy is what makes PWA sign-in work at all.
 #
 # Paired with VITE_FIREBASE_AUTH_DOMAIN=buy-the-way.danielebelfiore.dev in the
-# production build env. The service worker already skips /__/* via
-# `navigateFallbackDenylist` in src/pwa/manifest.ts.
+# production build env, AND with the matching redirect URI registered on the
+# OAuth client in Google Cloud Console - without it Google answers 400
+# redirect_uri_mismatch before the consent screen. See .claude/docs/firebase.md.
+#
+# The service worker already skips /__/* via `navigateFallbackDenylist` in
+# src/pwa/manifest.ts.
+#
+# Do not add a [[headers]] block for this path: Netlify does not apply custom
+# headers to responses proxied to an external host, so it would be dead config.
+# Firebase Hosting's own headers reach the client, and they do not forbid
+# framing - which is what the popup resolver's /__/auth/iframe needs.
 [[redirects]]
   from = "/__/auth/*"
   to = "https://buy-the-way-2ac6e.firebaseapp.com/__/auth/:splat"
@@ -107,16 +116,3 @@
       object-src 'none';
       frame-ancestors 'none';
     """
-
-# The proxied Firebase auth handler is loaded inside an iframe by the popup
-# resolver (/__/auth/iframe). Now that it is served from our own origin, the
-# global `X-Frame-Options: DENY` + `frame-ancestors 'none'` above would block
-# it and break desktop popup sign-in. Re-open framing for this path only.
-# Netlify applies the more specific rule's value for a duplicated header name.
-# The CSP here carries frame-ancestors alone on purpose: a policy with no other
-# directives imposes no further restriction on Google's handler page.
-[[headers]]
-  for = "/__/auth/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    Content-Security-Policy = "frame-ancestors 'self'"

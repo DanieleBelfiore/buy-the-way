@@ -8,14 +8,14 @@ const mockState = vi.hoisted(() => ({
   cert: vi.fn(() => ({ __cert: true })),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    get apps() {
-      return mockState.apps;
-    },
-    initializeApp: mockState.initializeApp,
-    credential: { cert: mockState.cert },
-  },
+// Mock the modular subpath, not the 'firebase-admin' root. The root default
+// export lost the legacy namespace in v14; mocking it would fabricate a shape
+// the real package no longer has, which is exactly how the production
+// TypeError slipped past this suite.
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => mockState.apps,
+  initializeApp: mockState.initializeApp,
+  cert: mockState.cert,
 }));
 
 import { initAdmin } from '@/../netlify/functions/_lib/firebase-admin';

@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 /**
  * Result of a rate-limit check. `allowed=false` means the caller has spent
@@ -28,8 +28,8 @@ export interface RateLimitDecision {
  * function from the same user can't both squeeze through the last slot.
  *
  * The function-side caller already has firebase-admin initialised, so this
- * helper relies on `admin.firestore()` being available; it does NOT call
- * `admin.initializeApp` itself.
+ * helper relies on the default app already being initialised; it does NOT
+ * call `initializeApp` itself.
  */
 export const checkRateLimit = async (
   uid: string,
@@ -37,7 +37,7 @@ export const checkRateLimit = async (
   max: number,
   windowMs: number,
 ): Promise<RateLimitDecision> => {
-  const db = admin.firestore();
+  const db = getFirestore();
   const ref = db.collection('rateLimits').doc(`${uid}_${funcName}`);
 
   return db.runTransaction(async (tx) => {

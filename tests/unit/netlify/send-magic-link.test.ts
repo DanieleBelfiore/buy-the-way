@@ -5,13 +5,14 @@ const { generateSignInWithEmailLink, emailsSend } = vi.hoisted(() => ({
   emailsSend: vi.fn(),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    auth: () => ({ generateSignInWithEmailLink }),
-    initializeApp: vi.fn(),
-    credential: { cert: vi.fn() },
-  },
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
+  cert: vi.fn(),
+}));
+
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ generateSignInWithEmailLink }),
 }));
 
 vi.mock('resend', () => ({

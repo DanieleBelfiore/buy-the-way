@@ -7,26 +7,30 @@ const { verifyIdToken, listGet, userGet, emailsSend } = vi.hoisted(() => ({
   emailsSend: vi.fn(),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    auth: () => ({ verifyIdToken }),
-    firestore: () => ({
-      collection: (name: string) => ({
-        doc: (id: string) => {
-          if (name === 'lists') {
-            return { get: () => listGet(id) };
-          }
-          if (name === 'users') {
-            return { get: () => userGet(id) };
-          }
-          throw new Error(`unexpected collection ${name}`);
-        },
-      }),
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
+  cert: vi.fn(),
+}));
+
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ verifyIdToken }),
+}));
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => ({
+    collection: (name: string) => ({
+      doc: (id: string) => {
+        if (name === 'lists') {
+          return { get: () => listGet(id) };
+        }
+        if (name === 'users') {
+          return { get: () => userGet(id) };
+        }
+        throw new Error(`unexpected collection ${name}`);
+      },
     }),
-    initializeApp: vi.fn(),
-    credential: { cert: vi.fn() },
-  },
+  }),
 }));
 
 vi.mock('resend', () => ({

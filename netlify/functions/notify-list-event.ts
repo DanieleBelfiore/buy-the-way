@@ -1,5 +1,6 @@
 import type { Context } from '@netlify/functions';
-import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import { checkRateLimit, rateLimitedResponse } from './_lib/rate-limit';
 import { initAdmin } from './_lib/firebase-admin';
 import { jsonResponse } from './_lib/http';
@@ -141,7 +142,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   let callerUid: string;
   try {
     initAdmin();
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await getAuth().verifyIdToken(token);
     callerUid = decoded.uid;
   } catch (err) {
     console.warn('[notify-list-event] token verification failed:', err);
@@ -163,7 +164,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   }
   if (!isNotifyBody(body)) return jsonResponse(400, { error: 'bad_body' });
 
-  const db = admin.firestore();
+  const db = getFirestore();
 
   let listSnap;
   try {

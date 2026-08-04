@@ -5,25 +5,29 @@ const { verifyIdToken, usersQueryGet } = vi.hoisted(() => ({
   usersQueryGet: vi.fn(),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    auth: () => ({ verifyIdToken }),
-    firestore: () => ({
-      collection: (name: string) => {
-        if (name !== 'users') throw new Error(`unexpected collection ${name}`);
-        return {
-          where: () => ({
-            limit: () => ({
-              get: usersQueryGet,
-            }),
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
+  cert: vi.fn(),
+}));
+
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ verifyIdToken }),
+}));
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => ({
+    collection: (name: string) => {
+      if (name !== 'users') throw new Error(`unexpected collection ${name}`);
+      return {
+        where: () => ({
+          limit: () => ({
+            get: usersQueryGet,
           }),
-        };
-      },
-    }),
-    initializeApp: vi.fn(),
-    credential: { cert: vi.fn() },
-  },
+        }),
+      };
+    },
+  }),
 }));
 
 vi.mock('@/../netlify/functions/_lib/rate-limit', () => ({

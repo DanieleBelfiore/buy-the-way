@@ -14,18 +14,16 @@ const tx = {
 const collectionDocSpy = vi.fn();
 const runTransaction = vi.fn(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    firestore: () => ({
-      collection: (name: string) => ({
-        doc: (id: string) => {
-          collectionDocSpy(name, id);
-          return { __ref: `${name}/${id}` };
-        },
-      }),
-      runTransaction,
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => ({
+    collection: (name: string) => ({
+      doc: (id: string) => {
+        collectionDocSpy(name, id);
+        return { __ref: `${name}/${id}` };
+      },
     }),
-  },
+    runTransaction,
+  }),
 }));
 
 import {

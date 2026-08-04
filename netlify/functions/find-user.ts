@@ -1,5 +1,6 @@
 import type { Context } from '@netlify/functions';
-import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   checkRateLimit,
   rateLimitedResponse,
@@ -25,7 +26,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   let callerUid: string;
   try {
     initAdmin();
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await getAuth().verifyIdToken(token);
     callerUid = decoded.uid;
   } catch (err) {
     console.warn('[find-user] token verification failed:', err);
@@ -50,7 +51,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   if (!email) return jsonResponse(400, { error: 'missing_email' });
 
   try {
-    const db = admin.firestore();
+    const db = getFirestore();
     const snap = await db.collection('users').where('email', '==', email).limit(1).get();
 
     if (snap.empty) {

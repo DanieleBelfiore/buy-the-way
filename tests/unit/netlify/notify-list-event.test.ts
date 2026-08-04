@@ -9,45 +9,49 @@ const { verifyIdToken, listGet, userGet, notifSet, notifOrderGet, batchDelete } 
   batchDelete: vi.fn(),
 }));
 
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [],
-    auth: () => ({ verifyIdToken }),
-    firestore: () => ({
-      collection: (name: string) => {
-        if (name === 'lists') {
-          return {
-            doc: (id: string) => ({ get: () => listGet(id) }),
-          };
-        }
-        if (name === 'users') {
-          return {
-            doc: (uid: string) => ({
-              get: () => userGet(uid),
-              collection: (sub: string) => {
-                if (sub !== 'notifications') throw new Error(`unexpected sub ${sub}`);
-                return {
-                  doc: () => ({ set: notifSet }),
-                  orderBy: () => ({
-                    offset: () => ({
-                      get: notifOrderGet,
-                    }),
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
+  cert: vi.fn(),
+}));
+
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({ verifyIdToken }),
+}));
+
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => ({
+    collection: (name: string) => {
+      if (name === 'lists') {
+        return {
+          doc: (id: string) => ({ get: () => listGet(id) }),
+        };
+      }
+      if (name === 'users') {
+        return {
+          doc: (uid: string) => ({
+            get: () => userGet(uid),
+            collection: (sub: string) => {
+              if (sub !== 'notifications') throw new Error(`unexpected sub ${sub}`);
+              return {
+                doc: () => ({ set: notifSet }),
+                orderBy: () => ({
+                  offset: () => ({
+                    get: notifOrderGet,
                   }),
-                };
-              },
-            }),
-          };
-        }
-        throw new Error(`unexpected collection ${name}`);
-      },
-      batch: () => ({
-        delete: batchDelete,
-        commit: vi.fn().mockResolvedValue(undefined),
-      }),
+                }),
+              };
+            },
+          }),
+        };
+      }
+      throw new Error(`unexpected collection ${name}`);
+    },
+    batch: () => ({
+      delete: batchDelete,
+      commit: vi.fn().mockResolvedValue(undefined),
     }),
-    initializeApp: vi.fn(),
-    credential: { cert: vi.fn() },
-  },
+  }),
 }));
 
 vi.mock('@/../netlify/functions/_lib/rate-limit', () => ({

@@ -1,6 +1,7 @@
 import type { Context } from '@netlify/functions';
 import { Resend } from 'resend';
-import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   checkRateLimit,
   rateLimitedResponse,
@@ -162,7 +163,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   let inviterUid: string;
   try {
     initAdmin();
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await getAuth().verifyIdToken(token);
     inviterUid = decoded.uid;
   } catch (err) {
     console.warn('[send-invite] token verification failed:', err);
@@ -195,7 +196,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   if (!isEmail(email)) return jsonResponse(400, { error: 'bad_email' });
   if (!listId) return jsonResponse(400, { error: 'bad_list_id' });
 
-  const db = admin.firestore();
+  const db = getFirestore();
 
   let listData: ListDoc;
   try {

@@ -1,6 +1,6 @@
 import type { Context } from '@netlify/functions';
 import { Resend } from 'resend';
-import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
 import {
   checkRateLimit,
   rateLimitedResponse,
@@ -138,7 +138,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   const continueUrl = resolveContinueUrl(continueOrigin);
   let signInLink: string;
   try {
-    signInLink = await admin.auth().generateSignInWithEmailLink(email, {
+    signInLink = await getAuth().generateSignInWithEmailLink(email, {
       url: continueUrl,
       handleCodeInApp: true,
     });
