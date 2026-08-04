@@ -294,6 +294,16 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          # Lambda runtime for the functions. Set on the CLI process, not only
+          # in netlify.toml: `[build.environment]` is applied to the build
+          # step, and this deploy skips it (`command = ""`), so the bundler
+          # would otherwise fall back to the site default.
+          #
+          # Must stay >= nodejs22.x. firebase-admin 14 -> jwks-rsa 4 does a
+          # plain `require('jose')`, and jose 6 is ESM-only; require() of ESM
+          # needs Node 22.12+. Below that every function dies with
+          # ERR_REQUIRE_ESM at import, before any of our code runs.
+          AWS_LAMBDA_JS_RUNTIME: nodejs22.x
         run: |
           APP_VERSION=$(node -p "require('./package.json').version")
           netlify deploy \
