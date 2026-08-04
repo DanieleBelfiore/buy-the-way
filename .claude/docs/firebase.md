@@ -72,7 +72,11 @@ firebase-admin 14 removed that namespace. The default import now resolves to the
 
 `tests/unit/netlify/firebase-admin-contract.test.ts` now imports the real package with no mocks and pins the exact symbols the functions use. Keep it mock-free, and extend it when a function starts depending on a new admin symbol.
 
-**Runtime floor:** firebase-admin 14 pulls jwks-rsa 4, which does a plain `require('jose')`, and jose 6 is ESM-only. `require()` of an ESM module needs Node 22.12+ (backported to 20.19). `AWS_LAMBDA_JS_RUNTIME = "nodejs22.x"` in `netlify.toml` holds that floor; dropping it below 22 breaks every function with `ERR_REQUIRE_ESM` at import time. This never reproduces locally, where Node is much newer than the Lambda runtime - a whole class of function bugs is only visible in deploy logs.
+**jose is pinned to 5 via a pnpm override.** firebase-admin 14 pulls jwks-rsa 4, whose `src/utils.js` does a plain `require('jose')`, and jose 6 is ESM-only (`"type": "module"`, no `require` condition). In the deployed Lambda that throws `ERR_REQUIRE_ESM` at import time, killing every function before any of our code runs. jose 5 ships a real CJS build, so the `overrides: jose: ^5.10.0` in `pnpm-workspace.yaml` makes the require work on **any** Node version. jwks-rsa only touches four long-stable jose symbols (`decodeJwt`, `decodeProtectedHeader`, `exportSPKI`, `importJWK`), all present in 5. Drop the override only once jwks-rsa switches to a dynamic `import()`.
+
+Do not try to fix this class of bug by raising the Lambda Node version alone - it was attempted twice and the error never moved. `AWS_LAMBDA_JS_RUNTIME` is still set (on the deploy step's `env:` in `.github/workflows/ci-cd.yml`, **not** in `netlify.toml`, whose `[build.environment]` never reaches the bundler when the deploy skips the build), but as a floor for future ESM-only dependencies, not as the fix for this one.
+
+None of it reproduces locally, where Node is far newer than the Lambda runtime: this whole class of function bug is only visible in deploy logs.
 
 ## Emulator parity
 

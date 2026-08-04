@@ -1,3 +1,17 @@
+# jwks-rsa 4 (pulled in by firebase-admin 14) does a plain `require('jose')`
+# in src/utils.js, but jose 6 is ESM-only ("type": "module", no require
+# condition). In the deployed Lambda that throws ERR_REQUIRE_ESM at import
+# time, killing every function before any of our code runs. jose 5 ships a
+# real CJS build ("require": "./dist/node/cjs/index.js"), so pinning it here
+# makes the require work on any Node version instead of depending on the
+# runtime having require(esm).
+#
+# Safe because jwks-rsa only touches four long-stable jose symbols:
+# decodeJwt, decodeProtectedHeader, exportSPKI, importJWK.
+# Revisit when jwks-rsa switches to a dynamic import().
+overrides:
+  jose: ^5.10.0
+
 allowBuilds:
   '@firebase/util': true
   esbuild: true

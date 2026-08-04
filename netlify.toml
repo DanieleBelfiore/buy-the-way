@@ -13,16 +13,11 @@
   # the deploy-only runner doesn't have pnpm installed.
   command = ""
 
-[build.environment]
-  # Lambda runtime for the serverless functions. Must stay >= nodejs22.x.
-  #
-  # firebase-admin 14 pulls jwks-rsa 4, whose src/utils.js does a plain
-  # `require('jose')`, and jose 6 is ESM-only ("type": "module", no CJS
-  # export). Loading ESM from CJS via require() is only supported from Node
-  # 22.12 (backported to 20.19). On an older runtime every function dies with
-  # ERR_REQUIRE_ESM at import time, before any of our code runs - and it never
-  # reproduces locally, where Node is far newer.
-  AWS_LAMBDA_JS_RUNTIME = "nodejs22.x"
+# No [build.environment] here on purpose. It applies to the build step, and
+# this deploy has none (`command = ""`, dist/ arrives prebuilt from GitHub
+# Actions), so anything set there never reaches the function bundler.
+# AWS_LAMBDA_JS_RUNTIME lives on the deploy step's `env:` in
+# .github/workflows/ci-cd.yml, which is the process the bundler actually runs in.
 
 # Serverless functions live in netlify/functions; the modern esbuild bundler
 # handles the TS source, but `resend` and `firebase-admin` ship as ESM with
