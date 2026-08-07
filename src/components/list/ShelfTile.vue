@@ -32,10 +32,7 @@ const onExcludeClick = (): void => {
   emit('exclude', props.entry);
 };
 
-const labelClasses = computed(() => [
-  'min-w-0 truncate text-left text-sm',
-  props.isTop ? 'font-semibold text-charcoal' : 'font-normal text-charcoal',
-]);
+const labelClasses = 'min-w-0 truncate text-left text-sm font-normal text-charcoal';
 
 const rowClasses = computed(() => [
   'flex items-center gap-1 w-full rounded-md border text-left transition-colors',

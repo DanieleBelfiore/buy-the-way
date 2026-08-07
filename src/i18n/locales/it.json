@@ -158,7 +158,7 @@
     "excludeConfirm": "Rimuovi",
     "excludeCancel": "Annulla",
     "alreadyInList": "Già in lista",
-    "alreadyInListHint": "Questo articolo è già in lista. Puoi comunque toccare il riquadro per aggiungerne un altro."
+    "alreadyInListHint": "Questo articolo è già in lista. Tocca il riquadro per toglierlo."
   },
   "collaborators": {
     "add": "Aggiungi collaboratore",

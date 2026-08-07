@@ -102,6 +102,14 @@ describe('ShelfTile', () => {
     expect(wrapperNot.find('[data-testid="shelf-tile-top"]').exists()).toBe(false);
   });
 
+  it('never renders the label in bold, top entry or not', () => {
+    for (const isTop of [true, false]) {
+      const wrapper = mount_({ entry: makeEntry({ name: 'Latte' }), isTop });
+      const label = wrapper.findAll('span').find((s) => s.text() === 'Latte');
+      expect(label?.classes().join(' ')).not.toMatch(/font-semibold|font-bold|font-medium/);
+    }
+  });
+
   it('does not render shelf-tile-check element', () => {
     const wrapper = mount_({ entry: makeEntry() });
     expect(wrapper.find('[data-testid="shelf-tile-check"]').exists()).toBe(false);

@@ -35,6 +35,7 @@ import {
   wasListHistoryRecorded,
 } from '@/domain/listHistoryCycle';
 import { capitalizeInitial } from '@/domain/text';
+import { favoritePresenceKey, itemPresenceKey } from '@/domain/item-identity';
 import {
   deleteCatalogEntry,
   findCatalogEntryByName,
@@ -533,6 +534,22 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
 
   const handleShelfAdd = async (entry: ListFavoriteState): Promise<void> => {
     if (!authStore.user) return;
+    const presenceKey = favoritePresenceKey(entry.slug, entry.category);
+    const alreadyOnList = itemsStore.visibleItems.filter(
+      (item) => itemPresenceKey(item) === presenceKey,
+    );
+    if (alreadyOnList.length > 0) {
+      for (const item of alreadyOnList) itemsStore.markPendingDelete(item.id);
+      pulse();
+      try {
+        for (const item of alreadyOnList) await removeItem(listId.value, item.id);
+      } catch (err) {
+        console.error('[useListDetailActions] shelf removeItem failed:', err);
+      } finally {
+        for (const item of alreadyOnList) itemsStore.unmarkPendingDelete(item.id);
+      }
+      return;
+    }
     try {
       await addItem({
         listId: listId.value,

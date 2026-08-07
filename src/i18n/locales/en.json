@@ -158,7 +158,7 @@
     "excludeConfirm": "Remove",
     "excludeCancel": "Cancel",
     "alreadyInList": "Already in list",
-    "alreadyInListHint": "This item is already on your list. You can still tap the tile to add another."
+    "alreadyInListHint": "This item is already on your list. Tap the tile to remove it."
   },
   "collaborators": {
     "add": "Add collaborator",

@@ -98,6 +98,7 @@ import {
 import {
   addItem,
   toggleChecked,
+  removeItem,
   emptyList,
   updateItem,
   setItemPriority,
@@ -430,6 +431,7 @@ describe('useListDetailActions', () => {
   });
 
   it('adds shelf favorites and confirms exclude', async () => {
+    useItemsStore().items = [];
     const entry = {
       slug: 'milk',
       name: 'Milk',
@@ -448,6 +450,56 @@ describe('useListDetailActions', () => {
     await confirmExclude();
     expect(setListFavoriteExcluded).toHaveBeenCalledWith(LIST_ID, 'milk', true);
     expect(excludeModalOpen.value).toBe(false);
+  });
+
+  it('handleShelfAdd removes the matching item when it is already on the list', async () => {
+    const entry = {
+      slug: 'milk',
+      name: 'Milk',
+      category: 'dairy' as Category,
+      usageCount: 1,
+      lastUsedAt: 1,
+    };
+    const { handleShelfAdd } = setup();
+    await handleShelfAdd(entry);
+    expect(removeItem).toHaveBeenCalledWith(LIST_ID, ITEM_ID);
+    expect(addItem).not.toHaveBeenCalled();
+    expect(useItemsStore().pendingDeleteIds.has(ITEM_ID)).toBe(false);
+  });
+
+  it('handleShelfAdd removes every duplicate row for the same favorite', async () => {
+    const second = { ...sampleItem(), id: '01ITEM000000000000000000002' as ULID, name: 'milk ' };
+    useItemsStore().items = [sampleItem(), second];
+    const entry = {
+      slug: 'milk',
+      name: 'Milk',
+      category: 'dairy' as Category,
+      usageCount: 1,
+      lastUsedAt: 1,
+    };
+    const { handleShelfAdd } = setup();
+    await handleShelfAdd(entry);
+    expect(removeItem).toHaveBeenCalledWith(LIST_ID, ITEM_ID);
+    expect(removeItem).toHaveBeenCalledWith(LIST_ID, second.id);
+    expect(addItem).not.toHaveBeenCalled();
+  });
+
+  it('handleShelfAdd ignores items already queued for delete', async () => {
+    const items = useItemsStore();
+    items.markPendingDelete(ITEM_ID);
+    const entry = {
+      slug: 'milk',
+      name: 'Milk',
+      category: 'dairy' as Category,
+      usageCount: 1,
+      lastUsedAt: 1,
+    };
+    const { handleShelfAdd } = setup();
+    await handleShelfAdd(entry);
+    expect(removeItem).not.toHaveBeenCalled();
+    expect(addItem).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Milk', addedVia: 'favorite' }),
+    );
   });
 
   it('wires bulk selection helpers', () => {
