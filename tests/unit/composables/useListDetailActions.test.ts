@@ -10,6 +10,7 @@ const bulkExit = vi.fn();
 
 vi.mock('@/services/history.service', () => ({
   recordListHistory: vi.fn().mockResolvedValue('hist-1'),
+  fetchListHistory: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/services/items.service', () => ({
@@ -90,7 +91,7 @@ vi.mock('@/composables/useHaptic', () => ({
   useHaptic: () => ({ pulse: vi.fn() }),
 }));
 
-import { recordListHistory } from '@/services/history.service';
+import { recordListHistory, fetchListHistory } from '@/services/history.service';
 import {
   clearListHistoryRecorded,
   markListHistoryRecorded,
@@ -124,7 +125,7 @@ import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service'
 import { useListDetailActions } from '@/composables/useListDetailActions';
 import { useAuthStore } from '@/stores/auth';
 import { useItemsStore } from '@/stores/items';
-import type { Category, Item } from '@/domain/types';
+import type { Category, Item, ListHistoryEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
 const ITEM_ID = '01ITEM000000000000000000001' as ULID;
@@ -403,6 +404,77 @@ describe('useListDetailActions', () => {
     bulkSnapshot.mockReturnValue([ITEM_ID]);
     await handleBulkPickerCopy(OTHER_LIST);
     expect(bulkCopyItems).toHaveBeenCalled();
+  });
+
+  describe('suggest sheet', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const pastRun = (daysAgo: number, names: string[]): ListHistoryEntry => ({
+      id: `run-${daysAgo}`,
+      listId: LIST_ID,
+      completedAt: Date.now() - daysAgo * DAY,
+      itemCount: names.length,
+      recordedByUid: 'user-1',
+      trigger: 'completion',
+      items: names.map((name) => ({ ...sampleItem(), name, quantity: '2', checked: true })),
+    });
+
+    it('opens in loading state, then exposes suggestions built from history', async () => {
+      vi.mocked(fetchListHistory).mockResolvedValueOnce([
+        pastRun(14, ['Bread', 'Milk']),
+        pastRun(7, ['Bread', 'Milk']),
+      ]);
+      const { openSuggest, suggestOpen, suggestStatus, suggestResult } = setup();
+      const pending = openSuggest();
+      expect(suggestOpen.value).toBe(true);
+      expect(suggestStatus.value).toBe('loading');
+      await pending;
+      expect(fetchListHistory).toHaveBeenCalledWith(LIST_ID);
+      expect(suggestStatus.value).toBe('ready');
+      expect(suggestResult.value.runCount).toBe(2);
+      // Milk is already on the list (sampleItem), so only Bread is proposed.
+      expect(suggestResult.value.suggestions.map((s) => s.name)).toEqual(['Bread']);
+    });
+
+    it('reports an error when the history cannot be read', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(fetchListHistory).mockRejectedValueOnce(new Error('offline'));
+      const { openSuggest, suggestStatus } = setup();
+      await openSuggest();
+      expect(suggestStatus.value).toBe('error');
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('adds the picked suggestions with their last quantity and closes', async () => {
+      const { openSuggest, handleSuggestSubmit, suggestOpen } = setup();
+      await openSuggest();
+      await handleSuggestSubmit([
+        {
+          key: 'bread',
+          name: 'Bread',
+          category: 'bakery',
+          quantity: '2',
+          purchaseCount: 3,
+          intervalDays: 7,
+          preselected: true,
+        },
+      ]);
+      expect(bulkAddItems).toHaveBeenCalledWith({
+        listId: LIST_ID,
+        rows: [{ name: 'Bread', category: 'bakery', quantity: '2' }],
+        createdByUid: 'user-1',
+        addedVia: 'suggested',
+      });
+      expect(expandIfCollapsed).toHaveBeenCalledWith('bakery');
+      expect(suggestOpen.value).toBe(false);
+    });
+
+    it('closes on cancel', async () => {
+      const { openSuggest, closeSuggest, suggestOpen } = setup();
+      await openSuggest();
+      closeSuggest();
+      expect(suggestOpen.value).toBe(false);
+    });
   });
 
   it('submits bulk paste and voice rows', async () => {

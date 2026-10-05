@@ -42,6 +42,14 @@ describe('ListFooterActionsMenu', () => {
     expect(wrapper.find('[data-testid="empty-list-button"]').exists()).toBe(false);
   });
 
+  it('emits open-suggest from the wand button and closes', async () => {
+    wrapper = mountMenu({ showFavorites: false });
+    await wrapper.find('[data-testid="footer-actions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="open-suggest"]').trigger('click');
+    expect(wrapper.emitted('open-suggest')).toHaveLength(1);
+    expect(wrapper.find('[data-testid="footer-actions-toggle"]').attributes('aria-expanded')).toBe('false');
+  });
+
   it('emits open-voice and closes after picking an action', async () => {
     wrapper = mountMenu({ showFavorites: false });
     await wrapper.find('[data-testid="footer-actions-toggle"]').trigger('click');

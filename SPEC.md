@@ -16,7 +16,7 @@ Mobile-first PWA webapp for managing shopping lists with real-time sharing.
 - As a collaborator, I can leave a shared list on my own (self-remove) without the owner having to do anything.
 - As a user, I add items to a list using inline autocomplete that suggests products from my personal catalog **and** from a built-in public catalog of common grocery items (it/en), with my catalog overriding on conflicts.
 - As a user, if a product matches nothing in either catalog I create it as a custom item (private, visible only to me).
-- As a user, I see "I preferiti" - a dense 2-column grid of my recurring items, recency-weighted (`usageCount * exp(-Δt·ln2 / 30d)`, min 2 uses, cap 30). The grid is only rendered when at least one entry qualifies. The header has a filled star icon and a chevron; clicking either the title or the chevron collapses/expands the grid. Items already in the current list render with strikethrough + dimmed opacity. Each tile has a small × button (and a 500 ms long-press alternative) that excludes the entry from favorites permanently - you can re-enable it later from the item edit sheet via the "I preferiti" checkbox.
+- As a user, I see "I preferiti" - a dense 2-column grid of my recurring items, recency-weighted (`usageCount * exp(-Δt·ln2 / 30d)`, min 2 uses, cap 60). The grid is only rendered when at least one entry qualifies. The header has a filled star icon and a chevron; clicking either the title or the chevron collapses/expands the grid. Items already in the current list render with strikethrough + dimmed opacity. Each tile has a small × button (and a 500 ms long-press alternative) that excludes the entry from favorites permanently - you can re-enable it later from the item edit sheet via the "I preferiti" checkbox.
 - As a user, on the list detail screen I can clear the entire list in one action via a full-width red button ("Svuota lista" / "Empty list") pinned to the bottom of the screen. The button is visible only when the list is not empty and not in autocomplete mode. Tapping it opens a confirmation modal.
 - As a user, on the list detail screen, categories and items inside each category are sorted alphabetically (locale-aware). I can collapse any category section by clicking its header; the header shows a `bought/total` counter beside the name. Collapse state is persisted per-list in `localStorage`. When all items in a category are checked, the section auto-collapses.
 - As a user, long-pressing (≥ 500 ms) on an item opens an edit sheet where I can change its name, quantity, note, category, and toggle the "I preferiti" flag (forces the entry into favorites or excludes it from the algorithm). A short tap still toggles `checked`. Deleting a single item (red trash icon) prompts a confirmation modal.
@@ -249,6 +249,7 @@ buy-the-way/
 │   │   ├── categories.ts             # Predefined category seed enum
 │   │   ├── public-catalog.ts         # ~200 public items + iconForName + isCustomItemName
 │   │   ├── ranking.ts                # Recency-weighted ranking algorithm
+│   │   ├── suggest.ts                # History-based shopping suggestions (wand)
 │   │   ├── sort.ts                   # Locale-aware sorting
 │   │   ├── stats.ts                  # Top items + category breakdown + totals
 │   │   ├── text.ts                   # capitalizeInitial helper

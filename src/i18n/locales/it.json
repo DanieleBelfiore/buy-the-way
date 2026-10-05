@@ -160,6 +160,21 @@
     "alreadyInList": "Già in lista",
     "alreadyInListHint": "Questo articolo è già in lista. Tocca il riquadro per toglierlo."
   },
+  "suggest": {
+    "openButton": "Proponi spesa",
+    "title": "Proposta spesa",
+    "hint": "In base alle tue spese precedenti. Togli la spunta a ciò che non ti serve.",
+    "loading": "Analizzo le tue spese…",
+    "error": "Impossibile leggere lo storico delle spese. Riprova.",
+    "notEnoughHistory": "Servono almeno {n} spese completate per proporti qualcosa.",
+    "nothingToSuggest": "Niente da proporre: i tuoi articoli abituali sono già in lista.",
+    "sectionDue": "Proposti",
+    "sectionOthers": "Altri abituali",
+    "every": "ogni giorno | ogni ~{n} giorni",
+    "selectAll": "Seleziona tutti",
+    "deselectAll": "Deseleziona tutti",
+    "addCount": "Nessun articolo | Aggiungi 1 articolo | Aggiungi {n} articoli"
+  },
   "collaborators": {
     "add": "Aggiungi collaboratore",
     "addPlaceholder": "Indirizzo email",

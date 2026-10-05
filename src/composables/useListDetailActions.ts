@@ -28,7 +28,13 @@ import {
   ensureListFavorite,
   patchListFavorite,
 } from '@/services/listFavorites.service';
-import { recordListHistory } from '@/services/history.service';
+import { fetchListHistory, recordListHistory } from '@/services/history.service';
+import {
+  buildSuggestions,
+  type SuggestStatus,
+  type Suggestion,
+  type SuggestionResult,
+} from '@/domain/suggest';
 import {
   clearListHistoryRecorded,
   markListHistoryRecorded,
@@ -116,6 +122,9 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
   const bulkPasteOpen = ref(false);
   const voiceAddOpen = ref(false);
   const favoritesOpen = ref(false);
+  const suggestOpen = ref(false);
+  const suggestStatus = ref<SuggestStatus>('loading');
+  const suggestResult = ref<SuggestionResult>({ runCount: 0, suggestions: [] });
 
   // First-check tutorial toast
   const toggleToastOpen = ref(false);
@@ -593,7 +602,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
   };
 
   const handleBulkPasteSubmit = async (
-    rows: Array<{ name: string; category: Category }>,
+    rows: Array<{ name: string; category: Category; quantity?: string }>,
     addedVia: ItemAddedVia = 'bulk',
   ): Promise<void> => {
     if (!authStore.user || rows.length === 0) {
@@ -603,7 +612,11 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     try {
       await bulkAddItems({
         listId: listId.value,
-        rows: rows.map((r) => ({ name: r.name, category: r.category })),
+        rows: rows.map((r) => ({
+          name: r.name,
+          category: r.category,
+          ...(r.quantity ? { quantity: r.quantity } : {}),
+        })),
         createdByUid: authStore.user.uid,
         addedVia,
       });
@@ -628,6 +641,32 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
   ): Promise<void> => {
     voiceAddOpen.value = false;
     await handleBulkPasteSubmit(rows, 'voice');
+  };
+
+  const openSuggest = async (): Promise<void> => {
+    suggestResult.value = { runCount: 0, suggestions: [] };
+    suggestStatus.value = 'loading';
+    suggestOpen.value = true;
+    try {
+      const history = await fetchListHistory(listId.value);
+      suggestResult.value = buildSuggestions(history, itemsStore.visibleItems, Date.now());
+      suggestStatus.value = 'ready';
+    } catch (err) {
+      console.error('[useListDetailActions] fetchListHistory failed:', err);
+      suggestStatus.value = 'error';
+    }
+  };
+
+  const closeSuggest = (): void => {
+    suggestOpen.value = false;
+  };
+
+  const handleSuggestSubmit = async (rows: Suggestion[]): Promise<void> => {
+    await handleBulkPasteSubmit(
+      rows.map((r) => ({ name: r.name, category: r.category, quantity: r.quantity })),
+      'suggested',
+    );
+    suggestOpen.value = false;
   };
 
   return {
@@ -700,6 +739,12 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
     closeVoiceAdd,
     openFavorites,
     closeFavorites,
+    suggestOpen,
+    suggestStatus,
+    suggestResult,
+    openSuggest,
+    closeSuggest,
+    handleSuggestSubmit,
     handleBulkPasteSubmit,
     handleVoiceAddSubmit,
     handleTogglePinned,

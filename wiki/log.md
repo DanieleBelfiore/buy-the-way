@@ -15,3 +15,10 @@ Append-only timeline. Newest entries at the bottom.
 - Pages touched: overview, concepts/data-model, concepts/auth-and-collaboration, concepts/ci-deploy, sources/spec.
 - Also synced (outside wiki): `.claude/docs/firebase.md`, `README.md`, `SPEC.md` (user story, stack table, file tree, checklist; added a changelog entry recording the swap, kept the old strikethrough history).
 - Notes: notifications are now an in-app inbox - `notify-list-event` writes one doc per recipient into `users/{uid}/notifications/{id}`, rendered in an anchored popover, FIFO-capped at 50/user, no browser permission / service worker.
+
+## [2026-10-05] sync | History-based suggestions (wand)
+
+- Trigger: new feature. `src/domain/suggest.ts` (`buildSuggestions`), `SuggestSheet.vue`, wand action in `ListFooterActionsMenu`, new `addedVia` value `suggested` (rules + rules test).
+- Pages touched: concepts/data-model (history now has a reader, new suggestions section, provenance table).
+- Also synced (outside wiki): `SPEC.md` and `README.md` file trees.
+- Notes: heuristic only, no AI or external service. History recording is unchanged; every recorded entry and item counts as bought.

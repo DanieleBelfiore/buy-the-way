@@ -200,6 +200,7 @@ src/
     categories.ts     # Category enum, icons, color tokens, migration
     public-catalog.ts # ~200 seeded items (it + en) + isCustomItemName, iconForName
     ranking.ts        # Catalog recency-weighted ranking
+    suggest.ts        # History-based shopping suggestions (wand)
     sort.ts           # Locale-aware category + item sorting
     stats.ts          # Top items, category breakdown, totals
     text.ts           # capitalizeInitial helper

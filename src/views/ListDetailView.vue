@@ -31,6 +31,7 @@ import { useListFavoritesStore } from '@/stores/listFavorites';
 import ItemAutocomplete from '@/components/list/ItemAutocomplete.vue';
 import CategorySection from '@/components/list/CategorySection.vue';
 import FavoritesSheet from '@/components/list/FavoritesSheet.vue';
+import SuggestSheet from '@/components/list/SuggestSheet.vue';
 import ListFooterActionsMenu from '@/components/list/ListFooterActionsMenu.vue';
 import EmptyListButton from '@/components/list/EmptyListButton.vue';
 import ItemEditSheet from '@/components/list/ItemEditSheet.vue';
@@ -328,6 +329,12 @@ const {
   closeVoiceAdd,
   openFavorites,
   closeFavorites,
+  suggestOpen,
+  suggestStatus,
+  suggestResult,
+  openSuggest,
+  closeSuggest,
+  handleSuggestSubmit,
   handleBulkPasteSubmit,
   handleVoiceAddSubmit,
   toggleToastOpen,
@@ -657,6 +664,7 @@ watch(
         <div class="flex items-center -space-x-1 shrink-0">
           <ListFooterActionsMenu
             :show-favorites="shelfEntries.length > 0"
+            @open-suggest="() => void openSuggest()"
             @open-favorites="openFavorites"
             @open-voice="openVoiceAdd"
             @open-bulk="openBulkPaste"
@@ -868,6 +876,16 @@ watch(
       :infer-category="inferCategoryForBulk"
       @cancel="closeVoiceAdd"
       @submit="handleVoiceAddSubmit"
+    />
+
+    <SuggestSheet
+      v-if="suggestOpen"
+      :open="suggestOpen"
+      :status="suggestStatus"
+      :run-count="suggestResult.runCount"
+      :suggestions="suggestResult.suggestions"
+      @cancel="closeSuggest"
+      @submit="handleSuggestSubmit"
     />
 
     <FavoritesSheet

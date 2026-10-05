@@ -406,6 +406,15 @@ describe('firestore.rules - items subcollection', () => {
     }));
   });
 
+  it('allows item create with addedVia suggested', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+      id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
+      note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
+      addedVia: 'suggested',
+    }));
+  });
+
   it('denies item create without addedVia', async () => {
     await seedList('L1', ALICE, [ALICE, BOB]);
     await assertFails(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {

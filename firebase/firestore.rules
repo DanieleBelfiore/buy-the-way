@@ -210,7 +210,7 @@ service cloud.firestore {
         }
 
         function validAddedVia(data) {
-          return data.addedVia in ['autocomplete', 'favorite', 'bulk', 'voice', 'copy', 'move'];
+          return data.addedVia in ['autocomplete', 'favorite', 'bulk', 'voice', 'suggested', 'copy', 'move'];
         }
 
         allow read, delete: if isListCollaborator(listId);

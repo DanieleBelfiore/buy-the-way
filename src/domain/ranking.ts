@@ -2,7 +2,7 @@ import type { ListFavoriteState } from './types';
 
 export const FAVORITES_MIN_USES = 2;
 export const FAVORITES_HALF_LIFE_DAYS = 30;
-export const FAVORITES_MAX = 30;
+export const FAVORITES_MAX = 60;
 
 const HALF_LIFE_MS = FAVORITES_HALF_LIFE_DAYS * 24 * 60 * 60 * 1000;
 

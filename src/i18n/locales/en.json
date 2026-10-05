@@ -160,6 +160,21 @@
     "alreadyInList": "Already in list",
     "alreadyInListHint": "This item is already on your list. Tap the tile to remove it."
   },
+  "suggest": {
+    "openButton": "Suggest a shop",
+    "title": "Suggested shop",
+    "hint": "Based on your past shops. Untick anything you do not need.",
+    "loading": "Reading your past shops…",
+    "error": "Could not read your shopping history. Try again.",
+    "notEnoughHistory": "At least {n} completed shops are needed before anything can be suggested.",
+    "nothingToSuggest": "Nothing to suggest: your usual items are already on the list.",
+    "sectionDue": "Suggested",
+    "sectionOthers": "Other regulars",
+    "every": "every day | every ~{n} days",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "addCount": "No items | Add 1 item | Add {n} items"
+  },
   "collaborators": {
     "add": "Add collaborator",
     "addPlaceholder": "Email address",

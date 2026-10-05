@@ -4,6 +4,7 @@ export const ITEM_ADDED_VIA = [
   'favorite',
   'bulk',
   'voice',
+  'suggested',
   'copy',
   'move',
 ] as const;

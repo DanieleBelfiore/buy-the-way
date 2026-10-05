@@ -8,7 +8,14 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 const LIST_ID = '01LIST00000000000000000001';
 const UID = 'user-1';
 
-const { pushItems, captureItemsSubscription, mockRecordListHistory, mockHandleEmptyList } =
+const {
+  pushItems,
+  captureItemsSubscription,
+  mockRecordListHistory,
+  mockHandleEmptyList,
+  mockOpenSuggest,
+  suggestState,
+} =
   vi.hoisted(() => {
     let onItemsChange: ((items: import('@/domain/types').Item[]) => void) | null = null;
     const captureItemsSubscription = (cb: (items: import('@/domain/types').Item[]) => void) => {
@@ -19,6 +26,8 @@ const { pushItems, captureItemsSubscription, mockRecordListHistory, mockHandleEm
       captureItemsSubscription,
       mockRecordListHistory: vi.fn().mockResolvedValue('hist-1'),
       mockHandleEmptyList: vi.fn().mockResolvedValue(undefined),
+      mockOpenSuggest: vi.fn().mockResolvedValue(undefined),
+      suggestState: { open: null as import('vue').Ref<boolean> | null },
     };
   });
 
@@ -131,6 +140,12 @@ vi.mock('@/composables/useListDetailActions', () => ({
     closeVoiceAdd: vi.fn(),
     openFavorites: vi.fn(),
     closeFavorites: vi.fn(),
+    suggestOpen: (suggestState.open = ref(false)),
+    suggestStatus: ref('ready'),
+    suggestResult: ref({ runCount: 0, suggestions: [] }),
+    openSuggest: mockOpenSuggest,
+    closeSuggest: vi.fn(),
+    handleSuggestSubmit: vi.fn(),
     handleBulkPasteSubmit: vi.fn(),
     handleVoiceAddSubmit: vi.fn(),
     handleTogglePinned: vi.fn(),
@@ -149,6 +164,8 @@ vi.mock('@/stores/listFavorites', () => ({ useListFavoritesStore: vi.fn() }));
 import ListDetailView from '@/views/ListDetailView.vue';
 import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import ListFooterActionsMenu from '@/components/list/ListFooterActionsMenu.vue';
+import SuggestSheet from '@/components/list/SuggestSheet.vue';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
@@ -252,6 +269,7 @@ const mountView = async () => {
         ItemAutocomplete: true,
         CategorySection: true,
         FavoritesSheet: true,
+        SuggestSheet: true,
         ListFooterActionsMenu: true,
         EmptyListButton: true,
         ItemEditSheet: true,
@@ -334,6 +352,18 @@ describe('ListDetailView completion history', () => {
     await flushPromises();
 
     expect(recordListHistory).not.toHaveBeenCalled();
+  });
+
+  it('opens the suggest sheet from the footer wand action', async () => {
+    const wrapper = await mountView();
+    expect(wrapper.findComponent(SuggestSheet).exists()).toBe(false);
+
+    wrapper.findComponent(ListFooterActionsMenu).vm.$emit('open-suggest');
+    expect(mockOpenSuggest).toHaveBeenCalledOnce();
+
+    suggestState.open!.value = true;
+    await flushPromises();
+    expect(wrapper.findComponent(SuggestSheet).exists()).toBe(true);
   });
 
   it('does not record when there is no authenticated user', async () => {
