@@ -42,6 +42,7 @@
     "newPlaceholder": "List name",
     "empty": "No items yet",
     "emptyHint": "Add items below",
+    "cardEmpty": "Empty",
     "create": "Create",
     "cancel": "Cancel",
     "noLists": "No lists yet",
@@ -161,8 +162,8 @@
     "alreadyInListHint": "This item is already on your list. Tap the tile to remove it."
   },
   "suggest": {
-    "openButton": "Suggest a shop",
-    "title": "Suggested shop",
+    "openButton": "The usual shop",
+    "title": "The usual shop",
     "hint": "Based on your past shops. Untick anything you do not need.",
     "loading": "Reading your past shops…",
     "error": "Could not read your shopping history. Try again.",

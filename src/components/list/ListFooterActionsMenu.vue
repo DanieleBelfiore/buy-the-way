@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Plus, Star, Mic, ClipboardList, WandSparkles } from '@lucide/vue';
+import { Plus, Star, Mic, ClipboardList } from '@lucide/vue';
 
 defineProps<{
   showFavorites: boolean;
 }>();
 
 const emit = defineEmits<{
-  'open-suggest': [];
   'open-favorites': [];
   'open-voice': [];
   'open-bulk': [];
@@ -58,16 +57,6 @@ onUnmounted(() => detachOutside?.());
       class="absolute bottom-full right-0 mb-1 flex flex-col items-center gap-0.5"
       role="menu"
     >
-      <button
-        type="button"
-        role="menuitem"
-        :aria-label="t('suggest.openButton')"
-        data-testid="open-suggest"
-        class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full bg-cream text-primary shadow-sm border border-cream-soft transition-colors"
-        @click="runAction(() => emit('open-suggest'))"
-      >
-        <WandSparkles :size="20" :stroke-width="2.25" aria-hidden="true" />
-      </button>
       <button
         v-if="showFavorites"
         type="button"

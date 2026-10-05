@@ -42,7 +42,7 @@ Service: `src/services/history.service.ts` (`recordListHistory`, `fetchListHisto
 
 ### History-based suggestions (wand)
 
-The wand action in `ListFooterActionsMenu` opens `SuggestSheet`: items proposed from the list history, pre-ticked when due, committed through `bulkAddItems` with `addedVia: 'suggested'` and the last purchased quantity. No AI, no network beyond one `fetchListHistory` read; the engine is the pure function `buildSuggestions` in `src/domain/suggest.ts`.
+The wand button in the `ListDetailView` header (right end of the "last updated" stats row, under the settings icon) opens `SuggestSheet`: items proposed from the list history, pre-ticked when due, committed through `bulkAddItems` with `addedVia: 'suggested'` and the last purchased quantity. No AI, no network beyond one `fetchListHistory` read; the engine is the pure function `buildSuggestions` in `src/domain/suggest.ts`.
 
 - **Input:** every history entry counts as a shopping run and every item in it as bought, whatever the `trigger` or `checked` flag. Entries from the same local calendar day merge into one run (covers double writes from a second tab or collaborator).
 - **Identity:** `normalizeName(name)`; display name, category and quantity come from the most recent purchase.

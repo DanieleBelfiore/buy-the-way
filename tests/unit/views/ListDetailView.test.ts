@@ -164,7 +164,6 @@ vi.mock('@/stores/listFavorites', () => ({ useListFavoritesStore: vi.fn() }));
 import ListDetailView from '@/views/ListDetailView.vue';
 import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
-import ListFooterActionsMenu from '@/components/list/ListFooterActionsMenu.vue';
 import SuggestSheet from '@/components/list/SuggestSheet.vue';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
@@ -354,11 +353,44 @@ describe('ListDetailView completion history', () => {
     expect(recordListHistory).not.toHaveBeenCalled();
   });
 
-  it('opens the suggest sheet from the footer wand action', async () => {
+  it('shows bought progress as a bar with the bought/total count', async () => {
     const wrapper = await mountView();
+    pushItems([item('I1', 'Milk', true), item('I2', 'Bread', false), item('I3', 'Eggs', false), item('I4', 'Tea', false)]);
+    await flushPromises();
+
+    const bar = wrapper.get('[data-testid="stat-progress"]');
+    expect(bar.attributes('role')).toBe('progressbar');
+    expect(bar.attributes('aria-valuenow')).toBe('1');
+    expect(bar.attributes('aria-valuemax')).toBe('4');
+    expect(wrapper.get('[data-testid="stat-progress-fill"]').attributes('style')).toContain('width: 25%');
+    expect(wrapper.get('[data-testid="stat-bought"]').text()).toContain('1/4');
+  });
+
+  it('offers the suggest action inside the empty state', async () => {
+    const wrapper = await mountView();
+    pushItems([]);
+    await flushPromises();
+
+    // One entry point at a time: the header wand yields to the empty-state button.
+    expect(wrapper.find('[data-testid="open-suggest"]').exists()).toBe(false);
+    await wrapper.get('[data-testid="empty-suggest"]').trigger('click');
+    expect(mockOpenSuggest).toHaveBeenCalledOnce();
+
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="empty-suggest"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="open-suggest"]').exists()).toBe(true);
+  });
+
+  it('opens the suggest sheet from the wand button under the header actions', async () => {
+    const wrapper = await mountView();
+    pushItems([item('I1', 'Milk', false)]);
+    await flushPromises();
     expect(wrapper.findComponent(SuggestSheet).exists()).toBe(false);
 
-    wrapper.findComponent(ListFooterActionsMenu).vm.$emit('open-suggest');
+    const wand = wrapper.find('[data-testid="open-suggest"]');
+    expect(wand.attributes('aria-label')).toBeTruthy();
+    await wand.trigger('click');
     expect(mockOpenSuggest).toHaveBeenCalledOnce();
 
     suggestState.open!.value = true;

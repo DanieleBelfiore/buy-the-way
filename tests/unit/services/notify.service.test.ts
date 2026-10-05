@@ -7,6 +7,7 @@ vi.mock('firebase/auth', () => ({
 }));
 
 import { notifyListEvent } from '@/services/notify.service';
+import { FEATURES } from '@/domain/features';
 
 describe('notify.service', () => {
   let originalFetch: typeof global.fetch;
@@ -15,10 +16,20 @@ describe('notify.service', () => {
     originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
     vi.clearAllMocks();
+    FEATURES.notifications = true;
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
+  });
+
+  it('sends nothing while the feature is switched off', async () => {
+    FEATURES.notifications = false;
+    getAuthMock.mockReturnValue({
+      currentUser: { getIdToken: vi.fn().mockResolvedValue('token') },
+    });
+    await notifyListEvent({ listId: 'L1', kind: 'item-modified', itemId: 'I1' });
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('no-ops cleanly when no user is signed in (fetch never called)', async () => {

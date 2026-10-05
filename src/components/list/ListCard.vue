@@ -90,7 +90,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
 
 const pinButtonClass = computed(() => {
   const base =
-    'shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full';
+    'shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full';
   if (props.isDefault) {
     return hasWallpaper.value ? `${base} text-white` : `${base} text-primary`;
   }
@@ -182,6 +182,7 @@ const pinButtonClass = computed(() => {
           :urgent-count="urgentCount"
           :muted="hasWallpaper"
         />
+        <span v-else data-testid="card-empty">{{ t('list.cardEmpty') }}</span>
         <span data-testid="updated-at">{{ updatedLabel }}</span>
       </div>
     </div>

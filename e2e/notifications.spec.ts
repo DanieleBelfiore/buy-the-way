@@ -2,6 +2,9 @@ import { test, expect, type Page } from '@playwright/test';
 import { resetEmulators, waitForUserByEmail, waitForStableEmptyInbox } from './helpers/emulator';
 import { ALICE, BOB, signInAs } from './helpers/auth';
 import { pinLocaleEN } from './helpers/setup';
+import { FEATURES } from '../src/domain/features';
+
+test.skip(!FEATURES.notifications, 'in-app notifications are switched off (src/domain/features.ts)');
 
 const createSharedList = async (page: Page, name: string): Promise<string> => {
   await page.getByRole('button', { name: 'New list' }).click();

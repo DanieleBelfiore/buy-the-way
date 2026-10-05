@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useCollapsedCategories } from '@/composables/useCollapsedCategories';
 import { useCollaboratorProfiles } from '@/composables/useCollaboratorProfiles';
 import { useListDetailActions } from '@/composables/useListDetailActions';
-import { ArrowLeft, Settings as SettingsIcon, Share2 } from '@lucide/vue';
+import { ArrowLeft, Settings as SettingsIcon, Share2, WandSparkles } from '@lucide/vue';
 import { notifyListEvent } from '@/services/notify.service';
 import { useSafeBack } from '@/composables/useSafeBack';
 import { VueDraggable } from 'vue-draggable-plus';
@@ -96,6 +96,9 @@ watch(
 );
 
 const boughtCount = computed(() => itemsStore.visibleItems.filter((i) => i.checked).length);
+const boughtPercent = computed(() =>
+  itemCount.value === 0 ? 0 : Math.round((boughtCount.value / itemCount.value) * 100),
+);
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
 
 // Category-reorder is intentionally open to every collaborator (shared
@@ -492,7 +495,7 @@ watch(
       >
         <ArrowLeft :size="24" :stroke-width="2.5" aria-hidden="true" />
       </button>
-      <h1 class="text-xl font-semibold text-charcoal tracking-tight truncate flex-1 min-w-0">
+      <h1 class="text-lg leading-tight font-semibold text-charcoal tracking-tight line-clamp-2 break-words flex-1 min-w-0">
         {{ list?.name ?? '…' }}
       </h1>
       <div class="flex items-center gap-1 shrink-0">
@@ -523,21 +526,30 @@ watch(
     <div
       v-if="list"
       data-testid="list-stats"
-      class="px-5 pb-3 flex flex-col gap-y-1 text-sm text-muted-gray"
+      class="px-5 pb-3 flex flex-col gap-y-1.5 text-sm text-muted-gray"
     >
       <div class="flex items-center gap-3">
-        <ItemCountWithUrgent
-          data-testid="stat-items"
-          :count="itemCount"
-          :urgent-count="urgentItemCount"
-        />
-          <span aria-hidden="true">·</span>
-          <span data-testid="stat-bought" class="inline-flex items-center gap-1">
-            <span>{{ t('listSettings.stats.bought') }}:</span>
-            <span class="font-semibold text-charcoal tabular-nums">{{ boughtCount }}/{{ itemCount }}</span>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span
+        <div
+          data-testid="stat-progress"
+          role="progressbar"
+          :aria-label="t('listSettings.stats.bought')"
+          aria-valuemin="0"
+          :aria-valuemax="itemCount"
+          :aria-valuenow="boughtCount"
+          class="flex-1 h-1.5 rounded-full bg-cream-soft overflow-hidden"
+        >
+          <div
+            data-testid="stat-progress-fill"
+            class="h-full rounded-full transition-[width] duration-300"
+            :class="boughtPercent === 100 ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-primary'"
+            :style="{ width: `${boughtPercent}%` }"
+          />
+        </div>
+        <span
+          data-testid="stat-bought"
+          class="shrink-0 font-semibold text-charcoal tabular-nums"
+        >{{ boughtCount }}/{{ itemCount }}</span>
+        <span
           data-testid="stat-users"
           class="inline-flex items-center gap-1"
           :aria-label="t('listSettings.stats.users') + ': ' + usersCount"
@@ -575,13 +587,30 @@ watch(
           <span v-else class="font-semibold text-charcoal">{{ usersCount }}</span>
         </span>
       </div>
-      <span
-        data-testid="stat-updated"
-        class="inline-flex items-center gap-1"
-      >
-        <span>{{ t('listSettings.stats.updated') }}:</span>
-        <span class="font-semibold text-charcoal">{{ updatedLabel }}</span>
-      </span>
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+          <ItemCountWithUrgent
+            data-testid="stat-items"
+            :count="itemCount"
+            :urgent-count="urgentItemCount"
+          />
+          <span data-testid="stat-updated" class="inline-flex items-center gap-1">
+            <span>{{ t('listSettings.stats.updated') }}:</span>
+            <span class="font-semibold text-charcoal">{{ updatedLabel }}</span>
+          </span>
+        </div>
+        <button
+          v-if="hasItems"
+          type="button"
+          :aria-label="t('suggest.openButton')"
+          data-testid="open-suggest"
+          class="shrink-0 inline-flex items-center justify-center gap-1.5 h-11 w-11 sm:w-auto sm:px-4 rounded-full bg-primary text-white shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-active"
+          @click="() => void openSuggest()"
+        >
+          <WandSparkles :size="20" :stroke-width="2.25" aria-hidden="true" />
+          <span class="hidden sm:inline text-sm font-medium">{{ t('suggest.openButton') }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Scrollable item list region. `min-h-0` is required for the flex
@@ -608,6 +637,15 @@ watch(
         />
         <p class="text-sm text-muted-gray">{{ t('list.empty') }}</p>
         <p class="text-xs text-muted-gray mt-1">{{ t('list.emptyHint') }}</p>
+        <button
+          type="button"
+          data-testid="empty-suggest"
+          class="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-active"
+          @click="() => void openSuggest()"
+        >
+          <WandSparkles :size="18" :stroke-width="2.25" aria-hidden="true" />
+          {{ t('suggest.openButton') }}
+        </button>
       </div>
 
       <!-- Drag-and-drop reorder of category groups. Touch-only long-press
@@ -664,7 +702,6 @@ watch(
         <div class="flex items-center -space-x-1 shrink-0">
           <ListFooterActionsMenu
             :show-favorites="shelfEntries.length > 0"
-            @open-suggest="() => void openSuggest()"
             @open-favorites="openFavorites"
             @open-voice="openVoiceAdd"
             @open-bulk="openBulkPaste"

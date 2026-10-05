@@ -42,6 +42,7 @@
     "newPlaceholder": "Nome della lista",
     "empty": "Nessun articolo",
     "emptyHint": "Aggiungi articoli in basso",
+    "cardEmpty": "Vuota",
     "create": "Crea",
     "cancel": "Annulla",
     "noLists": "Nessuna lista",
@@ -161,8 +162,8 @@
     "alreadyInListHint": "Questo articolo è già in lista. Tocca il riquadro per toglierlo."
   },
   "suggest": {
-    "openButton": "Proponi spesa",
-    "title": "Proposta spesa",
+    "openButton": "La solita spesa",
+    "title": "La solita spesa",
     "hint": "In base alle tue spese precedenti. Togli la spunta a ciò che non ti serve.",
     "loading": "Analizzo le tue spese…",
     "error": "Impossibile leggere lo storico delle spese. Riprova.",

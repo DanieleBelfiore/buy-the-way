@@ -103,6 +103,30 @@ describe('ListItemRow', () => {
     expect(btn.attributes('aria-label')).toBe('Mark as to buy');
   });
 
+  it('shows an empty check circle for items to buy and a filled one for bought items', () => {
+    const toBuy = mountRow(makeItem({ checked: false })).get('[data-testid="row-check"]');
+    expect(toBuy.attributes('data-checked')).toBe('false');
+    expect(toBuy.classes()).not.toContain('bg-primary');
+    expect(toBuy.find('svg').exists()).toBe(false);
+
+    const bought = mountRow(makeItem({ checked: true })).get('[data-testid="row-check"]');
+    expect(bought.attributes('data-checked')).toBe('true');
+    expect(bought.classes()).toContain('bg-primary');
+    expect(bought.find('svg').exists()).toBe(true);
+  });
+
+  it('keeps the row actions visually quiet: muted icons, colour only for urgent', () => {
+    const wrapper = mountRow(makeItem());
+    const classesOf = (id: string) => wrapper.get(`[data-testid="${id}"]`).classes();
+    expect(classesOf('row-remove')).toContain('text-muted-gray');
+    expect(classesOf('row-remove')).not.toContain('text-red-600');
+    expect(classesOf('row-settings')).toContain('text-muted-gray');
+    expect(classesOf('row-priority')).toContain('text-muted-gray');
+
+    const urgent = mountRow(makeItem({ priority: 'urgent' }));
+    expect(urgent.get('[data-testid="row-priority"]').classes()).toContain('text-orange-500');
+  });
+
   it('renders a trash button with aria-label "Remove item"', () => {
     const wrapper = mountRow(makeItem());
     const trash = wrapper.get('[data-testid="row-remove"]');

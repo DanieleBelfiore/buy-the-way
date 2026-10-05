@@ -49,7 +49,7 @@ const onCompletionConfirm = (): void => {
       data-testid="empty-list-button"
       type="button"
       :aria-label="t('emptyList.button')"
-      class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-red-700 transition-colors"
+      class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-charcoal transition-colors"
       @click="onButtonClick"
     >
       <ListX :size="20" :stroke-width="2.25" aria-hidden="true" />

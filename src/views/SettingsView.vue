@@ -15,6 +15,9 @@ import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import Toast from '@/components/ui/Toast.vue';
 import { RequiresRecentLoginError, PartialDeletionError } from '@/services/auth.service';
+import pkg from '../../package.json';
+
+const APP_VERSION = pkg.version;
 const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
@@ -352,6 +355,13 @@ const reauthAndRetry = async () => {
     </section>
 
     <LegalFooter dense />
+
+    <p
+      data-testid="app-version"
+      class="px-5 text-center text-[10px] leading-none text-muted-gray tabular-nums"
+    >
+      v{{ APP_VERSION }}
+    </p>
 
     <p
       data-testid="made-by"

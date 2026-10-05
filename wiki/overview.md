@@ -40,7 +40,7 @@ SPEC.md             # product source of truth
 1. **Auth** - Google one-tap or email magic link; profile in `users/{uid}` + private state subcollection.
 2. **Lists** - Owner creates lists; adds collaborators by registered email; realtime item sync.
 3. **Items** - Autocomplete from personal + public catalog; categories, photos, voice, bulk paste, favorites algorithm.
-4. **Notifications** - In-app inbox (no FCM, no browser permission); server function `notify-list-event` writes `users/{uid}/notifications` on list events.
+4. **Notifications** - In-app inbox (no FCM, no browser permission); server function `notify-list-event` writes `users/{uid}/notifications` on list events. **Switched off since 2026-10-05** via `FEATURES.notifications` (`src/domain/features.ts`): bell hidden, client dispatch is a no-op. Full removal is tracked in `tasks/todo.md` (Backlog).
 
 ## Where to read next
 

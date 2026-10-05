@@ -18,7 +18,21 @@ Append-only timeline. Newest entries at the bottom.
 
 ## [2026-10-05] sync | History-based suggestions (wand)
 
-- Trigger: new feature. `src/domain/suggest.ts` (`buildSuggestions`), `SuggestSheet.vue`, wand action in `ListFooterActionsMenu`, new `addedVia` value `suggested` (rules + rules test).
+- Trigger: new feature. `src/domain/suggest.ts` (`buildSuggestions`), `SuggestSheet.vue`, wand button in the `ListDetailView` header, new `addedVia` value `suggested` (rules + rules test).
 - Pages touched: concepts/data-model (history now has a reader, new suggestions section, provenance table).
 - Also synced (outside wiki): `SPEC.md` and `README.md` file trees.
 - Notes: heuristic only, no AI or external service. History recording is unchanged; every recorded entry and item counts as bought.
+
+## [2026-10-05] sync | Notifications switched off, favorites cap 60, suggest sheet restyle
+
+- Trigger: owner request. `src/domain/features.ts` adds `FEATURES.notifications = false` (bell hidden in `ListsView`, `notifyListEvent` no-op, e2e spec skipped). `FAVORITES_MAX` raised 30 -> 60. `SuggestSheet` rows now use the favorites tile look, grouped by category with per-product icons.
+- Pages touched: overview (notifications status), sources/spec (favorites cap).
+- Also synced (outside wiki): `SPEC.md` favorites cap, `tasks/todo.md` backlog entry for removing notifications.
+- Notes: notification code, rules and the Netlify function are still in the repo on purpose; only the switch changed.
+
+## [2026-10-05] sync | UI polish pass on lists and list detail
+
+- Trigger: owner-requested frontend review. List detail: stats strip now leads with a bought-progress bar (`stat-progress`) plus `bought/total`, item count and last-updated moved to a smaller second row next to the wand button; row action icons (priority, settings, remove) are muted gray, orange stays for urgent only; the empty-list footer button is neutral; the empty state offers "suggest a shop"; long list names wrap on two lines. Lists overview: logo shrinks once the account has lists; pin button is a 44px target. App version moved from the lists overview to the settings view.
+- Pages touched: none beyond this log (no architecture or data change).
+- Follow-up same day: item rows gained a check circle on the left (empty = to buy, filled = bought), list cards always show a count line ("Empty" when there are no items), and the header wand is hidden on an empty list because the empty state already offers the same action.
+- Notes: red is now reserved for confirm dialogs. The double loading indicator (global overlay over skeleton cards) was seen only on the local emulator and is still to be checked on a real device.

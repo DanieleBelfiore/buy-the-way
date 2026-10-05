@@ -1,5 +1,6 @@
 import { getAuth } from 'firebase/auth';
 import { i18n } from '@/i18n/index';
+import { FEATURES } from '@/domain/features';
 import type { Locale } from '@/domain/types';
 
 /**
@@ -38,6 +39,7 @@ const senderLocale = (): Locale => {
 };
 
 export const notifyListEvent = async (payload: NotifyEventPayload): Promise<void> => {
+  if (!FEATURES.notifications) return;
   try {
     const user = getAuth().currentUser;
     if (!user) return;

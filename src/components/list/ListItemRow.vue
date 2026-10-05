@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertTriangle, CircleDashed, Flag, Flame, Image, Settings, Trash2, UserPlus } from '@lucide/vue';
+import { AlertTriangle, Check, CircleDashed, Flag, Flame, Image, Settings, Trash2, UserPlus } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
 import { iconForItem, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
@@ -109,7 +109,7 @@ const priorityAria = computed(() => {
 
 const priorityBtnClasses = computed(() => {
   if (props.item.priority === 'urgent') return 'text-orange-500';
-  return 'text-charcoal';
+  return 'text-muted-gray';
 });
 
 const nameStateClasses = computed(() => {
@@ -130,7 +130,7 @@ const nameStateClasses = computed(() => {
     <button
       data-testid="row-toggle"
       type="button"
-      class="flex-1 min-w-0 flex items-center gap-3 pl-10 pr-0 min-h-[44px] text-left select-none"
+      class="flex-1 min-w-0 flex items-center gap-3 pl-5 pr-0 min-h-[44px] text-left select-none"
       :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
       @click="onClick"
       @pointerdown="onPressStart"
@@ -139,6 +139,19 @@ const nameStateClasses = computed(() => {
       @pointercancel="onPressEnd"
       @pointerleave="onPressEnd"
     >
+      <span
+        aria-hidden="true"
+        data-testid="row-check"
+        :data-checked="props.item.checked"
+        :class="[
+          'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-200',
+          props.item.checked
+            ? 'border-primary bg-primary text-white'
+            : 'border-muted-gray/50 bg-transparent',
+        ]"
+      >
+        <Check v-if="props.item.checked" :size="12" :stroke-width="3" />
+      </span>
       <span
         aria-hidden="true"
         data-testid="row-icon"
@@ -228,7 +241,7 @@ const nameStateClasses = computed(() => {
       <button
         data-testid="row-settings"
         type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-charcoal transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-muted-gray transition-colors"
         :aria-label="t('item.openSettings')"
         @click="onOpenSettings"
       >
@@ -237,7 +250,7 @@ const nameStateClasses = computed(() => {
       <button
         data-testid="row-remove"
         type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-red-600 transition-colors"
+        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-muted-gray transition-colors"
         :aria-label="t('item.remove')"
         @click="emit('remove')"
       >

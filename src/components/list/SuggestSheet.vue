@@ -4,8 +4,10 @@ import { useI18n } from 'vue-i18n';
 import { Check, WandSparkles, X } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import { useFocusTrap } from '@/composables/useFocusTrap';
-import CategoryIcon from '@/components/list/CategoryIcon.vue';
+import { CATEGORIES, CATEGORY_ORDER } from '@/domain/categories';
+import { iconForItem } from '@/domain/public-catalog';
 import { SUGGEST_MIN_RUNS, type SuggestStatus, type Suggestion } from '@/domain/suggest';
+import type { Category } from '@/domain/types';
 
 /**
  * Review step for history-based suggestions: the parent computes them, the
@@ -23,7 +25,7 @@ const emit = defineEmits<{
   submit: [rows: Suggestion[]];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const titleId = useId();
 
 const selected = ref<Set<string>>(new Set());
@@ -43,11 +45,19 @@ watch(
   { immediate: true },
 );
 
+const groupByCategory = (rows: Suggestion[]): Array<{ category: Category; rows: Suggestion[] }> =>
+  CATEGORY_ORDER.map((category) => ({
+    category,
+    rows: rows.filter((s) => s.category === category),
+  })).filter((group) => group.rows.length > 0);
+
 const sections = computed(() =>
   [
     { id: 'due', label: t('suggest.sectionDue'), rows: props.suggestions.filter((s) => s.preselected) },
     { id: 'others', label: t('suggest.sectionOthers'), rows: props.suggestions.filter((s) => !s.preselected) },
-  ].filter((section) => section.rows.length > 0),
+  ]
+    .filter((section) => section.rows.length > 0)
+    .map((section) => ({ ...section, groups: groupByCategory(section.rows) })),
 );
 
 const message = computed((): string | null => {
@@ -152,36 +162,62 @@ const onSubmit = (): void => {
           v-for="section in sections"
           :key="section.id"
           :data-testid="`suggest-section-${section.id}`"
-          class="mb-3 last:mb-0"
+          class="mb-4 last:mb-0"
         >
-          <h3 class="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-gray">
+          <h3 class="mb-2 text-sm font-semibold text-charcoal">
             {{ section.label }}
           </h3>
-          <ul class="rounded-xl border border-cream-soft bg-offwhite">
-            <li
-              v-for="s in section.rows"
-              :key="s.key"
-              data-testid="suggest-row"
-              class="border-b border-cream-soft last:border-b-0"
-            >
-              <label class="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2">
-                <input
-                  type="checkbox"
-                  :data-testid="`suggest-check-${s.key}`"
-                  :checked="selected.has(s.key)"
-                  class="h-5 w-5 shrink-0 accent-primary"
-                  @change="toggle(s.key, ($event.target as HTMLInputElement).checked)"
+          <div
+            v-for="group in section.groups"
+            :key="group.category"
+            :data-testid="`suggest-group-${section.id}-${group.category}`"
+            class="mb-3 last:mb-0"
+          >
+            <h4 class="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-gray">
+              <span aria-hidden="true" :style="{ color: CATEGORIES[group.category].cssVar }">{{ CATEGORIES[group.category].icon }}</span>
+              <span>{{ t(CATEGORIES[group.category].labelKey) }}</span>
+            </h4>
+            <ul class="flex flex-col gap-2">
+              <li v-for="s in group.rows" :key="s.key" data-testid="suggest-row">
+                <label
+                  class="flex w-full cursor-pointer select-none items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-charcoal/20"
+                  :class="selected.has(s.key)
+                    ? 'border-primary/30 bg-primary/5 hover:bg-primary/10 active:bg-primary/15'
+                    : 'border-cream-soft bg-offwhite hover:bg-cream active:bg-cream-soft'"
                 >
-                <CategoryIcon :category="s.category" />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm text-charcoal">{{ s.name }}</span>
-                  <span v-if="detail(s)" class="block truncate text-xs text-muted-gray">
-                    {{ detail(s) }}
+                  <input
+                    type="checkbox"
+                    :data-testid="`suggest-check-${s.key}`"
+                    :checked="selected.has(s.key)"
+                    class="sr-only"
+                    @change="toggle(s.key, ($event.target as HTMLInputElement).checked)"
+                  >
+                  <span
+                    aria-hidden="true"
+                    data-testid="suggest-row-icon"
+                    class="shrink-0 text-base leading-none"
+                  >
+                    {{ iconForItem(s.name, locale, s.category) }}
                   </span>
-                </span>
-              </label>
-            </li>
-          </ul>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-normal text-charcoal">{{ s.name }}</span>
+                    <span v-if="detail(s)" class="block truncate text-xs text-muted-gray">
+                      {{ detail(s) }}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors"
+                    :class="selected.has(s.key)
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-muted-gray/50 bg-transparent'"
+                  >
+                    <Check v-if="selected.has(s.key)" :size="12" :stroke-width="3" />
+                  </span>
+                </label>
+              </li>
+            </ul>
+          </div>
         </section>
       </div>
 

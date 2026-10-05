@@ -300,3 +300,9 @@ Locked decisions (2026-05-19): no analytics → no cookie banner; Privacy + Term
 - **GitHub Actions**: `ci.yml` (lint, typecheck, unit, rules, e2e) + `deploy.yml` (Firestore rules + indices only)
 - **Lighthouse mobile (incognito)**: Perf 77, A11y 100, BP 100, SEO 100
 - **Rich Results**: FAQPage + WebApplication valid
+
+---
+
+## Backlog
+
+- [ ] **Remove in-app notifications entirely** [L] - switched off on 2026-10-05 via `FEATURES.notifications` in `src/domain/features.ts` (bell hidden in `ListsView`, `notifyListEvent` is a no-op, `e2e/notifications.spec.ts` skipped). Owner finds the feature useless and annoying. To delete: `NotificationsPopover.vue`, `useNotifications.ts`, `notifications.service.ts`, `notify.service.ts` + every `notifyListEvent` call, `netlify/functions/notify-list-event.ts`, the `users/{uid}/notifications` rules block + rules tests, i18n `notifications.*` keys, the e2e spec, then the flag itself. Existing inbox docs stay until then (capped at 50 per user).

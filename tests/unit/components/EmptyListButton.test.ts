@@ -119,6 +119,12 @@ describe('EmptyListButton', () => {
     wrapper.unmount();
   });
 
+  it('is neutral coloured: red is reserved for the confirm step', () => {
+    const btn = mountBtn(3).get('[data-testid="empty-list-button"]');
+    expect(btn.classes()).toContain('text-charcoal');
+    expect(btn.classes().some((c) => c.startsWith('text-red'))).toBe(false);
+  });
+
   it('has aria-label on the button', () => {
     const wrapper = mountBtn(3);
     const btn = wrapper.get('[data-testid="empty-list-button"]');

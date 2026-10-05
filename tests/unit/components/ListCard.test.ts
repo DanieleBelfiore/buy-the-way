@@ -18,6 +18,7 @@ const i18n = createI18n({
         urgentInlineMany: '{u} urgent',
         urgentInlineWordOne: 'urgent',
         urgentInlineWordMany: 'urgent',
+        cardEmpty: 'Empty',
       },
       listSettings: { stats: { items: 'Items' } },
     },
@@ -96,6 +97,22 @@ describe('ListCard', () => {
     expect(star.exists()).toBe(true);
     expect(star.attributes('aria-pressed')).toBe('false');
     expect(star.attributes('aria-label')).toBe('Set as default list');
+  });
+
+  it('always shows a count line: "Empty" for a list without items', () => {
+    const empty = mountCard({ list: { ...mockList, itemCount: 0 } });
+    expect(empty.get('[data-testid="card-empty"]').text()).toBe('Empty');
+    expect(empty.find('[data-testid="item-count"]').exists()).toBe(false);
+
+    const filled = mountCard({ list: { ...mockList, itemCount: 2 } });
+    expect(filled.find('[data-testid="card-empty"]').exists()).toBe(false);
+    expect(filled.find('[data-testid="item-count"]').exists()).toBe(true);
+  });
+
+  it('gives the pin button a 44px touch target', () => {
+    const wrapper = mountCard({ list: mockList });
+    const pin = wrapper.get(`[data-testid="pin-${mockList.id}"]`);
+    expect(pin.classes()).toEqual(expect.arrayContaining(['w-11', 'h-11']));
   });
 
   it('flips the pin button label to "unset" when isDefault is true', () => {

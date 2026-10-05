@@ -8,6 +8,7 @@ import { Plus, X, Settings as SettingsIcon, BarChart3, Bell } from '@lucide/vue'
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover.vue';
 import { useNotifications } from '@/composables/useNotifications';
+import { FEATURES } from '@/domain/features';
 import type { NotificationDoc } from '@/domain/types';
 import ListCard from '@/components/list/ListCard.vue';
 import { VueDraggable } from 'vue-draggable-plus';
@@ -27,9 +28,6 @@ import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
 import type { UserProfile } from '@/domain/types';
-import pkg from '../../package.json';
-
-const APP_VERSION = pkg.version;
 
 // Explicit component name so <KeepAlive include="ListsView"> matches.
 defineOptions({ name: 'ListsView' });
@@ -39,6 +37,10 @@ const logoMotion = useLogoMotion();
 const { t } = useI18n();
 const router = useRouter();
 const listsStore = useListsStore();
+// The big hero logo is a welcome for an empty account; with lists on screen
+// it would push them below the fold, so it shrinks. At that size the tagline
+// baked into the bottom 10.3% of the image is unreadable, so it is clipped.
+const showFullLogo = computed(() => listsStore.initialized && listsStore.lists.length === 0);
 const authStore = useAuthStore();
 
 const showCreateInput = ref(false);
@@ -463,6 +465,7 @@ watch(
         <BarChart3 :size="18" :stroke-width="2.25" aria-hidden="true" />
       </button>
       <button
+        v-if="FEATURES.notifications"
         type="button"
         :aria-label="t('notifications.title')"
         data-testid="open-notifications"
@@ -490,33 +493,26 @@ watch(
     </header>
 
     <!-- Hero brand block -->
-    <section class="shrink-0 px-5 pt-2 pb-6 flex justify-center">
-      <div class="inline-flex flex-col items-end">
-        <picture>
-          <!-- Use the original-res asset for every density so the browser
-               always downscales (crisp) instead of upscaling the 540px variant
-               on retina/3x displays. -->
-          <source srcset="/branding/logo-original.avif" type="image/avif" />
-          <img
-            v-motion="logoMotion"
-            src="/branding/logo-original.png"
-            :alt="t('app.name')"
-            data-testid="lists-logo"
-            width="1316"
-            height="974"
-            fetchpriority="high"
-            decoding="async"
-            class="h-50 w-auto select-none"
-            draggable="false"
-          />
-        </picture>
-        <footer
-          data-testid="app-version"
-          class="mt-1 text-[10px] leading-none text-muted-gray tabular-nums"
-        >
-          v{{ APP_VERSION }}
-        </footer>
-      </div>
+    <section class="shrink-0 px-5 pt-2 flex justify-center" :class="showFullLogo ? 'pb-6' : 'pb-4'">
+      <picture>
+        <!-- Use the original-res asset for every density so the browser
+             always downscales (crisp) instead of upscaling the 540px variant
+             on retina/3x displays. -->
+        <source srcset="/branding/logo-original.avif" type="image/avif" />
+        <img
+          v-motion="logoMotion"
+          src="/branding/logo-original.png"
+          :alt="t('app.name')"
+          data-testid="lists-logo"
+          width="1316"
+          height="974"
+          fetchpriority="high"
+          decoding="async"
+          class="w-auto select-none"
+          :class="showFullLogo ? 'h-50' : 'h-28 -mb-3 [clip-path:inset(0_0_10.3%_0)]'"
+          draggable="false"
+        />
+      </picture>
     </section>
 
     <!-- Create input (inline, appears when FAB tapped) -->

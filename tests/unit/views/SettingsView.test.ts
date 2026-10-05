@@ -118,6 +118,11 @@ describe('SettingsView', () => {
     await router.isReady();
   });
 
+  it('shows the app version', () => {
+    const wrapper = mountView();
+    expect(wrapper.get('[data-testid="app-version"]').text()).toMatch(/^v\d+\.\d+\.\d+/);
+  });
+
   it('renders settings title from i18n', () => {
     const wrapper = mountView();
     expect(wrapper.text()).toContain('Impostazioni');

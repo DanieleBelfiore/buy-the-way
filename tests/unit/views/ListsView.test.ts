@@ -53,6 +53,7 @@ vi.mock('@/composables/useNotifications', () => ({
 }));
 
 import ListsView from '@/views/ListsView.vue';
+import { FEATURES } from '@/domain/features';
 import { useListsStore } from '@/stores/lists';
 import { useAuthStore } from '@/stores/auth';
 import { DuplicateListNameError, reorderList } from '@/services/lists.service';
@@ -115,6 +116,7 @@ describe('ListsView', () => {
     vi.clearAllMocks();
     mockNotificationCount.value = 0;
     mockConsume.mockResolvedValue([]);
+    FEATURES.notifications = true;
     await router.push('/lists');
     await router.isReady();
     mockSubscribe.mockReturnValue(vi.fn());
@@ -203,6 +205,37 @@ describe('ListsView', () => {
     await wrapper.find('[aria-label="New list"]').trigger('click');
     await wrapper.find('input').trigger('keydown.escape');
     expect(wrapper.find('input').exists()).toBe(false);
+  });
+
+  it('shows the full-size logo only while the user has no lists', () => {
+    const wrapper = mountView();
+    const logo = wrapper.get('[data-testid="lists-logo"]');
+    expect(logo.classes()).toContain('h-50');
+    expect(logo.classes().some((c) => c.includes('clip-path'))).toBe(false);
+  });
+
+  it('shrinks the logo once there are lists, and keeps the version out of this view', () => {
+    vi.mocked(useListsStore).mockReturnValue({
+      lists: [
+        { id: '01A', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 2 },
+      ],
+      loading: false,
+      error: null,
+      lastSeenLists: 0,
+      initialized: true,
+      subscribe: mockSubscribe,
+      createList: mockCreateList,
+      loadLastSeen: mockLoadLastSeen,
+      markSeen: mockMarkSeen,
+      isNewForUser: mockIsNewForUser,
+    } as any);
+
+    const wrapper = mountView();
+    const logo = wrapper.get('[data-testid="lists-logo"]');
+    expect(logo.classes()).not.toContain('h-50');
+    // The tagline baked into the image is unreadable at this size: clipped away.
+    expect(logo.classes().some((c) => c.includes('clip-path'))).toBe(true);
+    expect(wrapper.find('[data-testid="app-version"]').exists()).toBe(false);
   });
 
   it('renders a ListCard for each list', () => {
@@ -628,6 +661,13 @@ describe('ListsView', () => {
       await wrapper.find('[data-testid="open-settings"]').trigger('click');
       await flushPromises();
       expect(router.currentRoute.value.name).toBe('settings');
+    });
+
+    it('hides the notifications bell while the feature is switched off', () => {
+      FEATURES.notifications = false;
+      const wrapper = mountView();
+      expect(wrapper.find('[data-testid="open-notifications"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="open-settings"]').exists()).toBe(true);
     });
 
     it('shows notification badge when count is positive', () => {

@@ -71,6 +71,40 @@ describe('SuggestSheet', () => {
     expect(others.findAll('[data-testid="suggest-row"]')).toHaveLength(1);
   });
 
+  it('groups each section by category, in category order, with a heading', () => {
+    const wrapper = mountSheet({
+      suggestions: [
+        suggestion({ name: 'Bread', category: 'bakery' }),
+        suggestion({ name: 'Apple', category: 'fruit_vegetables' }),
+        suggestion({ name: 'Banana', category: 'fruit_vegetables' }),
+        suggestion({ name: 'Soap', category: 'hygiene', preselected: false }),
+      ],
+    });
+    const due = wrapper.find('[data-testid="suggest-section-due"]');
+    const groups = due.findAll('[data-testid^="suggest-group-"]');
+    expect(groups.map((g) => g.attributes('data-testid'))).toEqual([
+      'suggest-group-due-fruit_vegetables',
+      'suggest-group-due-bakery',
+    ]);
+    expect(groups[0]?.find('h4').text()).toContain('Fruit');
+    expect(groups[0]?.findAll('[data-testid="suggest-row"]')).toHaveLength(2);
+    expect(
+      wrapper.find('[data-testid="suggest-group-others-hygiene"]').exists(),
+    ).toBe(true);
+  });
+
+  it('shows the product icon when known and the category icon otherwise', () => {
+    const wrapper = mountSheet({
+      suggestions: [
+        suggestion({ name: 'Apple', category: 'fruit_vegetables' }),
+        suggestion({ name: 'Banana', category: 'fruit_vegetables' }),
+        suggestion({ name: 'Mystery fruit', category: 'fruit_vegetables' }),
+      ],
+    });
+    const icons = wrapper.findAll('[data-testid="suggest-row-icon"]').map((i) => i.text());
+    expect(icons).toEqual(['\u{1F34E}', '\u{1F34C}', '\u{1F955}']);
+  });
+
   it('shows last quantity and repurchase cadence', () => {
     const wrapper = mountSheet();
     const rows = wrapper.findAll('[data-testid="suggest-row"]').map((r) => r.text());
