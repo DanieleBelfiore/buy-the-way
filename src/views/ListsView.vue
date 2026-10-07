@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick, onMounted, onUnmounted, onActivated, on
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
+import { useListItemCountsStore } from '@/stores/listItemCounts';
 import { useAuthStore } from '@/stores/auth';
 import { Plus, X, Settings as SettingsIcon, BarChart3, Bell } from '@lucide/vue';
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue';
@@ -42,6 +43,7 @@ const listsStore = useListsStore();
 // baked into the bottom 10.3% of the image is unreadable, so it is clipped.
 const showFullLogo = computed(() => listsStore.initialized && listsStore.lists.length === 0);
 const authStore = useAuthStore();
+const listItemCountsStore = useListItemCountsStore();
 
 const showCreateInput = ref(false);
 const newListName = ref('');
@@ -83,10 +85,13 @@ const profilesFor = (uids: readonly string[]): UserProfile[] =>
     .map((u) => profileMap.value.get(u))
     .filter((p): p is UserProfile => Boolean(p));
 
+const listIds = computed(() => listsStore.lists.map((l) => l.id));
+
 const startSub = () => {
   if (!unsubscribe) {
     unsubscribe = listsStore.subscribe();
   }
+  listItemCountsStore.sync(listIds.value);
 };
 
 const stopSub = () => {
@@ -94,7 +99,14 @@ const stopSub = () => {
     unsubscribe();
     unsubscribe = undefined;
   }
+  listItemCountsStore.stop();
 };
+
+// Lists arrive (and come and go) after the subscription starts. Skipped
+// while the view is cached by <KeepAlive>: no listeners behind a hidden menu.
+watch(listIds, (ids) => {
+  if (unsubscribe) listItemCountsStore.sync(ids);
+});
 
 onMounted(async () => {
   // Run profile + lists init concurrently - neither blocks the other.
@@ -617,6 +629,8 @@ watch(
             :list="list"
             :is-default="defaultListId === list.id"
             :members="profilesFor(list.collaboratorUids)"
+            :item-count="listItemCountsStore.counts[list.id]?.itemCount"
+            :urgent-count="listItemCountsStore.counts[list.id]?.urgentCount"
             @open="openList"
             @toggle-default="handleToggleDefault"
           />

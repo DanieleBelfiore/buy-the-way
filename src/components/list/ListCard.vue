@@ -12,8 +12,11 @@ const props = withDefaults(
     list: List;
     isDefault?: boolean;
     members?: readonly UserProfile[];
+    /** Live counts from the list's item docs; the stored ones are the fallback. */
+    itemCount?: number;
+    urgentCount?: number;
   }>(),
-  { isDefault: false, members: () => [] },
+  { isDefault: false, members: () => [], itemCount: undefined, urgentCount: undefined },
 );
 const emit = defineEmits<{
   (e: 'open', id: string): void;
@@ -27,8 +30,8 @@ const handlePinClick = (ev: MouseEvent): void => {
   emit('toggle-default', props.list.id);
 };
 
-const itemCount = computed(() => props.list.itemCount ?? 0);
-const urgentCount = computed(() => props.list.urgentCount ?? 0);
+const itemCount = computed(() => props.itemCount ?? props.list.itemCount ?? 0);
+const urgentCount = computed(() => props.urgentCount ?? props.list.urgentCount ?? 0);
 
 const initialFor = (m: UserProfile): string => {
   const source = m.displayName.trim() || m.email;

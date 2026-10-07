@@ -34,7 +34,7 @@ const mockList: List = {
   updatedAt: 200,
 };
 
-const mountCard = (props: { list: List; isDefault?: boolean }) =>
+const mountCard = (props: { list: List; isDefault?: boolean; itemCount?: number; urgentCount?: number }) =>
   mount(ListCard, { props, global: { plugins: [i18n, createPinia()] } });
 
 describe('ListCard', () => {
@@ -183,6 +183,21 @@ describe('ListCard', () => {
     expect(wrapper.find('[data-testid="item-count"]').text()).toContain('4');
     expect(wrapper.find('[data-testid="item-count"]').text()).toContain('2 urgent');
     expect(wrapper.find('[data-testid="urgent-inline"] svg').exists()).toBe(true);
+  });
+
+  it('prefers the live counts over the stored ones on the list doc', () => {
+    const wrapper = mountCard({
+      list: { ...mockList, itemCount: 3, urgentCount: 2 },
+      itemCount: 8,
+      urgentCount: 0,
+    });
+    expect(wrapper.find('[data-testid="item-count"]').text()).toBe('Items: 8');
+  });
+
+  it('shows the empty label when the live count is zero even if the stored one is not', () => {
+    const wrapper = mountCard({ list: { ...mockList, itemCount: 3 }, itemCount: 0 });
+    expect(wrapper.find('[data-testid="card-empty"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="item-count"]').exists()).toBe(false);
   });
 
   it('omits urgent suffix when urgentCount is 0', () => {

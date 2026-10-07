@@ -7,6 +7,21 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }));
 vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
 
+const { mockCountsSync, mockCountsStop, liveCounts } = vi.hoisted(() => ({
+  mockCountsSync: vi.fn(),
+  mockCountsStop: vi.fn(),
+  liveCounts: { value: {} as Record<string, { itemCount: number; urgentCount: number }> },
+}));
+vi.mock('@/stores/listItemCounts', () => ({
+  useListItemCountsStore: () => ({
+    get counts() {
+      return liveCounts.value;
+    },
+    sync: mockCountsSync,
+    stop: mockCountsStop,
+  }),
+}));
+
 const { mockReorderList } = vi.hoisted(() => ({
   mockReorderList: vi.fn().mockResolvedValue(undefined),
 }));
@@ -115,6 +130,7 @@ describe('ListsView', () => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     mockNotificationCount.value = 0;
+    liveCounts.value = {};
     mockConsume.mockResolvedValue([]);
     FEATURES.notifications = true;
     await router.push('/lists');
@@ -258,6 +274,52 @@ describe('ListsView', () => {
     const wrapper = mountView();
     expect(wrapper.text()).toContain('Spesa');
     expect(wrapper.text()).toContain('Pasta');
+  });
+
+  describe('live item counts', () => {
+    const withLists = () =>
+      vi.mocked(useListsStore).mockReturnValue({
+        lists: [
+          { id: '01A', name: 'Spesa', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 2, itemCount: 3 },
+          { id: '01B', name: 'Pasta', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 3 },
+        ],
+        loading: false,
+        error: null,
+        lastSeenLists: 0,
+        initialized: true,
+        subscribe: mockSubscribe,
+        createList: mockCreateList,
+        loadLastSeen: mockLoadLastSeen,
+        markSeen: mockMarkSeen,
+        isNewForUser: mockIsNewForUser,
+      } as any);
+
+    it('tracks the items of every list on screen', async () => {
+      withLists();
+      mountView();
+      await flushPromises();
+      expect(mockCountsSync).toHaveBeenCalled();
+      expect([...mockCountsSync.mock.calls.at(-1)![0]].sort()).toEqual(['01A', '01B']);
+    });
+
+    it('shows the real item count on the card, not the stored itemCount', async () => {
+      withLists();
+      liveCounts.value = { '01A': { itemCount: 8, urgentCount: 0 } };
+      const wrapper = mountView();
+      await flushPromises();
+      const card = wrapper.get('[data-list-id="01A"]');
+      const text = card.get('[data-testid="item-count"]').text();
+      expect(text).toContain('8');
+      expect(text).not.toContain('3');
+    });
+
+    it('stops tracking on unmount', async () => {
+      withLists();
+      const wrapper = mountView();
+      await flushPromises();
+      wrapper.unmount();
+      expect(mockCountsStop).toHaveBeenCalled();
+    });
   });
 
   it('shows skeleton when loading', () => {
