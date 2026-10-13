@@ -42,7 +42,7 @@ import VoiceAddSheet from '@/components/list/VoiceAddSheet.vue';
 import CompletionCelebration from '@/components/ui/CompletionCelebration.vue';
 import SkeletonCard from '@/components/ui/SkeletonCard.vue';
 import Toast from '@/components/ui/Toast.vue';
-import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
+import { LazyDotLottie } from '@/components/ui/LazyDotLottie';
 import type { Category, Item } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
@@ -627,7 +627,7 @@ watch(
       </div>
 
       <div v-else-if="!hasItems" class="px-5 py-12 text-center space-y-3">
-        <DotLottieVue
+        <LazyDotLottie
           data-testid="list-empty-lottie"
           aria-hidden="true"
           class="mx-auto h-40 w-40"

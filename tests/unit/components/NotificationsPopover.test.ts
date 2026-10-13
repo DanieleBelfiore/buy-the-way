@@ -84,7 +84,7 @@ describe('NotificationsPopover', () => {
 
   it('renders dialog with title when open', () => {
     const wrapper = mountPopover();
-    expect(wrapper.get('[role="dialog"]').exists()).toBe(true);
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Notifications');
     wrapper.unmount();
   });

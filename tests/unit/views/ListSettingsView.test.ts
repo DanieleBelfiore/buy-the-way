@@ -101,7 +101,7 @@ const mockSubscribe = vi.fn();
 const mockSetDefaultListId = vi.fn().mockResolvedValue(undefined);
 
 const setupStores = (
-  list: typeof ownerList | null,
+  list: (typeof ownerList & { wallpaper?: string }) | null,
   selfUid: string,
   profile: { uid: string; defaultListId?: string | null } | null = null,
   opts: { loading?: boolean; initialized?: boolean } = {},
@@ -342,10 +342,9 @@ describe('ListSettingsView', () => {
   it('add collaborator form calls addCollaborator and emits added', async () => {
     setupStores(ownerList, 'uid-me');
     vi.mocked(addCollaborator).mockResolvedValue({
-      uid: 'uid-new',
+      profile: { uid: 'uid-new', email: 'new@x.com', displayName: 'New', lastLoginAt: 0 },
+      pending: false,
       email: 'new@x.com',
-      displayName: 'New',
-      lastLoginAt: 0,
     });
     const wrapper = await mountView();
     await flushPromises();

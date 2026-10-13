@@ -25,7 +25,7 @@ vi.mock('firebase/firestore', () => ({
   where: vi.fn().mockReturnValue({ type: 'where' }),
   limit: vi.fn().mockReturnValue({ type: 'limit' }),
   orderBy: vi.fn().mockReturnValue({ type: 'orderBy' }),
-  writeBatch: (...args: unknown[]) => writeBatchMock(...args),
+  writeBatch: () => writeBatchMock(),
   increment: vi.fn((n: number) => ({ __increment: n })),
 }));
 
@@ -175,7 +175,7 @@ describe('items.service', () => {
       await toggleChecked(listId, itemId, true);
       const [, listPayload] = vi.mocked(updateDoc).mock.calls[1]!;
       expect(Object.keys(listPayload as object)).toEqual(['updatedAt']);
-      expect(typeof (listPayload as { updatedAt: unknown }).updatedAt).toBe('number');
+      expect(typeof (listPayload as unknown as { updatedAt: unknown }).updatedAt).toBe('number');
     });
 
     it('patches checked = false correctly', async () => {
@@ -204,7 +204,7 @@ describe('items.service', () => {
     it('decrements list itemCount via updateDoc', async () => {
       await removeItem(listId, itemId);
       expect(updateDoc).toHaveBeenCalledOnce();
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.itemCount).toEqual({ __increment: -1 });
       expect(typeof payload.updatedAt).toBe('number');
     });
@@ -224,66 +224,66 @@ describe('items.service', () => {
       await updateItem(listId, itemId, { name: 'Latte fresco', quantity: '2L' });
       expect(updateDoc).toHaveBeenCalledTimes(2);
       const call = vi.mocked(updateDoc).mock.calls[0]!;
-      const payload = call[1] as Record<string, unknown>;
+      const payload = call[1] as unknown as Record<string, unknown>;
       expect(payload.name).toBe('Latte fresco');
       expect(payload.quantity).toBe('2L');
       expect(typeof payload.updatedAt).toBe('number');
-      const listPayload = vi.mocked(updateDoc).mock.calls[1]![1] as Record<string, unknown>;
+      const listPayload = vi.mocked(updateDoc).mock.calls[1]![1] as unknown as Record<string, unknown>;
       expect(Object.keys(listPayload)).toEqual(['updatedAt']);
     });
 
     it('accepts partial patches (note only)', async () => {
       await updateItem(listId, itemId, { note: 'Biologico' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.note).toBe('Biologico');
       expect(payload.name).toBeUndefined();
     });
 
     it('accepts category patch', async () => {
       await updateItem(listId, itemId, { category: 'bakery' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.category).toBe('bakery');
     });
 
     it('capitalizes lowercase initial of name patch', async () => {
       await updateItem(listId, itemId, { name: 'pane integrale' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.name).toBe('Pane integrale');
     });
 
     it('leaves already-capitalized name unchanged', async () => {
       await updateItem(listId, itemId, { name: 'Pane' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.name).toBe('Pane');
     });
 
     it('does not include name field when patch omits it', async () => {
       await updateItem(listId, itemId, { note: 'x' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.name).toBeUndefined();
     });
 
     it('capitalizes lowercase initial of note patch', async () => {
       await updateItem(listId, itemId, { note: 'biologico' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.note).toBe('Biologico');
     });
 
     it('leaves already-capitalized note unchanged', async () => {
       await updateItem(listId, itemId, { note: 'Manitoba' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.note).toBe('Manitoba');
     });
 
     it('trims trailing/leading whitespace from name patch', async () => {
       await updateItem(listId, itemId, { name: '  Pane integrale  ' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.name).toBe('Pane integrale');
     });
 
     it('trims trailing/leading whitespace from note patch', async () => {
       await updateItem(listId, itemId, { note: '  biologico  ' });
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.note).toBe('Biologico');
     });
   });
@@ -647,13 +647,13 @@ describe('items.service', () => {
   describe('setItemPriority', () => {
     it('calls updateDoc with the priority value', async () => {
       await setItemPriority(listId, itemId, 'urgent');
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.priority).toBe('urgent');
     });
 
     it('uses deleteField marker when clearing priority (null)', async () => {
       await setItemPriority(listId, itemId, null);
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.priority).toEqual({ __deleteField: true });
     });
   });

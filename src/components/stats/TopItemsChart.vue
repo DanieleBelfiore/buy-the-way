@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import type { TooltipItem } from 'chart.js';
 import { useI18n } from 'vue-i18n';
 import { CATEGORIES } from '@/domain/categories';
 import { useThemeStore } from '@/stores/theme';
@@ -61,8 +62,7 @@ const chartOptions = computed(() => ({
       displayColors: false,
       callbacks: {
         title: () => '',
-        label: (ctx: { parsed: { x: number }; label: string }) =>
-          `${ctx.label}: ${ctx.parsed.x}`,
+        label: (ctx: TooltipItem<'bar'>) => `${ctx.label}: ${ctx.parsed.x ?? 0}`,
       },
     },
   },

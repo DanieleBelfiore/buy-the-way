@@ -26,6 +26,31 @@ export const useAuthStore = defineStore('auth', () => {
   // Promise-singleton so concurrent `ensureProfile()` callers share one fetch.
   let profileLoadPromise: Promise<void> | null = null;
 
+  // Local mirror of `profile.defaultListId`, per user, so the boot redirect in
+  // the router guard can resolve without a Firestore round trip. An empty
+  // string means "known: no default"; a missing key means "not known yet".
+  const defaultListCacheKey = (uid: string): string => `btw:defaultListId:${uid}`;
+
+  const writeCachedDefaultListId = (uid: string, listId: string | null | undefined): void => {
+    try {
+      localStorage.setItem(defaultListCacheKey(uid), listId ?? '');
+    } catch {
+      // Storage unavailable (private mode, quota) - the guard falls back to
+      // awaiting the profile.
+    }
+  };
+
+  const cachedDefaultListId = (): string | null | undefined => {
+    if (!user.value) return undefined;
+    try {
+      const raw = localStorage.getItem(defaultListCacheKey(user.value.uid));
+      if (raw === null) return undefined;
+      return raw === '' ? null : raw;
+    } catch {
+      return undefined;
+    }
+  };
+
   const init = (): (() => void) => {
     return onAuthChanged((authUser) => {
       // Invalidate cached profile whenever the signed-in identity changes.
@@ -52,6 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Only commit if the user hasn't changed underneath us.
         if (user.value && user.value.uid === uid) {
           profile.value = p;
+          if (p) writeCachedDefaultListId(uid, p.defaultListId);
         }
       })
       .catch((err) => {
@@ -67,6 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return;
     const uid = user.value.uid;
     await setUserDefaultList(uid, listId);
+    writeCachedDefaultListId(uid, listId);
     if (profile.value && profile.value.uid === uid) {
       profile.value = { ...profile.value, defaultListId: listId };
     }
@@ -105,6 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile,
     init,
     ensureProfile,
+    cachedDefaultListId,
     setDefaultListId,
     markOnboardingSeen,
     signIn,

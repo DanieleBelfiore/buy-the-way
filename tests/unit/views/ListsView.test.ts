@@ -166,6 +166,27 @@ describe('ListsView', () => {
     expect(mockSubscribe).toHaveBeenCalledOnce();
   });
 
+  it('subscribes on mount without waiting for the seen map', async () => {
+    // Never settles: simulates a slow / offline profile read.
+    mockLoadLastSeen.mockReturnValue(new Promise<void>(() => {}));
+    mountView();
+    await flushPromises();
+    expect(mockSubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('still subscribes when loading the seen map fails', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockLoadLastSeen.mockRejectedValue(new Error('offline'));
+    mountView();
+    await flushPromises();
+    expect(mockSubscribe).toHaveBeenCalledOnce();
+    expect(consoleWarn).toHaveBeenCalledWith(
+      expect.stringContaining('[ListsView]'),
+      expect.any(Error),
+    );
+    consoleWarn.mockRestore();
+  });
+
   it('renders stats button in header', () => {
     const wrapper = mountView();
     expect(wrapper.find('[data-testid="open-stats"]').exists()).toBe(true);

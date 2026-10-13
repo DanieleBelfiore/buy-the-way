@@ -303,8 +303,9 @@ describe('auth.service', () => {
         displayName: 'Test User',
       });
 
-      // Two writes: public top-level + private subcollection.
-      expect(mSetDoc).toHaveBeenCalledTimes(2);
+      // Two writes: public top-level + private subcollection. A restored
+      // session runs them in the background, so wait for the chain to drain.
+      await vi.waitFor(() => expect(mSetDoc).toHaveBeenCalledTimes(2));
 
       const publicPayloads = mSetDoc.mock.calls
         .map((c) => c[1] as Record<string, unknown>)
@@ -381,11 +382,66 @@ describe('auth.service', () => {
       await capturedCb!({ uid: 'uid-1', email: 'test@example.com', displayName: 'Test' });
 
       expect(callback).toHaveBeenCalledWith(expect.objectContaining({ uid: 'uid-1' }));
-      expect(consoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('[auth]'),
-        expect.any(Error),
+      await vi.waitFor(() =>
+        expect(consoleWarn).toHaveBeenCalledWith(
+          expect.stringContaining('[auth]'),
+          expect.any(Error),
+        ),
       );
+      // Both writes fail in the background; let the chain drain before restore.
+      await vi.waitFor(() => expect(mSetDoc).toHaveBeenCalledTimes(2));
+      await Promise.resolve();
       consoleWarn.mockRestore();
+    });
+
+    it('restored session: calls callback without waiting for the profile writes', async () => {
+      let capturedCb: ((u: any) => Promise<void>) | undefined;
+      mOnAuthStateChanged.mockImplementation((_auth, cb) => {
+        capturedCb = cb as any;
+        return vi.fn() as any;
+      });
+      // Never settles: simulates a slow / offline Firestore.
+      mSetDoc.mockReturnValue(new Promise<void>(() => {}));
+
+      const callback = vi.fn();
+      onAuthChanged(callback);
+
+      // First event of the page load already carries a user = persisted session.
+      await capturedCb!({ uid: 'uid-1', email: 'test@example.com', displayName: 'Test' });
+
+      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ uid: 'uid-1' }));
+      expect(mSetDoc).toHaveBeenCalledTimes(1);
+    });
+
+    it('interactive sign-in: awaits the profile upsert before the callback', async () => {
+      let capturedCb: ((u: any) => Promise<void>) | undefined;
+      mOnAuthStateChanged.mockImplementation((_auth, cb) => {
+        capturedCb = cb as any;
+        return vi.fn() as any;
+      });
+      let releaseWrite: () => void = () => {};
+      mSetDoc.mockReturnValueOnce(
+        new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        }),
+      );
+
+      const callback = vi.fn();
+      onAuthChanged(callback);
+
+      // Signed-out first, then a user arrives = a real sign-in transition.
+      await capturedCb!(null);
+      const pending = capturedCb!({ uid: 'uid-1', email: 'test@example.com', displayName: 'Test' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenLastCalledWith(null);
+
+      releaseWrite();
+      await pending;
+
+      expect(callback).toHaveBeenLastCalledWith(expect.objectContaining({ uid: 'uid-1' }));
     });
 
     it('handles null email gracefully', async () => {

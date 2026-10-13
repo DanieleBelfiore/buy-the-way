@@ -27,7 +27,7 @@ import PwaInstallButton from '@/components/ui/PwaInstallButton.vue';
 import { DuplicateListNameError } from '@/services/lists.service';
 import { getUsersByUids } from '@/services/users.service';
 import { useLogoMotion } from '@/composables/useLogoMotion';
-import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
+import { LazyDotLottie } from '@/components/ui/LazyDotLottie';
 import type { UserProfile } from '@/domain/types';
 
 // Explicit component name so <KeepAlive include="ListsView"> matches.
@@ -108,10 +108,14 @@ watch(listIds, (ids) => {
   if (unsubscribe) listItemCountsStore.sync(ids);
 });
 
-onMounted(async () => {
-  // Run profile + lists init concurrently - neither blocks the other.
+onMounted(() => {
+  // Profile, seen map and lists init run concurrently - none blocks another.
+  // The subscription must not wait on the seen map: that is a network read,
+  // while the lists themselves render straight from the local cache.
   void authStore.ensureProfile();
-  await listsStore.loadLastSeen();
+  listsStore.loadLastSeen().catch((err: unknown) => {
+    console.warn('[ListsView] loadLastSeen failed:', err);
+  });
   startSub();
 });
 
@@ -591,7 +595,7 @@ watch(
           key="empty"
           class="text-center pt-8 space-y-3"
         >
-          <DotLottieVue
+          <LazyDotLottie
             :key="`empty-lottie-${emptyLottieKey}`"
             data-testid="lists-empty-lottie"
             aria-hidden="true"

@@ -5,10 +5,10 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 import en from '@/i18n/locales/en.json';
 import legalEn from '@/i18n/locales/legal.en.json';
 
-const useHeadCalls: Array<{ script?: Array<{ type?: string; children?: () => string }> }> = [];
+const useHeadCalls: Array<{ script?: Array<{ type?: string; innerHTML?: () => string }> }> = [];
 
 vi.mock('@unhead/vue', () => ({
-  useHead: (arg: { script?: Array<{ type?: string; children?: () => string }> }) =>
+  useHead: (arg: { script?: Array<{ type?: string; innerHTML?: () => string }> }) =>
   {
     useHeadCalls.push(arg);
   },

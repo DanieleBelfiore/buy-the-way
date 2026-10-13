@@ -5,6 +5,7 @@ import {
   SUGGEST_FREQUENCY_WINDOW,
 } from '@/domain/suggest';
 import type { Category, Item, ListHistoryEntry } from '@/domain/types';
+import type { ULID } from '@/domain/id';
 
 const DAY = 24 * 60 * 60 * 1000;
 // Local noon keeps every "N days ago" timestamp on a distinct calendar day
@@ -19,8 +20,8 @@ const makeItem = (row: Row): Item => {
   const r = typeof row === 'string' ? { name: row } : row;
   seq += 1;
   return {
-    id: `item-${seq}`,
-    listId: 'list-1',
+    id: `item-${seq}` as ULID,
+    listId: 'list-1' as ULID,
     name: r.name,
     quantity: r.quantity ?? '',
     category: r.category ?? 'other',
@@ -40,8 +41,8 @@ const run = (
   const items = rows.map(makeItem);
   seq += 1;
   return {
-    id: `run-${seq}`,
-    listId: 'list-1',
+    id: `run-${seq}` as ULID,
+    listId: 'list-1' as ULID,
     completedAt,
     itemCount: items.length,
     recordedByUid: 'u1',

@@ -22,6 +22,12 @@ export const useListsStore = defineStore('lists', () => {
    */
   const lastSeenLists = ref<number>(0);
   const lastSeenListMap = ref<Record<string, number>>({});
+  /**
+   * False until `loadLastSeen` has populated the two refs above. Views start
+   * rendering lists before that read returns, and against an empty map every
+   * shared list would briefly flash a NEW badge.
+   */
+  const lastSeenLoaded = ref(false);
   // S3.1: pending-delete buffer. Same pattern as items store.
   const pendingDeleteIds = ref<Set<string>>(new Set());
   const visibleLists = computed(() =>
@@ -103,6 +109,7 @@ export const useListsStore = defineStore('lists', () => {
     const profile = await getUserProfile(auth.user.uid);
     lastSeenLists.value = profile?.lastSeenLists ?? 0;
     lastSeenListMap.value = { ...(profile?.lastSeenListMap ?? {}) };
+    lastSeenLoaded.value = true;
   };
 
   const markSeen = async (listId: string): Promise<void> => {
@@ -119,6 +126,7 @@ export const useListsStore = defineStore('lists', () => {
 
   const isNewForUser = (list: List, uid: string): boolean => {
     if (list.ownerUid === uid) return false;
+    if (!lastSeenLoaded.value) return false;
     const perList = lastSeenListMap.value[list.id];
     const threshold = perList ?? lastSeenLists.value;
     return list.updatedAt > threshold;
@@ -138,6 +146,7 @@ export const useListsStore = defineStore('lists', () => {
     initialized.value = false;
     lastSeenLists.value = 0;
     lastSeenListMap.value = {};
+    lastSeenLoaded.value = false;
     // Force-release the underlying firestore subscription on identity change.
     // Holders still keep their refs (their onUnmounted will decrement to 0
     // again), but the snapshot listener for the OLD user is dead immediately
@@ -166,6 +175,7 @@ export const useListsStore = defineStore('lists', () => {
     error,
     lastSeenLists,
     lastSeenListMap,
+    lastSeenLoaded,
     initialized,
     pendingDeleteIds,
     markPendingDelete,

@@ -491,7 +491,7 @@ describe('lists.service', () => {
     it('writes urgentCount when it differs from stored value', async () => {
       await reconcileListUrgentCount('L1', 2, 0);
       expect(updateDoc).toHaveBeenCalledOnce();
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as Record<string, unknown>;
+      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
       expect(payload.urgentCount).toBe(2);
     });
 

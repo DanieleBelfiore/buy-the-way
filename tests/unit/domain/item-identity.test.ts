@@ -8,10 +8,10 @@ import {
   suggestionMatchesListItem,
 } from '@/domain/item-identity';
 import type { Item } from '@/domain/types';
+import type { ULID } from '@/domain/id';
 
-const baseItem = (overrides: Partial<Item> = {}): Item => ({
-  id: overrides.id ?? '01ITEM0001',
-  listId: '01LIST0001',
+const baseItem = (overrides: Partial<Omit<Item, 'id'>> & { id?: string } = {}): Item => ({
+  listId: '01LIST0001' as ULID,
   name: overrides.name ?? 'Latte',
   quantity: overrides.quantity ?? '',
   category: overrides.category ?? 'dairy',
@@ -21,6 +21,7 @@ const baseItem = (overrides: Partial<Item> = {}): Item => ({
   createdAt: 1,
   updatedAt: 1,
   ...overrides,
+  id: (overrides.id ?? '01ITEM0001') as ULID,
 });
 
 describe('item-identity', () => {

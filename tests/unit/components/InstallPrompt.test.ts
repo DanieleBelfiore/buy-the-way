@@ -8,7 +8,9 @@ const isInstalled = ref(false);
 const showIOSHint = ref(false);
 const isMobile = ref(true);
 const dismissed = ref(false);
-const promptInstall = vi.fn(async () => 'accepted' as const);
+const promptInstall = vi.fn(
+  async (): Promise<'accepted' | 'dismissed' | 'unavailable'> => 'accepted',
+);
 const dismiss = vi.fn(() => {
   dismissed.value = true;
 });

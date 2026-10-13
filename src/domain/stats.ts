@@ -20,11 +20,19 @@ export interface StatsTotals {
   readonly totalUsage: number;
 }
 
-const isCountable = (entry: CatalogEntry): boolean =>
+// `excluded` / `pinned` used to live on catalog entries and have since moved
+// to the per-list favorite state, so `CatalogEntry` no longer declares them.
+// Entries written before that move may still carry the flags.
+type StatsEntry = CatalogEntry & {
+  readonly excluded?: boolean;
+  readonly pinned?: boolean;
+};
+
+const isCountable = (entry: StatsEntry): boolean =>
   !entry.excluded && entry.usageCount > 0;
 
 export const topUsedItems = (
-  entries: readonly CatalogEntry[],
+  entries: readonly StatsEntry[],
   limit = 10,
 ): TopItem[] => {
   return [...entries]
@@ -42,7 +50,7 @@ export const topUsedItems = (
 };
 
 export const categoryBreakdown = (
-  entries: readonly CatalogEntry[],
+  entries: readonly StatsEntry[],
 ): CategoryBreakdownSlice[] => {
   const counts = new Map<Category, number>();
   let total = 0;
@@ -62,7 +70,7 @@ export const categoryBreakdown = (
 };
 
 export const computeTotals = (
-  entries: readonly CatalogEntry[],
+  entries: readonly StatsEntry[],
   lists: readonly List[],
   selfUid: string | null,
   favoritesMinUses: number,

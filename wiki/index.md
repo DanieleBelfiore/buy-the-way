@@ -15,7 +15,7 @@ Content catalog for buy-the-way. Agents: read this first on query, then open lin
 | [concepts/architecture.md](concepts/architecture.md) | Vue layers: views, stores, services, domain |
 | [concepts/data-model.md](concepts/data-model.md) | Firestore paths, Storage, private vs public user docs |
 | [concepts/auth-and-collaboration.md](concepts/auth-and-collaboration.md) | Sign-in, collaborators, admins, invites |
-| [concepts/offline-and-sync.md](concepts/offline-and-sync.md) | Offline-first, LWW, realtime subscriptions |
+| [concepts/offline-and-sync.md](concepts/offline-and-sync.md) | Offline-first, LWW, realtime subscriptions, cold boot path |
 | [concepts/routing.md](concepts/routing.md) | Routes, auth guard, default-list boot redirect |
 | [concepts/testing.md](concepts/testing.md) | Vitest, rules tests, Playwright, coverage gate |
 | [concepts/ci-deploy.md](concepts/ci-deploy.md) | GitHub Actions, Netlify, Firebase deploy |

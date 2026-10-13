@@ -376,7 +376,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
       const targets = bulkSel.snapshot();
       bulkSel.exit();
       pulse();
-      await Promise.all(targets.map((id) => setItemPriority(listId.value, id, p)));
+      await Promise.all(targets.map((id) => setItemPriority(listId.value, id as ULID, p)));
     } else {
       if (!item) return;
       try {

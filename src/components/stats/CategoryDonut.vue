@@ -7,6 +7,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import type { Chart, TooltipItem } from 'chart.js';
 import { useI18n } from 'vue-i18n';
 import { CATEGORIES } from '@/domain/categories';
 import { useThemeStore } from '@/stores/theme';
@@ -60,15 +61,17 @@ const chartOptions = computed(() => ({
         boxWidth: 12,
         padding: 12,
         color: inkColor.value,
-        generateLabels: (chart: {
-          data: { labels?: string[]; datasets: { data: number[]; backgroundColor: string[] }[] };
-        }) => {
-          const labels = chart.data.labels ?? [];
+        generateLabels: (chart: Chart) => {
+          // Chart.js types these loosely; the shapes are the ones built in
+          // `chartData` above.
+          const labels = (chart.data.labels ?? []) as string[];
           const ds = chart.data.datasets[0];
           if (!ds) return [];
-          const total = ds.data.reduce((a, b) => a + b, 0);
+          const values = ds.data as number[];
+          const colors = ds.backgroundColor as string[];
+          const total = values.reduce((a, b) => a + b, 0);
           return labels.map((label, i) => {
-            const value = ds.data[i] ?? 0;
+            const value = values[i] ?? 0;
             const pct = total === 0 ? 0 : Math.round((value / total) * 100);
             return {
               text: `${label} - ${pct}%`,
@@ -76,8 +79,8 @@ const chartOptions = computed(() => ({
               // it so the legend text follows the theme even when we hand-roll
               // entries via generateLabels.
               fontColor: inkColor.value,
-              fillStyle: ds.backgroundColor[i] ?? '#5f5f5d',
-              strokeStyle: ds.backgroundColor[i] ?? '#5f5f5d',
+              fillStyle: colors[i] ?? '#5f5f5d',
+              strokeStyle: colors[i] ?? '#5f5f5d',
               lineWidth: 0,
               index: i,
             };
@@ -89,7 +92,7 @@ const chartOptions = computed(() => ({
       displayColors: false,
       callbacks: {
         title: () => '',
-        label: (ctx: { label: string; parsed: number; dataset: { data: number[] } }) => {
+        label: (ctx: TooltipItem<'doughnut'>) => {
           const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
           const pct = total === 0 ? 0 : Math.round((ctx.parsed / total) * 100);
           const items = t('stats.categories.tooltipItems', ctx.parsed, { named: { n: ctx.parsed } });

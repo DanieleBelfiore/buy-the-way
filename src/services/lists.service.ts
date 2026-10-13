@@ -24,6 +24,7 @@ import { notifyListEvent } from '@/services/notify.service';
 import { purgeItemPhotoStorage } from '@/services/itemPhotos.service';
 import { deleteAllListHistory } from '@/services/history.service';
 import type { Category, List, UserProfile } from '@/domain/types';
+import type { ULID } from '@/domain/id';
 
 export class UserNotFoundError extends Error {
   constructor(email: string) {
@@ -361,12 +362,18 @@ export const removeCollaborator = async (
 };
 
 export const leaveList = async (listId: string, selfUid: string): Promise<void> => {
-  const ownerUid = await loadListOwner(listId);
-  if (selfUid === ownerUid) throw new CannotRemoveOwnerError();
+  const snap = await getDoc(doc(db, 'lists', listId));
+  if (!snap.exists()) throw new ListNotFoundError(listId);
+  const list = snap.data() as List;
+  if (selfUid === list.ownerUid) throw new CannotRemoveOwnerError();
 
+  // Only an admin may write `admins` (the rules reject it from anyone else),
+  // and an arrayRemove on a legacy doc without the field would create an
+  // empty array, leaving the list with no admin at all.
+  const wasAdmin = list.admins?.includes(selfUid) ?? false;
   await updateDoc(doc(db, 'lists', listId), {
     collaboratorUids: arrayRemove(selfUid),
-    admins: arrayRemove(selfUid),
+    ...(wasAdmin ? { admins: arrayRemove(selfUid) } : {}),
     updatedAt: Date.now(),
   });
 };
@@ -474,10 +481,25 @@ export const demoteAdmin = async (
 
 const DELETE_BATCH_SIZE = 500;
 
+const purgeListSubcollection = async (
+  listId: string,
+  name: 'items' | 'favoriteState',
+): Promise<void> => {
+  const col = collection(db, 'lists', listId, name);
+  const snap = await getDocs(col);
+  const ids = snap.docs.map((d) => d.id);
+  for (let i = 0; i < ids.length; i += DELETE_BATCH_SIZE) {
+    const chunk = ids.slice(i, i + DELETE_BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const id of chunk) batch.delete(doc(col, id));
+    await batch.commit();
+  }
+};
+
 export const deleteList = async (listId: string): Promise<void> => {
   // I1: Storage cascade has to run BEFORE the list doc disappears, because
   // `storage.rules` consult the parent list's collaboratorUids to authorise
-  // deletes. After this step the items + list doc go in whatever order.
+  // deletes.
   let itemIdsWithPhotos: string[] = [];
   try {
     const itemsCol = collection(db, 'lists', listId, 'items');
@@ -490,7 +512,7 @@ export const deleteList = async (listId: string): Promise<void> => {
       .map((d) => d.id);
     await Promise.all(
       itemIdsWithPhotos.map((id) =>
-        purgeItemPhotoStorage(listId, id).catch((err) => {
+        purgeItemPhotoStorage(listId as ULID, id as ULID).catch((err) => {
           console.warn('[lists] deleteList: storage cascade failed for', id, err);
         }),
       ),
@@ -499,30 +521,16 @@ export const deleteList = async (listId: string): Promise<void> => {
     console.warn('[lists] deleteList: photo discovery failed (continuing):', err);
   }
 
-  // Delete the list document so a mid-cascade failure leaves orphan items
-  // that are unreachable via the UI (no parent list to navigate to) rather
-  // than a list doc that appears intact but is half-emptied.
+  // Subcollections go BEFORE the list doc. Their rules authorise through the
+  // parent list (`isListCollaborator` reads it), so once the list doc is gone
+  // every read or delete below is denied and the leftovers stay in the
+  // database for good. Failures propagate on purpose: the list doc survives,
+  // so the delete can simply be retried.
+  await purgeListSubcollection(listId, 'items');
+  await deleteAllListHistory(listId as ULID);
+  await purgeListSubcollection(listId, 'favoriteState');
+
   await deleteDoc(doc(db, 'lists', listId));
-
-  try {
-    const itemsCol = collection(db, 'lists', listId, 'items');
-    const snap = await getDocs(itemsCol);
-    const ids = snap.docs.map((d) => d.id);
-    for (let i = 0; i < ids.length; i += DELETE_BATCH_SIZE) {
-      const chunk = ids.slice(i, i + DELETE_BATCH_SIZE);
-      const batch = writeBatch(db);
-      for (const id of chunk) batch.delete(doc(itemsCol, id));
-      await batch.commit();
-    }
-  } catch (err) {
-    console.warn('[lists] deleteList: cascade item delete failed (list doc already gone):', err);
-  }
-
-  try {
-    await deleteAllListHistory(listId);
-  } catch (err) {
-    console.warn('[lists] deleteList: cascade history delete failed:', err);
-  }
 };
 
 /** Fix denormalized urgentCount when it drifted (legacy docs, missed writes). */

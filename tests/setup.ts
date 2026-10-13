@@ -77,7 +77,7 @@ vi.mock('@lottiefiles/dotlottie-vue', () => {
         );
     },
   });
-  return { DotLottieVue };
+  return { DotLottieVue, setWasmUrl: vi.fn() };
 });
 
 vi.mock('@unhead/vue', () => ({

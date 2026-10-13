@@ -61,7 +61,7 @@ const empty = computed(() => count.value === 0);
           class="inline-flex items-center gap-1.5 text-base font-semibold text-charcoal"
         >
           <Star :size="16" :stroke-width="2" fill="currentColor" class="text-favorite-gold" aria-hidden="true" />
-          <span>{{ t('shelf.title', count, { count }) }}</span>
+          <span>{{ t('shelf.title', { count }, count) }}</span>
         </h2>
         <p v-if="empty" class="mt-2 text-xs text-muted-gray">
           {{ t('shelf.empty') }}

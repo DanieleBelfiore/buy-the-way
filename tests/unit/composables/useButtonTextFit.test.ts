@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupButtonTextFit } from '@/composables/useButtonTextFit';
 
+// Slots where the mocked observers park their callbacks so a test can fire them.
+const observerMocks: {
+  mockROCallback?: ResizeObserverCallback;
+  mockMOCallback?: MutationCallback;
+} = {};
+
 describe('useButtonTextFit', () => {
   let originalRO: typeof globalThis.ResizeObserver;
   let originalMO: typeof globalThis.MutationObserver;
@@ -24,12 +30,12 @@ describe('useButtonTextFit', () => {
     originalRO = globalThis.ResizeObserver;
     originalMO = globalThis.MutationObserver;
     
-    globalThis.mockROCallback = undefined;
-    globalThis.mockMOCallback = undefined;
+    observerMocks.mockROCallback = undefined;
+    observerMocks.mockMOCallback = undefined;
     
     class MockRO {
       constructor(cb: ResizeObserverCallback) {
-        globalThis.mockROCallback = cb;
+        observerMocks.mockROCallback = cb;
       }
       observe() {}
       unobserve() {}
@@ -38,7 +44,7 @@ describe('useButtonTextFit', () => {
     
     class MockMO {
       constructor(cb: MutationCallback) {
-        globalThis.mockMOCallback = cb;
+        observerMocks.mockMOCallback = cb;
       }
       observe() {}
       disconnect() {}
@@ -155,8 +161,8 @@ describe('useButtonTextFit', () => {
     
     document.body.appendChild(btn);
     
-    if (globalThis.mockROCallback) {
-      globalThis.mockROCallback([
+    if (observerMocks.mockROCallback) {
+      observerMocks.mockROCallback([
         { target: btn } as unknown as ResizeObserverEntry,
         { target: span } as unknown as ResizeObserverEntry
       ], {} as ResizeObserver);
@@ -185,8 +191,8 @@ describe('useButtonTextFit', () => {
     
     document.body.appendChild(btn);
     
-    if (globalThis.mockMOCallback) {
-      globalThis.mockMOCallback([{ type: 'childList' } as MutationRecord], {} as MutationObserver);
+    if (observerMocks.mockMOCallback) {
+      observerMocks.mockMOCallback([{ type: 'childList' } as MutationRecord], {} as MutationObserver);
     }
     
     expect(btn.style.fontSize).toBe('15px');

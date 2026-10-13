@@ -2,7 +2,7 @@
 type: concept
 tags: [testing, vitest, playwright]
 sources: 2
-updated: 2026-05-28
+updated: 2026-10-13
 ---
 
 # Testing
@@ -27,6 +27,13 @@ updated: 2026-05-28
 ## Lint / types
 
 `pnpm lint`, `pnpm typecheck` before PR (CONTRIBUTING).
+
+`pnpm typecheck` runs two projects, and always with an explicit `-p`:
+
+- `vue-tsc -p tsconfig.tests.json`: `src/`, `tests/` and `e2e/` (extends `tsconfig.app.json`).
+- `tsc -p tsconfig.node.json`: Vite / Vitest / Playwright configs, `scripts/` and `netlify/`.
+
+Never run a bare `vue-tsc --noEmit`: the root `tsconfig.json` has `files: []` and only references, so it checks nothing and exits 0. That is how the app, the tests and the functions went unchecked until 2026-10-13. `pnpm build` uses `tsconfig.app.json` (sources only).
 
 ## Related
 

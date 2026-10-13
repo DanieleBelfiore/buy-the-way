@@ -18,8 +18,9 @@ export default defineConfig({
     actionTimeout: 7_000,
     // Disable CSS transitions / @vueuse/motion variants so axe never reads
     // mid-fade computed colors. The app already honors prefers-reduced-motion
-    // (App.vue view-fade + useLogoMotion).
-    reducedMotion: 'reduce',
+    // (App.vue view-fade + useLogoMotion). It is a browser-context option:
+    // set directly under `use` it is not a known key and is silently ignored.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     {

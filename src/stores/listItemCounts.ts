@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { subscribeItems } from '@/services/items.service';
 import { countUrgentItems } from '@/domain/priority';
 import { useAuthStore } from '@/stores/auth';
+import type { ULID } from '@/domain/id';
 
 export interface ListLiveCounts {
   itemCount: number;
@@ -41,7 +42,7 @@ export const useListItemCountsStore = defineStore('listItemCounts', () => {
       _unsubs.set(
         id,
         subscribeItems(
-          id,
+          id as ULID,
           (items) => {
             counts.value = {
               ...counts.value,

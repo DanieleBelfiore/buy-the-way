@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue';
-import { DotLottieVue } from '@lottiefiles/dotlottie-vue';
+import { LazyDotLottie } from '@/components/ui/LazyDotLottie';
 import { useReducedMotion } from '@/composables/useReducedMotion';
 
 const props = defineProps<{
@@ -75,7 +75,7 @@ onUnmounted(() => {
     aria-hidden="true"
     class="celebration-overlay"
   >
-    <DotLottieVue
+    <LazyDotLottie
       :key="playKey"
       data-testid="celebration-lottie"
       class="celebration-lottie"

@@ -10,8 +10,7 @@ import {
 import type { Category, CatalogEntry } from '@/domain/types';
 import type { ULID } from '@/domain/id';
 
-const makeEntry = (overrides: Partial<CatalogEntry> & { id: string }): CatalogEntry => ({
-  id: overrides.id as ULID,
+const makeEntry = (overrides: Omit<Partial<CatalogEntry>, 'id'> & { id: string }): CatalogEntry => ({
   ownerUid: 'uid-1',
   name: 'Item',
   category: 'other',

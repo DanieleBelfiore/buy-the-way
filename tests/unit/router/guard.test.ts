@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ref } from 'vue';
+import { ref, type Ref } from 'vue';
 
 vi.mock('@/composables/useAuth', () => ({
   useAuth: vi.fn(),
@@ -9,13 +9,16 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(),
 }));
 
-import { useAuth } from '@/composables/useAuth';
+import { useAuth, type AuthUser } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/auth';
 import { authGuard, __resetDefaultListRedirect } from '@/router/index';
 import type { RouteLocationNormalized } from 'vue-router';
 
 const mockUseAuth = vi.mocked(useAuth);
 const mockUseAuthStore = vi.mocked(useAuthStore);
+
+const authedUser = (): Ref<AuthUser | null> =>
+  ref<AuthUser | null>({ uid: 'user-1', email: 'a@b.com', displayName: null });
 
 const makeRoute = (name?: string): RouteLocationNormalized =>
   ({ name, meta: {}, fullPath: name ? `/${name}` : '/' }) as unknown as RouteLocationNormalized;
@@ -31,6 +34,7 @@ describe('authGuard', () => {
     mockUseAuthStore.mockReturnValue({
       profile: null,
       ensureProfile: vi.fn().mockResolvedValue(undefined),
+      cachedDefaultListId: vi.fn().mockReturnValue(undefined),
     } as any);
   });
 
@@ -54,7 +58,7 @@ describe('authGuard', () => {
 
   it('allows navigation when authenticated', async () => {
     mockUseAuth.mockReturnValue({
-      user: ref({ uid: 'user-1', email: 'a@b.com' }),
+      user: authedUser(),
       ready: ref(true),
     });
     const result = await authGuard(makeRoute('lists'), makeRoute('login'));
@@ -63,7 +67,7 @@ describe('authGuard', () => {
 
   it('redirects authenticated user away from /login to /lists', async () => {
     mockUseAuth.mockReturnValue({
-      user: ref({ uid: 'user-1', email: 'a@b.com' }),
+      user: authedUser(),
       ready: ref(true),
     });
     const result = await authGuard(makeRoute('login'), makeRoute('lists'));
@@ -72,7 +76,7 @@ describe('authGuard', () => {
 
   it('redirects authenticated user away from / (home) to /lists', async () => {
     mockUseAuth.mockReturnValue({
-      user: ref({ uid: 'user-1', email: 'a@b.com' }),
+      user: authedUser(),
       ready: ref(true),
     });
     const result = await authGuard(makeRoute('home'), makeRoute('lists'));
@@ -95,7 +99,7 @@ describe('authGuard', () => {
     'does NOT redirect authenticated user away from public route %s',
     async (name) => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       const result = await authGuard(makeRoute(name), makeRoute('lists'));
@@ -106,12 +110,13 @@ describe('authGuard', () => {
   describe('default-list boot redirect', () => {
     it('redirects to default list on first navigation to /lists when defaultListId set', async () => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       mockUseAuthStore.mockReturnValue({
         profile: { uid: 'user-1', defaultListId: '01XYZ' },
         ensureProfile: vi.fn().mockResolvedValue(undefined),
+        cachedDefaultListId: vi.fn().mockReturnValue(undefined),
       } as any);
       const result = await authGuard(makeRoute('lists'), makeBootRoute());
       expect(result).toEqual({ name: 'list-detail', params: { id: '01XYZ' } });
@@ -119,12 +124,13 @@ describe('authGuard', () => {
 
     it('does not redirect on subsequent navigations (from is defined)', async () => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       mockUseAuthStore.mockReturnValue({
         profile: { uid: 'user-1', defaultListId: '01XYZ' },
         ensureProfile: vi.fn().mockResolvedValue(undefined),
+        cachedDefaultListId: vi.fn().mockReturnValue(undefined),
       } as any);
       const result = await authGuard(makeRoute('lists'), makeRoute('list-detail'));
       expect(result).toBeUndefined();
@@ -132,12 +138,13 @@ describe('authGuard', () => {
 
     it('does not redirect when profile has no defaultListId', async () => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       mockUseAuthStore.mockReturnValue({
         profile: { uid: 'user-1', defaultListId: null },
         ensureProfile: vi.fn().mockResolvedValue(undefined),
+        cachedDefaultListId: vi.fn().mockReturnValue(undefined),
       } as any);
       const result = await authGuard(makeRoute('lists'), makeBootRoute());
       expect(result).toBeUndefined();
@@ -145,12 +152,13 @@ describe('authGuard', () => {
 
     it('only fires once per session - second boot-shape nav does not redirect', async () => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       mockUseAuthStore.mockReturnValue({
         profile: { uid: 'user-1', defaultListId: '01XYZ' },
         ensureProfile: vi.fn().mockResolvedValue(undefined),
+        cachedDefaultListId: vi.fn().mockReturnValue(undefined),
       } as any);
       const first = await authGuard(makeRoute('lists'), makeBootRoute());
       const second = await authGuard(makeRoute('lists'), makeBootRoute());
@@ -160,12 +168,45 @@ describe('authGuard', () => {
 
     it('falls through silently when ensureProfile rejects', async () => {
       mockUseAuth.mockReturnValue({
-        user: ref({ uid: 'user-1', email: 'a@b.com' }),
+        user: authedUser(),
         ready: ref(true),
       });
       mockUseAuthStore.mockReturnValue({
         profile: null,
         ensureProfile: vi.fn().mockRejectedValue(new Error('network')),
+        cachedDefaultListId: vi.fn().mockReturnValue(undefined),
+      } as any);
+      const result = await authGuard(makeRoute('lists'), makeBootRoute());
+      expect(result).toBeUndefined();
+    });
+
+    it('redirects from the cached default list without waiting for the profile', async () => {
+      mockUseAuth.mockReturnValue({
+        user: authedUser(),
+        ready: ref(true),
+      });
+      // Never settles: the guard must not depend on it.
+      const ensureProfile = vi.fn().mockReturnValue(new Promise<void>(() => {}));
+      mockUseAuthStore.mockReturnValue({
+        profile: null,
+        ensureProfile,
+        cachedDefaultListId: vi.fn().mockReturnValue('01CACHED'),
+      } as any);
+      const result = await authGuard(makeRoute('lists'), makeBootRoute());
+      expect(result).toEqual({ name: 'list-detail', params: { id: '01CACHED' } });
+      // Still refreshed in the background so the cache self-corrects.
+      expect(ensureProfile).toHaveBeenCalledOnce();
+    });
+
+    it('stays on /lists without waiting when the cache says there is no default', async () => {
+      mockUseAuth.mockReturnValue({
+        user: authedUser(),
+        ready: ref(true),
+      });
+      mockUseAuthStore.mockReturnValue({
+        profile: null,
+        ensureProfile: vi.fn().mockReturnValue(new Promise<void>(() => {})),
+        cachedDefaultListId: vi.fn().mockReturnValue(null),
       } as any);
       const result = await authGuard(makeRoute('lists'), makeBootRoute());
       expect(result).toBeUndefined();

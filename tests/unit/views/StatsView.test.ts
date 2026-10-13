@@ -66,7 +66,10 @@ const router = createRouter({
   ],
 });
 
-const e = (overrides: Partial<CatalogEntry>): CatalogEntry => ({
+// `excluded` / `pinned` are legacy per-entry flags the stats still honour.
+const e = (
+  overrides: Partial<CatalogEntry> & { excluded?: boolean; pinned?: boolean },
+): CatalogEntry => ({
   id: 'id' as ULID,
   ownerUid: 'self',
   name: 'Milk',

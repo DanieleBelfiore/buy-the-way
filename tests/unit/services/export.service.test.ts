@@ -209,7 +209,7 @@ describe('export.service', () => {
         href: '',
         download: '',
         style: {},
-      } as HTMLAnchorElement);
+      } as unknown as HTMLAnchorElement);
       const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
       const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 

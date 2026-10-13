@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, useId, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CircleDashed, Flag, Flame, X } from '@lucide/vue';
+import { CircleDashed, Flag, Flame } from '@lucide/vue';
 import { useModalBack } from '@/composables/useModalBack';
 import { useFocusTrap } from '@/composables/useFocusTrap';
 import type { Item, ItemPriority } from '@/domain/types';

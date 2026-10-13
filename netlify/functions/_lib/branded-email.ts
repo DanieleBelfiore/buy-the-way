@@ -15,6 +15,8 @@ export interface BrandedEmailHtml {
   locale: 'it' | 'en';
   title: string;
   preheader: string;
+  /** Headline shown as the email's <h1>. */
+  greeting: string;
   /** Inner HTML for the main content column (paragraphs, etc.). */
   bodyHtml: string;
   ctaHref: string;

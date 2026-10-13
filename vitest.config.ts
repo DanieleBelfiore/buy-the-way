@@ -1,13 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
+import { dotlottieWasmAlias } from './scripts/dotlottie-wasm-path';
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    alias: [
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      dotlottieWasmAlias,
+    ],
   },
   test: {
     environment: 'jsdom',

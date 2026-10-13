@@ -99,7 +99,7 @@ const renderMagicLinkText = (locale: Locale, signInLink: string): string => {
   ]);
 };
 
-export default async (req: Request, _ctx: Context): Promise<Response> => {
+export default async (req: Request, ctx: Context): Promise<Response> => {
   if (req.method !== 'POST') return jsonResponse(405, { error: 'method_not_allowed' });
 
   let body: Partial<MagicLinkBody>;
@@ -120,6 +120,22 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   } catch (err) {
     console.error('[send-magic-link] admin init failed:', err);
     return jsonResponse(500, { error: 'server_misconfigured' });
+  }
+
+  // Unauthenticated endpoint: cap the caller first, then the recipient. When
+  // the platform gives no IP, all such callers share one bucket (fail closed).
+  const callerIp = ctx.ip || 'unknown';
+  try {
+    const decision = await checkRateLimit(
+      callerIp,
+      RATE_LIMITS.sendMagicLinkIp.funcName,
+      RATE_LIMITS.sendMagicLinkIp.max,
+      RATE_LIMITS.sendMagicLinkIp.windowMs,
+    );
+    if (!decision.allowed) return rateLimitedResponse(decision);
+  } catch (err) {
+    console.error('[send-magic-link] ip rate-limit check failed (denying):', err);
+    return rateLimitUnavailableResponse();
   }
 
   try {

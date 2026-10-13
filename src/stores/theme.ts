@@ -111,7 +111,6 @@ export const useThemeStore = defineStore('theme', () => {
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', mediaListener);
     } else {
-      // @ts-expect-error legacy MediaQueryList.addListener
       mediaQuery.addListener(mediaListener);
     }
 
@@ -120,7 +119,6 @@ export const useThemeStore = defineStore('theme', () => {
       if (typeof mediaQuery.removeEventListener === 'function') {
         mediaQuery.removeEventListener('change', mediaListener);
       } else {
-        // @ts-expect-error legacy MediaQueryList.removeListener
         mediaQuery.removeListener(mediaListener);
       }
       mediaQuery = null;

@@ -185,7 +185,7 @@ describe('CategorySection', () => {
     const wrapper = mount_(items, { collapsed: true });
     expect(wrapper.text()).not.toContain('Latte');
     expect(wrapper.text()).toContain('Dairy');
-    expect(wrapper.get('[data-testid="category-counter"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="category-counter"]').exists()).toBe(true);
   });
 
   it('emits toggle-collapse with category on header click', async () => {

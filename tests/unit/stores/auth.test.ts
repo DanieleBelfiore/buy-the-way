@@ -280,6 +280,70 @@ describe('useAuthStore', () => {
     });
   });
 
+  describe('cachedDefaultListId', () => {
+    const boot = (uid = 'u1') => {
+      let capturedCb: ((u: any) => void) | undefined;
+      vi.mocked(onAuthChanged).mockImplementation((cb) => {
+        capturedCb = cb;
+        return vi.fn();
+      });
+      const store = useAuthStore();
+      store.init();
+      capturedCb!({ uid, email: 'a@b.com', displayName: 'A' });
+      return store;
+    };
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('is undefined when signed out', () => {
+      const store = useAuthStore();
+      expect(store.cachedDefaultListId()).toBeUndefined();
+    });
+
+    it('is undefined when nothing was cached for this user yet', () => {
+      const store = boot();
+      expect(store.cachedDefaultListId()).toBeUndefined();
+    });
+
+    it('remembers the default list once the profile has loaded', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0, defaultListId: '01XYZ',
+      });
+      const store = boot();
+      await store.ensureProfile();
+      expect(store.cachedDefaultListId()).toBe('01XYZ');
+    });
+
+    it('remembers "no default" as null, distinct from unknown', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0,
+      });
+      const store = boot();
+      await store.ensureProfile();
+      expect(store.cachedDefaultListId()).toBeNull();
+    });
+
+    it('follows setDefaultListId, including clearing', async () => {
+      vi.mocked(setUserDefaultList).mockResolvedValue(undefined);
+      const store = boot();
+      await store.setDefaultListId('01NEW');
+      expect(store.cachedDefaultListId()).toBe('01NEW');
+      await store.setDefaultListId(null);
+      expect(store.cachedDefaultListId()).toBeNull();
+    });
+
+    it('is scoped per user', async () => {
+      vi.mocked(setUserDefaultList).mockResolvedValue(undefined);
+      const first = boot('u1');
+      await first.setDefaultListId('01XYZ');
+      setActivePinia(createPinia());
+      const second = boot('u2');
+      expect(second.cachedDefaultListId()).toBeUndefined();
+    });
+  });
+
   describe('markOnboardingSeen', () => {
     it('no-ops when user is null', async () => {
       const store = useAuthStore();
@@ -288,7 +352,7 @@ describe('useAuthStore', () => {
     });
 
     it('updates cached profile.onboardingSeen after a successful write', async () => {
-      let capturedCb: ((u: unknown) => void) | undefined;
+      let capturedCb: ((u: any) => void) | undefined;
       vi.mocked(onAuthChanged).mockImplementation((cb) => {
         capturedCb = cb;
         return vi.fn();

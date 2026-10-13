@@ -19,7 +19,7 @@ const i18n = createI18n({
   },
 });
 
-const mountLabel = (props: Record<string, unknown>) =>
+const mountLabel = (props: InstanceType<typeof ItemCountWithUrgent>['$props']) =>
   mount(ItemCountWithUrgent, { props, global: { plugins: [i18n] } });
 
 describe('ItemCountWithUrgent', () => {

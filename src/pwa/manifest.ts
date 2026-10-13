@@ -109,6 +109,19 @@ export const pwaOptions: Partial<VitePWAOptions> = {
           cacheableResponse: { statuses: [0, 200] },
         },
       },
+      // Lottie player runtime (1.7 MB WASM) and its animation files. Kept out
+      // of the precache on purpose: most sessions never show an animation, so
+      // every install should not pay for it. Cached on first use instead,
+      // which is what makes the animations work offline afterwards.
+      {
+        urlPattern: ({ url, sameOrigin }) =>
+          sameOrigin && (url.pathname.endsWith('.wasm') || url.pathname.endsWith('.lottie')),
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'lottie-runtime',
+          expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+        },
+      },
     ],
   },
 };

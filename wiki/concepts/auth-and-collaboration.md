@@ -2,7 +2,7 @@
 type: concept
 tags: [auth, collaboration]
 sources: 2
-updated: 2026-05-28
+updated: 2026-10-13
 ---
 
 # Auth and collaboration
@@ -14,6 +14,8 @@ updated: 2026-05-28
 - Router `authGuard`: all routes except public set (`login`, about, privacy, terms) require auth
 
 Profile merge: `users.service` reads public doc + `private/state`, with legacy-field migration on sign-in.
+
+The per-sign-in profile sync blocks only on a real sign-in. On a restored session it runs in the background, see [cold boot](offline-and-sync.md#cold-boot).
 
 ## Lists and roles
 

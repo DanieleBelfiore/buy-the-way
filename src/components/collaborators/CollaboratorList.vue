@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { LogOut, ShieldCheck, ShieldOff, Trash2, X } from '@lucide/vue';
+import { LogOut, ShieldCheck, ShieldOff, Trash2 } from '@lucide/vue';
 import type { UserProfile } from '@/domain/types';
 
 const props = withDefaults(

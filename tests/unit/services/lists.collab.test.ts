@@ -43,6 +43,7 @@ import {
   writeBatch,
   arrayUnion,
   arrayRemove,
+  collection,
 } from 'firebase/firestore';
 import { findUserByEmail } from '@/services/users.service';
 import { deleteAllListHistory } from '@/services/history.service';
@@ -217,6 +218,29 @@ describe('lists.service collaborator ops', () => {
       expect(updateDoc).toHaveBeenCalledOnce();
     });
 
+    it('does not touch admins when the leaver is not an admin', async () => {
+      vi.mocked(getDoc).mockResolvedValue({
+        exists: () => true,
+        data: () => ({ ownerUid: 'owner-1', collaboratorUids: ['owner-1', 'uid-self'], admins: ['owner-1'] }),
+      } as any);
+
+      await leaveList('list-1', 'uid-self');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      // The rules reject any `admins` change coming from a non-admin.
+      expect(patch).not.toHaveProperty('admins');
+    });
+
+    it('does not create an empty admins array on a legacy list', async () => {
+      vi.mocked(getDoc).mockResolvedValue({
+        exists: () => true,
+        data: () => ({ ownerUid: 'owner-1', collaboratorUids: ['owner-1', 'uid-self'] }),
+      } as any);
+
+      await leaveList('list-1', 'uid-self');
+      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
+      expect(patch).not.toHaveProperty('admins');
+    });
+
     it('throws CannotRemoveOwnerError when owner tries to leave', async () => {
       vi.mocked(getDoc).mockResolvedValue({
         exists: () => true,
@@ -252,24 +276,41 @@ describe('lists.service collaborator ops', () => {
   });
 
   describe('deleteList', () => {
-    it('hard-deletes all items in batches then the list doc', async () => {
-      const ids = ['i1', 'i2', 'i3'];
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: ids.map((id) => ({ id })),
-      } as any);
+    const itemDocs = (ids: string[]) =>
+      ({ docs: ids.map((id) => ({ id, data: () => ({}) })) }) as any;
+
+    it('purges items, history and favorite state BEFORE the list doc', async () => {
+      // Call order: photo discovery, items purge, favoriteState purge.
+      vi.mocked(getDocs)
+        .mockResolvedValueOnce(itemDocs(['i1', 'i2', 'i3']))
+        .mockResolvedValueOnce(itemDocs(['i1', 'i2', 'i3']))
+        .mockResolvedValueOnce(itemDocs(['f1', 'f2']));
+      const order: string[] = [];
       const batchDelete = vi.fn();
-      const batchCommit = vi.fn().mockResolvedValue(undefined);
+      const batchCommit = vi.fn().mockImplementation(async () => {
+        order.push('batch');
+      });
       vi.mocked(writeBatch).mockReturnValue({
         delete: batchDelete,
         commit: batchCommit,
       } as any);
+      vi.mocked(deleteAllListHistory).mockImplementation(async () => {
+        order.push('history');
+      });
+      vi.mocked(deleteDoc).mockImplementation(async () => {
+        order.push('list');
+      });
 
       await deleteList('list-1');
 
-      expect(batchDelete).toHaveBeenCalledTimes(3);
-      expect(batchCommit).toHaveBeenCalledOnce();
-      expect(deleteDoc).toHaveBeenCalledOnce();
+      // 3 items + 2 favorite-state docs.
+      expect(batchDelete).toHaveBeenCalledTimes(5);
+      expect(collection).toHaveBeenCalledWith(expect.anything(), 'lists', 'list-1', 'favoriteState');
       expect(deleteAllListHistory).toHaveBeenCalledWith('list-1');
+      expect(deleteDoc).toHaveBeenCalledOnce();
+      // The subcollection rules read the parent list doc, so it must go last.
+      expect(order[order.length - 1]).toBe('list');
+      expect(order.filter((s) => s !== 'list')).toEqual(['batch', 'history', 'batch']);
     });
 
     it('still deletes list doc when no items exist', async () => {
@@ -280,11 +321,27 @@ describe('lists.service collaborator ops', () => {
         delete: batchDelete,
         commit: batchCommit,
       } as any);
+      vi.mocked(deleteAllListHistory).mockResolvedValue(undefined);
+      vi.mocked(deleteDoc).mockResolvedValue(undefined);
 
       await deleteList('list-1');
 
       expect(batchCommit).not.toHaveBeenCalled();
       expect(deleteDoc).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the list doc and rejects when the item purge fails', async () => {
+      vi.mocked(getDocs).mockResolvedValue(itemDocs(['i1']));
+      vi.mocked(writeBatch).mockReturnValue({
+        delete: vi.fn(),
+        commit: vi.fn().mockRejectedValue(new Error('unavailable')),
+      } as any);
+      vi.mocked(deleteAllListHistory).mockResolvedValue(undefined);
+      vi.mocked(deleteDoc).mockResolvedValue(undefined);
+
+      await expect(deleteList('list-1')).rejects.toThrow('unavailable');
+      // With the list doc gone the leftovers could never be cleaned up again.
+      expect(deleteDoc).not.toHaveBeenCalled();
     });
   });
 

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { defineComponent, ref, nextTick, h } from 'vue';
+import { defineComponent, ref, nextTick, h, type Ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { useModalBack } from '@/composables/useModalBack';
 
-const hostFor = (isOpen: ReturnType<typeof ref<boolean>>, close: () => void) =>
+const hostFor = (isOpen: Ref<boolean>, close: () => void) =>
   defineComponent({
     setup() {
       useModalBack(isOpen, close);
@@ -40,7 +40,7 @@ describe('useModalBack', () => {
     const wrapper = mount(hostFor(isOpen, () => {}));
 
     expect(addSpy).toHaveBeenCalledWith('popstate', expect.any(Function));
-    const addedHandler = addSpy.mock.calls.find((c) => c[0] === 'popstate')?.[1];
+    const addedHandler = addSpy.mock.calls.find((c: unknown[]) => c[0] === 'popstate')?.[1];
 
     wrapper.unmount();
     expect(removeSpy).toHaveBeenCalledWith('popstate', addedHandler);
@@ -104,7 +104,7 @@ describe('useModalBack', () => {
     history.replaceState(pushedState, '');
     history.replaceState(null, '');
 
-    const handler = addSpy.mock.calls.find((c) => c[0] === 'popstate')?.[1] as EventListener;
+    const handler = addSpy.mock.calls.find((c: unknown[]) => c[0] === 'popstate')?.[1] as EventListener;
     handler(new PopStateEvent('popstate'));
 
     expect(close).toHaveBeenCalledOnce();
@@ -138,7 +138,7 @@ describe('useModalBack', () => {
     const close = vi.fn();
     mount(hostFor(isOpen, close));
 
-    const handler = addSpy.mock.calls.find((c) => c[0] === 'popstate')?.[1] as EventListener;
+    const handler = addSpy.mock.calls.find((c: unknown[]) => c[0] === 'popstate')?.[1] as EventListener;
     handler(new PopStateEvent('popstate'));
 
     expect(close).not.toHaveBeenCalled();

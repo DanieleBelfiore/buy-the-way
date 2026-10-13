@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "NODE_OPTIONS=--disable-warning=DEP0205 vite",
     "preview": "vite preview",
-    "build": "vue-tsc --noEmit && NODE_OPTIONS=--disable-warning=DEP0205 vite build",
+    "build": "vue-tsc --noEmit -p tsconfig.app.json && NODE_OPTIONS=--disable-warning=DEP0205 vite build",
     "build:analyze": "NODE_OPTIONS=--disable-warning=DEP0205 vite build --mode analyze",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.tests.json && tsc --noEmit -p tsconfig.node.json",
     "test": "NODE_OPTIONS=--disable-warning=DEP0205 vitest",
     "test:run": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run",
     "test:coverage": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run --coverage",

@@ -58,12 +58,20 @@ export const authGuard = async (
   ) {
     defaultListRedirectArmed = false;
     const authStore = useAuthStore();
-    try {
-      await authStore.ensureProfile();
-    } catch {
-      // Profile fetch failed - fall through to /lists silently.
+    // Prefer the locally cached default so a cold open does not sit on the
+    // splash for a profile round trip. The profile still refreshes in the
+    // background, which rewrites the cache if it changed on another device.
+    let defaultId = authStore.cachedDefaultListId();
+    if (defaultId === undefined) {
+      try {
+        await authStore.ensureProfile();
+      } catch {
+        // Profile fetch failed - fall through to /lists silently.
+      }
+      defaultId = authStore.profile?.defaultListId;
+    } else {
+      void authStore.ensureProfile().catch(() => {});
     }
-    const defaultId = authStore.profile?.defaultListId;
     if (defaultId) {
       return { name: 'list-detail', params: { id: defaultId } };
     }

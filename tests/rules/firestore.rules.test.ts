@@ -728,7 +728,25 @@ describe('firestore.rules - admin promote / demote', () => {
 describe('firestore.rules - pending email invites', () => {
   const CARL_EMAIL = 'carl@example.com';
   const carlInvitedCtx = (): RulesTestContext =>
-    env.authenticatedContext(CARL, { email: CARL_EMAIL }).firestore() as unknown as RulesTestContext;
+    env.authenticatedContext(CARL, { email: CARL_EMAIL, email_verified: true }).firestore() as unknown as RulesTestContext;
+  // Same address, but nobody proved ownership of it (e.g. a password account
+  // created straight against the Auth REST API).
+  const carlUnverifiedCtx = (): RulesTestContext =>
+    env.authenticatedContext(CARL, { email: CARL_EMAIL, email_verified: false }).firestore() as unknown as RulesTestContext;
+
+  it('denies an unverified email from reading the list it was invited to', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(getDoc(doc(carlUnverifiedCtx() as any, 'lists', 'L1')));
+  });
+
+  it('denies an unverified email from claiming a pending invite', async () => {
+    await seedList('L1', ALICE, [ALICE], { pendingInviteEmails: [CARL_EMAIL] });
+    await assertFails(updateDoc(doc(carlUnverifiedCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE, CARL],
+      pendingInviteEmails: [],
+      updatedAt: 2,
+    } as Record<string, unknown>));
+  });
 
   it('allows owner to add an email to pendingInviteEmails', async () => {
     await seedList('L1', ALICE, [ALICE]);
@@ -811,6 +829,60 @@ describe('firestore.rules - pending email invites', () => {
   });
 });
 
+describe('firestore.rules - list update value validation', () => {
+  it('denies an admin rename longer than 100 chars', async () => {
+    await seedList('L1', ALICE, [ALICE], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      name: 'x'.repeat(101), updatedAt: 2,
+    }));
+  });
+
+  it('denies an admin rename to an empty or non-string name', async () => {
+    await seedList('L1', ALICE, [ALICE], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { name: '', updatedAt: 2 }));
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { name: 42, updatedAt: 3 }));
+  });
+
+  it('allows an admin rename within bounds', async () => {
+    await seedList('L1', ALICE, [ALICE], { admins: [ALICE] });
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      name: 'x'.repeat(100), updatedAt: 2,
+    }));
+  });
+
+  it('denies non-numeric counters from an admin and from a collaborator', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE], itemCount: 0, urgentCount: 0 });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { itemCount: 'lots', updatedAt: 2 }));
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { urgentCount: 'many', updatedAt: 3 }));
+  });
+
+  it('denies a non-numeric updatedAt', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE], itemCount: 0 });
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { itemCount: 1, updatedAt: 'now' }));
+  });
+
+  it('denies an admin write of non-list collaboratorUids / admins or a non-string wallpaper', async () => {
+    await seedList('L1', ALICE, [ALICE], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { collaboratorUids: 'alice-uid', updatedAt: 2 }));
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { admins: { [ALICE]: true }, updatedAt: 3 }));
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { wallpaper: 7, updatedAt: 4 }));
+  });
+
+  // Values are only checked when they change, so a doc that already carries
+  // an out-of-bounds value (written before these checks existed) is not
+  // frozen: unrelated edits still go through.
+  it('still allows unrelated edits on a list whose stored name is over the cap', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE], name: 'x'.repeat(300), itemCount: 0 });
+    await assertSucceeds(updateDoc(doc(aliceCtx() as any, 'lists', 'L1'), { wallpaper: 'w1.webp', updatedAt: 2 }));
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { itemCount: 1, updatedAt: 3 }));
+  });
+
+  it('allows a counter decrement below zero (denormalized counters can drift)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE], itemCount: 0 });
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { itemCount: -1, updatedAt: 2 }));
+  });
+});
+
 describe('firestore.rules - owner update field whitelist', () => {
   it('denies owner from writing an arbitrary unknown field', async () => {
     await seedList('L1', ALICE, [ALICE]);
@@ -832,6 +904,52 @@ describe('firestore.rules - owner update field whitelist', () => {
       itemCount: 999,
       updatedAt: 2,
     } as Record<string, unknown>));
+  });
+
+  it('allows a non-admin collaborator to leave (collaboratorUids + updatedAt only)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE], updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  // Privilege escalation guard: the leave branch used to whitelist `admins`
+  // without constraining its value, so a plain collaborator could leave and
+  // make themselves the only admin in the same write, then re-add themselves
+  // and delete the list.
+  it('denies a non-admin leave that rewrites admins to self', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE], admins: [BOB], updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a non-admin leave that empties admins', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE], admins: [], updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a non-admin leave that adds admins to a legacy list', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertFails(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
+      collaboratorUids: [ALICE], admins: [BOB], updatedAt: 2,
+    } as Record<string, unknown>));
+  });
+
+  it('denies a non-admin collaborator from deleting the list', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE] });
+    await assertFails(deleteDoc(doc(bobCtx() as any, 'lists', 'L1')));
+  });
+
+  // Why `deleteList` purges subcollections first: their rules read the parent
+  // list doc, so once it is gone nobody can reach the leftovers any more.
+  it('denies item cleanup once the parent list doc is gone', async () => {
+    await seedList('L1', ALICE, [ALICE], { admins: [ALICE] });
+    await seedItem('L1', 'I1');
+    await assertSucceeds(deleteDoc(doc(aliceCtx() as any, 'lists', 'L1')));
+    await assertFails(deleteDoc(doc(aliceCtx() as any, 'lists', 'L1', 'items', 'I1')));
   });
 
   it('denies non-owner leave that also bumps itemCount', async () => {

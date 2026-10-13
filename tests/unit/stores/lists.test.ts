@@ -224,6 +224,7 @@ describe('useListsStore', () => {
 
     it('returns true when updatedAt > per-list seen entry', () => {
       const store = useListsStore();
+      store.lastSeenLoaded = true;
       store.lastSeenListMap = { '01A': 100 };
       const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(true);
@@ -231,6 +232,7 @@ describe('useListsStore', () => {
 
     it('returns false when updatedAt <= per-list seen entry', () => {
       const store = useListsStore();
+      store.lastSeenLoaded = true;
       store.lastSeenListMap = { '01A': 300 };
       const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(false);
@@ -238,6 +240,7 @@ describe('useListsStore', () => {
 
     it('falls back to legacy lastSeenLists when no per-list entry', () => {
       const store = useListsStore();
+      store.lastSeenLoaded = true;
       store.lastSeenLists = 500;
       store.lastSeenListMap = {};
       const stale = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 400 } as any;
@@ -248,6 +251,7 @@ describe('useListsStore', () => {
 
     it('per-list entry overrides the legacy global timestamp', () => {
       const store = useListsStore();
+      store.lastSeenLoaded = true;
       store.lastSeenLists = 1000;
       store.lastSeenListMap = { '01A': 100 };
       // updatedAt 500 < global 1000 but > per-list 100 → NEW because per-list wins
@@ -257,10 +261,30 @@ describe('useListsStore', () => {
 
     it('per-list entry of 0 still overrides legacy global', () => {
       const store = useListsStore();
+      store.lastSeenLoaded = true;
       store.lastSeenLists = 1000;
       store.lastSeenListMap = { '01A': 0 };
       const list = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 1 } as any;
       expect(store.isNewForUser(list, 'uid-1')).toBe(true);
+    });
+  });
+
+  describe('lastSeenLoaded', () => {
+    const shared = { id: '01A', name: 'X', ownerUid: 'someone', collaboratorUids: ['uid-1', 'someone'], createdAt: 1, updatedAt: 200 } as any;
+
+    it('reports nothing as NEW until the seen map has loaded', () => {
+      const store = useListsStore();
+      expect(store.isNewForUser(shared, 'uid-1')).toBe(false);
+    });
+
+    it('flips on after loadLastSeen, enabling the NEW badge', async () => {
+      vi.mocked(getUserProfile).mockResolvedValue({
+        uid: 'uid-1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0,
+      });
+      const store = useListsStore();
+      await store.loadLastSeen();
+      expect(store.lastSeenLoaded).toBe(true);
+      expect(store.isNewForUser(shared, 'uid-1')).toBe(true);
     });
   });
 

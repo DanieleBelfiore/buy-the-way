@@ -166,7 +166,7 @@ pnpm dev                          # in a second terminal
 | `pnpm build` | Type-check, build, generate PWA service worker |
 | `pnpm build:analyze` | Build with `rollup-plugin-visualizer` output |
 | `pnpm preview` | Serve the production build locally |
-| `pnpm typecheck` | `vue-tsc --noEmit` |
+| `pnpm typecheck` | `vue-tsc` on `tsconfig.tests.json` (src, tests, e2e) + `tsc` on `tsconfig.node.json` (configs, scripts, Netlify functions) |
 | `pnpm test` | Vitest watch mode |
 | `pnpm test:run` | Single-shot unit + component tests |
 | `pnpm test:coverage` | Coverage report (V8) - branches gate ≥ 80% |

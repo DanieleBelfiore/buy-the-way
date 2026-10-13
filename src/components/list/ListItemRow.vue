@@ -5,7 +5,7 @@ import { AlertTriangle, Check, CircleDashed, Flag, Flame, Image, Settings, Trash
 import InfoHint from '@/components/ui/InfoHint.vue';
 import { iconForItem, isCustomItemName } from '@/domain/public-catalog';
 import { useFitText } from '@/composables/useFitText';
-import type { Item, ItemPriority } from '@/domain/types';
+import type { Item } from '@/domain/types';
 
 const { t, locale } = useI18n();
 const props = withDefaults(

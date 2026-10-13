@@ -379,8 +379,8 @@ describe('useListDetailActions', () => {
     const { handleRequestPriority, handlePrioritySelect, priorityOpen } = setup();
     handleRequestPriority(sampleItem());
     expect(priorityOpen.value).toBe(true);
-    await handlePrioritySelect('high');
-    expect(setItemPriority).toHaveBeenCalledWith(LIST_ID, ITEM_ID, 'high');
+    await handlePrioritySelect('urgent');
+    expect(setItemPriority).toHaveBeenCalledWith(LIST_ID, ITEM_ID, 'urgent');
     expect(priorityOpen.value).toBe(false);
   });
 
@@ -409,7 +409,7 @@ describe('useListDetailActions', () => {
   describe('suggest sheet', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const pastRun = (daysAgo: number, names: string[]): ListHistoryEntry => ({
-      id: `run-${daysAgo}`,
+      id: `run-${daysAgo}` as ULID,
       listId: LIST_ID,
       completedAt: Date.now() - daysAgo * DAY,
       itemCount: names.length,
@@ -611,8 +611,8 @@ describe('useListDetailActions', () => {
     bulkCount.value = 1;
     const { handleBulkPriority, handlePrioritySelect } = setup();
     handleBulkPriority();
-    await handlePrioritySelect('low');
-    expect(setItemPriority).toHaveBeenCalledWith(LIST_ID, ITEM_ID, 'low');
+    await handlePrioritySelect('optional');
+    expect(setItemPriority).toHaveBeenCalledWith(LIST_ID, ITEM_ID, 'optional');
     expect(bulkExit).toHaveBeenCalled();
   });
 
@@ -707,7 +707,7 @@ describe('useListDetailActions', () => {
 
   it('handlePrioritySelect no-ops when no item is selected', async () => {
     const { handlePrioritySelect } = setup();
-    await handlePrioritySelect('high');
+    await handlePrioritySelect('urgent');
     expect(setItemPriority).not.toHaveBeenCalled();
   });
 });

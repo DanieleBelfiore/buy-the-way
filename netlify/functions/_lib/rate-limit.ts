@@ -106,4 +106,7 @@ export const RATE_LIMITS = {
   sendInvite: { max: 20, windowMs: 60 * 60 * 1000, funcName: 'send-invite' },
   // Pre-login magic link. Cap per recipient email to limit inbox spam.
   sendMagicLink: { max: 5, windowMs: 60 * 60 * 1000, funcName: 'send-magic-link' },
+  // Same endpoint, keyed by caller IP. The per-recipient bucket alone is no
+  // cap at all for someone who uses a fresh address on every request.
+  sendMagicLinkIp: { max: 10, windowMs: 60 * 60 * 1000, funcName: 'send-magic-link-ip' },
 } as const;

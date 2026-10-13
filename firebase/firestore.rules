@@ -36,6 +36,10 @@ service cloud.firestore {
     function isPendingInvitee(listData) {
       return isSignedIn()
         && listData.pendingInviteEmails != null
+        // An invite is addressed to whoever controls the mailbox. Without
+        // this, an account that merely CLAIMS the address (unverified) could
+        // read the list and promote itself into it.
+        && request.auth.token.email_verified == true
         && request.auth.token.email in listData.pendingInviteEmails;
     }
 
@@ -100,6 +104,33 @@ service cloud.firestore {
     // Lists. Permissions are now driven by the admins set; `ownerUid` is the
     // creator-of-record (kept stable for cascade-delete pivot logic).
     match /lists/{listId} {
+      function listFieldChanged(key) {
+        return key in request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      // Type and size checks for every writable list field, applied on top of
+      // whichever update branch authorises the write. Only CHANGED fields are
+      // checked, so a doc already holding an out-of-bounds value (written
+      // before these checks existed) is not frozen for unrelated edits.
+      // Counters are deliberately not bounded below: they are denormalized
+      // and can drift, so a decrement past zero must not reject the item
+      // write it is batched with.
+      function validListUpdateValues() {
+        let d = request.resource.data;
+        return (!listFieldChanged('name')
+                || (d.name is string && d.name.size() > 0 && d.name.size() <= 100))
+          && (!listFieldChanged('wallpaper')
+              || (d.wallpaper is string && d.wallpaper.size() <= 200))
+          && (!listFieldChanged('itemCount') || d.itemCount is number)
+          && (!listFieldChanged('urgentCount') || d.urgentCount is number)
+          && (!listFieldChanged('updatedAt') || d.updatedAt is number)
+          && (!listFieldChanged('sortIndex') || d.sortIndex is number)
+          && (!listFieldChanged('ownerUid') || d.ownerUid is string)
+          && (!listFieldChanged('collaboratorUids') || d.collaboratorUids is list)
+          && (!listFieldChanged('admins') || d.admins is list)
+          && (!listFieldChanged('pendingInviteEmails') || d.pendingInviteEmails is list);
+      }
+
       allow read: if isSignedIn() && (
         uid() in resource.data.collaboratorUids
         || isPendingInvitee(resource.data)
@@ -120,7 +151,7 @@ service cloud.firestore {
         && request.resource.data.updatedAt is number
         && request.resource.data.keys().hasOnly(['id', 'name', 'ownerUid', 'collaboratorUids', 'admins', 'itemCount', 'urgentCount', 'wallpaper', 'createdAt', 'updatedAt', 'pendingInviteEmails', 'sortIndex', 'categoryOrder']);
 
-      allow update: if isSignedIn() && (
+      allow update: if isSignedIn() && validListUpdateValues() && (
         // Admin update: may touch any of the privileged fields. createdAt is
         // immutable. After the write the list must keep at least one admin
         // (drop-last-admin protection - enforced here so a buggy client can't
@@ -149,7 +180,11 @@ service cloud.firestore {
              ])
         )
         // Non-admin self-leave: a collaborator may remove themself from
-        // collaboratorUids (and admins, if they were one). ownerUid stays.
+        // collaboratorUids. Nothing else: `admins` in particular is NOT
+        // writable here - whitelisting it without pinning its value let a
+        // plain collaborator leave and name themself sole admin in the same
+        // write, then take over or delete the list. An admin who leaves goes
+        // through the admin branch above. ownerUid stays.
         || (
           !isListAdmin(resource.data)
           && uid() in resource.data.collaboratorUids
@@ -158,7 +193,7 @@ service cloud.firestore {
           && request.resource.data.collaboratorUids.toSet()
              == resource.data.collaboratorUids.toSet().difference([uid()].toSet())
           && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['collaboratorUids', 'admins', 'updatedAt'])
+             .hasOnly(['collaboratorUids', 'updatedAt'])
         )
         // Any collaborator may bump itemCount / urgentCount + updatedAt (denormalized counters on item writes).
         || (

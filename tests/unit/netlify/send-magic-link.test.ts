@@ -30,20 +30,24 @@ vi.mock('@/../netlify/functions/_lib/rate-limit', () => ({
   ),
   RATE_LIMITS: {
     sendMagicLink: { max: 5, windowMs: 3_600_000, funcName: 'send-magic-link' },
+    sendMagicLinkIp: { max: 10, windowMs: 3_600_000, funcName: 'send-magic-link-ip' },
   },
 }));
 
-import { checkRateLimit, rateLimitUnavailableResponse } from '@/../netlify/functions/_lib/rate-limit';
+import { checkRateLimit, rateLimitedResponse, rateLimitUnavailableResponse } from '@/../netlify/functions/_lib/rate-limit';
 import handler from '@/../netlify/functions/send-magic-link';
 
-const post = (body: Record<string, unknown>): Promise<Response> =>
+const post = (
+  body: Record<string, unknown>,
+  ctx: Record<string, unknown> = { ip: '203.0.113.7' },
+): Promise<Response> =>
   handler(
     new Request('http://localhost/.netlify/functions/send-magic-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }),
-    {} as any,
+    ctx as any,
   );
 
 describe('send-magic-link function', () => {
@@ -88,6 +92,28 @@ describe('send-magic-link function', () => {
         url: 'http://localhost:5173/auth/email-link-callback',
       }),
     );
+  });
+
+  it('rate-limits per caller IP as well as per recipient', async () => {
+    await post({ email: 'bob@example.com', locale: 'en' });
+    expect(checkRateLimit).toHaveBeenCalledWith('203.0.113.7', 'send-magic-link-ip', 10, 3_600_000);
+    expect(checkRateLimit).toHaveBeenCalledWith('bob@example.com', 'send-magic-link', 5, 3_600_000);
+  });
+
+  it('refuses a caller over the IP cap before touching the recipient bucket or sending', async () => {
+    vi.mocked(rateLimitedResponse).mockReturnValue(new Response('{}', { status: 429 }));
+    // A fresh recipient every call would never trip the per-email bucket.
+    vi.mocked(checkRateLimit).mockResolvedValueOnce({ allowed: false, retryAfterMs: 1000 });
+    const res = await post({ email: 'fresh-victim@example.com', locale: 'en' });
+    expect(res.status).toBe(429);
+    expect(checkRateLimit).toHaveBeenCalledOnce();
+    expect(generateSignInWithEmailLink).not.toHaveBeenCalled();
+    expect(emailsSend).not.toHaveBeenCalled();
+  });
+
+  it('shares one bucket between callers whose IP is unknown', async () => {
+    await post({ email: 'bob@example.com', locale: 'en' }, {});
+    expect(checkRateLimit).toHaveBeenCalledWith('unknown', 'send-magic-link-ip', 10, 3_600_000);
   });
 
   it('fail-closes when the rate limiter is unavailable', async () => {
