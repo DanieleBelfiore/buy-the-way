@@ -61,7 +61,7 @@
     "shareCopied": "Lista copiata negli appunti!",
     "shareError": "Errore durante la condivisione.",
     "shareTitle": "🛒 Lista: {name}",
-    "shareFooter": "Buy The Way - La tua lista della spesa intelligente\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareFooter": "Buy The Way - La tua lista della spesa intelligente\nhttps://buytheway.app",
     "shareNoteLabel": "Nota",
     "deletedWithUndo": "Lista \"{name}\" eliminata",
     "completionEmptyTitle": "Tutto comprato!",
@@ -129,7 +129,7 @@
     "voiceListening": "In ascolto…",
     "voicePermissionDenied": "Permesso microfono negato. Abilitalo nelle impostazioni del browser e ricarica la pagina.",
     "voicePermissionDeniedPwa": "Permesso microfono negato. Controlla i permessi del sito nelle impostazioni del browser e ricarica l'app.",
-    "voicePermissionDeniedAndroid": "Permesso microfono negato. Su Android non si gestisce dalle impostazioni dell'app installata: apri Chrome, vai su buy-the-way.danielebelfiore.dev, tocca il lucchetto accanto all'URL → Permessi → Microfono → Consenti. Poi riprova da una tab Chrome.",
+    "voicePermissionDeniedAndroid": "Permesso microfono negato. Su Android non si gestisce dalle impostazioni dell'app installata: apri Chrome, vai su buytheway.app, tocca il lucchetto accanto all'URL → Permessi → Microfono → Consenti. Poi riprova da una tab Chrome.",
     "voiceNoSpeech": "Non ho capito. Riprova.",
     "voiceUnsupported": "Input vocale non disponibile su questo browser.",
     "voiceError": "Errore di input vocale. Riprova.",
@@ -435,6 +435,10 @@
     "stats": {
       "title": "Statistiche · Buy The Way",
       "description": "Approfondimenti sulle tue abitudini di acquisto."
+    },
+    "oauthAuthorize": {
+      "title": "Collega un assistente AI · Buy The Way",
+      "description": "Autorizza un assistente AI ad accedere alle tue liste."
     }
   },
   "stats": {
@@ -460,5 +464,31 @@
       "share": "{percent}% · {count} acquisti",
       "tooltipItems": "Nessun articolo | 1 articolo | {n} articoli"
     }
+  },
+  "oauthAuthorize": {
+    "loading": "Verifica della richiesta…",
+    "title": "Collega {client} a Buy The Way",
+    "intro": "{client} chiede di accedere alle tue liste come assistente AI.",
+    "canTitle": "Potrà",
+    "canRead": "Vedere le tue liste e le loro voci",
+    "canEdit": "Aggiungere, modificare, spuntare e togliere voci",
+    "canLists": "Creare, rinominare e svuotare liste, spostare e copiare voci tra liste",
+    "cannotTitle": "Non potrà",
+    "cannot": "Eliminare liste, gestire i collaboratori o vedere le foto",
+    "signedInAs": "Accesso come {email}",
+    "redirectNotice": "Dopo la scelta tornerai su {host}.",
+    "revokeHint": "Puoi revocare l'accesso quando vuoi dalle Impostazioni.",
+    "allow": "Consenti",
+    "deny": "Rifiuta",
+    "working": "Un momento…",
+    "unavailableTitle": "Non ancora disponibile",
+    "unavailableBody": "L'accesso tramite assistenti AI non è ancora disponibile per il tuo account.",
+    "back": "Torna all'assistente",
+    "invalidTitle": "Richiesta non valida",
+    "invalidBody": "Questo link di collegamento non è valido. Riprova dall'assistente AI.",
+    "goToLists": "Vai alle tue liste",
+    "errorTitle": "Qualcosa è andato storto",
+    "errorBody": "Non è stato possibile completare la richiesta. Riprova tra poco.",
+    "retry": "Riprova"
   }
 }

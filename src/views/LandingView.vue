@@ -53,8 +53,8 @@ const orgJsonLd = computed(() =>
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'Buy The Way',
-    url: 'https://buy-the-way.danielebelfiore.dev/',
-    logo: 'https://buy-the-way.danielebelfiore.dev/branding/logo-square.png',
+    url: 'https://buytheway.app/',
+    logo: 'https://buytheway.app/branding/logo-square.png',
   }),
 );
 

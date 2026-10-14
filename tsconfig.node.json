@@ -19,6 +19,7 @@
   "include": [
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.mcp.config.ts",
     "tailwind.config.ts",
     "playwright.config.ts",
     "eslint.config.js",

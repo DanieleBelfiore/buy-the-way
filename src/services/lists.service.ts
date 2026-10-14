@@ -14,6 +14,7 @@ import {
   writeBatch,
   arrayUnion,
   arrayRemove,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
@@ -198,41 +199,46 @@ export const setListWallpaper = async (
 // can wire pagination if a real user ever hits the cap.
 export const USER_LISTS_PAGE_LIMIT = 100;
 
-export const subscribeUserLists = (
-  uid: string,
-  onChange: (lists: List[]) => void,
-  onError: (err: Error) => void,
-): (() => void) => {
-  // S3.4: sort by `updatedAt desc` on the server. The user-controlled
-  // `sortIndex` is applied client-side after the snapshot arrives so we
-  // don't have to deploy a second composite index just for sorted reads;
-  // tiebreak on `updatedAt` keeps deterministic ordering when two lists
-  // share the same sortIndex (e.g. legacy docs with no sortIndex at all).
-  const q = query(
+// S3.4: sort by `updatedAt desc` on the server. The user-controlled
+// `sortIndex` is applied client-side after the snapshot arrives so we
+// don't have to deploy a second composite index just for sorted reads;
+// tiebreak on `updatedAt` keeps deterministic ordering when two lists
+// share the same sortIndex (e.g. legacy docs with no sortIndex at all).
+const userListsQuery = (uid: string) =>
+  query(
     collection(db, 'lists'),
     where('collaboratorUids', 'array-contains', uid),
     orderBy('updatedAt', 'desc'),
     fbLimit(USER_LISTS_PAGE_LIMIT),
   );
 
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const raw = snapshot.docs.map(
-        (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as List,
-      );
-      // Stable secondary sort by sortIndex (falling back to updatedAt so
-      // legacy docs land in their original updatedAt-driven order).
-      const sorted = [...raw].sort((a, b) => {
-        const ai = a.sortIndex ?? a.updatedAt;
-        const bi = b.sortIndex ?? b.updatedAt;
-        if (bi !== ai) return bi - ai;
-        return b.updatedAt - a.updatedAt;
-      });
-      onChange(sorted);
-    },
+const toSortedLists = (docs: ReadonlyArray<QueryDocumentSnapshot>): List[] => {
+  const raw = docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as List);
+  // Stable secondary sort by sortIndex (falling back to updatedAt so
+  // legacy docs land in their original updatedAt-driven order).
+  return [...raw].sort((a, b) => {
+    const ai = a.sortIndex ?? a.updatedAt;
+    const bi = b.sortIndex ?? b.updatedAt;
+    if (bi !== ai) return bi - ai;
+    return b.updatedAt - a.updatedAt;
+  });
+};
+
+export const subscribeUserLists = (
+  uid: string,
+  onChange: (lists: List[]) => void,
+  onError: (err: Error) => void,
+): (() => void) =>
+  onSnapshot(
+    userListsQuery(uid),
+    (snapshot) => onChange(toSortedLists(snapshot.docs)),
     (error) => onError(error as Error),
   );
+
+/** One-shot read of the same lists `subscribeUserLists` streams. */
+export const fetchUserLists = async (uid: string): Promise<List[]> => {
+  const snapshot = await getDocs(userListsQuery(uid));
+  return toSortedLists(snapshot.docs);
 };
 
 export interface AddCollaboratorResult {

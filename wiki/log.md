@@ -80,3 +80,11 @@ Append-only timeline. Newest entries at the bottom.
 - Pages touched: concepts/testing.
 - Notes: e2e not re-run locally after the Playwright change (browser binary not installed on the dev machine).
 
+
+## [2026-10-14] ingest | Domain move to buytheway.app, MCP server phases M1-M2
+
+- Source: `.claude/docs/firebase.md` (new "Domain moves" note, auth domain now `buytheway.app`), `tasks/domain-migration.md`, `tasks/mcp-plan.md`.
+- The site moves from `buy-the-way.danielebelfiore.dev` to `buytheway.app`. The old host 301-redirects (path and query kept) and serves `public/sw-retire.js` as `/sw.js` so installed PWAs unregister and follow the redirect.
+- MCP server in progress: M1 (services runnable in Node via `netlify/mcp/firebase-node.ts`, `pnpm test:mcp`) and M2 (OAuth 2.1 authorization server in `netlify/functions/oauth-*`, consent screen `/oauth/authorize`, private-beta gate `config/mcp`).
+- Pages touched: none yet. A concept page for the MCP server is planned with M4, once the tool surface is final.
+- Notes: Firestore collections `oauthClients`, `oauthCodes`, `oauthTokens`, `oauthGrants`, `config` are new and not yet in concepts/data-model.

@@ -245,7 +245,7 @@ service cloud.firestore {
         }
 
         function validAddedVia(data) {
-          return data.addedVia in ['autocomplete', 'favorite', 'bulk', 'voice', 'suggested', 'copy', 'move'];
+          return data.addedVia in ['autocomplete', 'favorite', 'bulk', 'voice', 'suggested', 'copy', 'move', 'assistant'];
         }
 
         allow read, delete: if isListCollaborator(listId);
@@ -338,6 +338,31 @@ service cloud.firestore {
     // these docs directly - locks an attacker out of probing the limiter.
     match /rateLimits/{docId} {
       allow read, write: if false;
+    }
+
+    // MCP OAuth server (netlify/functions/_lib/oauth-store.ts). Clients,
+    // codes and tokens are written and read only by the functions via the
+    // admin SDK; only hashes of codes and tokens are stored. config/mcp is the
+    // private-beta switch, edited by hand in the console.
+    match /oauthClients/{clientId} {
+      allow read, write: if false;
+    }
+    match /oauthCodes/{codeHash} {
+      allow read, write: if false;
+    }
+    match /oauthTokens/{tokenHash} {
+      allow read, write: if false;
+    }
+    match /config/{docId} {
+      allow read, write: if false;
+    }
+
+    // What the user approved, one doc per (uid, client). Owner may read
+    // (Settings - Connected apps); revocation must also delete the tokens,
+    // so it goes through a function and clients never write here.
+    match /oauthGrants/{grantId} {
+      allow read: if isSignedIn() && resource.data.uid == uid();
+      allow write: if false;
     }
 
     // Per-user catalog - owner only.

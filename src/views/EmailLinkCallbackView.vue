@@ -3,12 +3,14 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
+import { consumeReturnTo } from '@/domain/returnTo';
 
 /**
  * Landing page for the magic-link sign-in flow. Firebase appends a token
  * to the URL; this view completes the sign-in, then bounces the user into
- * the app. If the link was opened on a different device than the one that
- * requested it, we surface an inline email prompt before retrying.
+ * the app (or back to the MCP consent screen when sign-in started there, see
+ * domain/returnTo.ts). If the link was opened on a different device than the
+ * one that requested it, we surface an inline email prompt before retrying.
  */
 
 const { t } = useI18n();
@@ -25,7 +27,7 @@ const complete = async (emailHint?: string): Promise<void> => {
   errorMessage.value = null;
   try {
     await authStore.completeMagicLinkSignIn(window.location.href, emailHint);
-    await router.replace({ name: 'lists' });
+    await router.replace(consumeReturnTo() ?? { name: 'lists' });
   } catch (err) {
     console.error('[EmailLinkCallback] sign-in failed:', err);
     errorMessage.value = err instanceof Error ? err.message : String(err);
@@ -50,7 +52,7 @@ onMounted(async () => {
   // Try the happy path first: localStorage carries the requesting email.
   try {
     await authStore.completeMagicLinkSignIn(window.location.href);
-    await router.replace({ name: 'lists' });
+    await router.replace(consumeReturnTo() ?? { name: 'lists' });
   } catch {
     // Could be missing-email (link opened on a different device) or a
     // genuinely invalid link. Ask for the email so the user can retry.

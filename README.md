@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://buy-the-way.danielebelfiore.dev" target="_blank">Live Web App</a>
+  <a href="https://buytheway.app" target="_blank">Live Web App</a>
 </p>
 
 ---
@@ -269,7 +269,7 @@ VITE_USE_EMULATOR=false           # point the SDK at local emulators
 FIREBASE_SERVICE_ACCOUNT          # JSON service account for firebase-admin
 RESEND_API_KEY                    # Transactional email for send-invite
 INVITE_FROM_ADDRESS               # e.g. "Buy The Way <noreply@example.com>"
-APP_URL                           # e.g. "https://buy-the-way.danielebelfiore.dev"
+APP_URL                           # e.g. "https://buytheway.app"
 ```
 
 See [.env.example](./.env.example) for the client-side template.
@@ -453,7 +453,7 @@ The `ci-cd.yml` workflow runs every gate then both deploy jobs. Watch at <https:
 
 ### 5. Verify in production
 
-- Open <https://buy-the-way.danielebelfiore.dev> in a private window.
+- Open <https://buytheway.app> in a private window.
 - DevTools → Application → check the **Service Worker** updated (URL hash changes per build).
 - Confirm the floating "new version available" prompt fires for already-installed clients within ~30 s.
 - Smoke-test in-app notifications (add an item from a second account, confirm the bell badge on the lists view increments and the popover renders the row).

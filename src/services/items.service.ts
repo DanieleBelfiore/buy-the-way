@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
   deleteField,
@@ -10,6 +11,7 @@ import {
   orderBy,
   writeBatch,
   increment,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { newId } from '@/domain/id';
@@ -34,22 +36,27 @@ const listCounterUpdate = (opts: {
   return patch;
 };
 
+const itemsQuery = (listId: ULID) =>
+  query(collection(db, 'lists', listId, 'items'), orderBy('createdAt', 'asc'));
+
+const toItems = (docs: ReadonlyArray<QueryDocumentSnapshot>): Item[] =>
+  docs.map((d) => ({ id: d.id, ...d.data() }) as Item);
+
 export const subscribeItems = (
   listId: ULID,
   onChange: (items: Item[]) => void,
   onError: (err: Error) => void,
-): (() => void) => {
-  const itemsCol = collection(db, 'lists', listId, 'items');
-  const q = query(itemsCol, orderBy('createdAt', 'asc'));
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Item);
-      onChange(items);
-    },
+): (() => void) =>
+  onSnapshot(
+    itemsQuery(listId),
+    (snapshot) => onChange(toItems(snapshot.docs)),
     (error) => onError(error as Error),
   );
+
+/** One-shot read of the same items `subscribeItems` streams. */
+export const fetchItems = async (listId: ULID): Promise<Item[]> => {
+  const snapshot = await getDocs(itemsQuery(listId));
+  return toItems(snapshot.docs);
 };
 
 export const addItem = async (params: {

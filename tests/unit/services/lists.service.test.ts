@@ -21,6 +21,7 @@ vi.mock('firebase/firestore', () => ({
 import {
   createList,
   subscribeUserLists,
+  fetchUserLists,
   promoteAdmin,
   demoteAdmin,
   transferListOwnership,
@@ -32,7 +33,7 @@ import {
   NotACollaboratorError,
   reconcileListUrgentCount,
 } from '@/services/lists.service';
-import { setDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, getDoc, getDocs, onSnapshot, where } from 'firebase/firestore';
 
 describe('lists.service', () => {
   beforeEach(() => {
@@ -484,6 +485,33 @@ describe('lists.service', () => {
       const ids = onChange.mock.calls[0][0].map((l: any) => l.id);
       // sortIndex C=200, A=100, B=50 (fallback updatedAt) -> C, A, B
       expect(ids).toEqual(['C', 'A', 'B']);
+    });
+  });
+
+  describe('fetchUserLists', () => {
+    it('queries the lists the uid collaborates on', async () => {
+      vi.mocked(getDocs).mockResolvedValueOnce({ docs: [] } as any);
+      await fetchUserLists('uid-1');
+      expect(where).toHaveBeenCalledWith('collaboratorUids', 'array-contains', 'uid-1');
+      expect(getDocs).toHaveBeenCalledOnce();
+    });
+
+    it('maps docs and applies the same sortIndex order as subscribeUserLists', async () => {
+      vi.mocked(getDocs).mockResolvedValueOnce({
+        docs: [
+          { id: 'A', data: () => ({ name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 10, sortIndex: 100 }) },
+          { id: 'B', data: () => ({ name: 'B', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 50 }) },
+          { id: 'C', data: () => ({ name: 'C', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 5, sortIndex: 200 }) },
+        ],
+      } as any);
+      const lists = await fetchUserLists('uid-1');
+      expect(lists.map((l) => l.id)).toEqual(['C', 'A', 'B']);
+      expect(lists[0]).toMatchObject({ id: 'C', name: 'C' });
+    });
+
+    it('propagates read errors', async () => {
+      vi.mocked(getDocs).mockRejectedValueOnce(new Error('permission-denied'));
+      await expect(fetchUserLists('uid-1')).rejects.toThrow('permission-denied');
     });
   });
 

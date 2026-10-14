@@ -2,6 +2,11 @@ export interface RouteMeta {
   titleKey: string;
   descriptionKey: string;
   public?: boolean;
+  /**
+   * Remember this URL when an anonymous visit bounces to /login, and come
+   * back to it after sign-in (src/domain/returnTo.ts).
+   */
+  returnAfterLogin?: boolean;
 }
 
 export const ROUTE_META: Record<string, RouteMeta> = {
@@ -46,6 +51,12 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   stats: {
     titleKey: 'seo.stats.title',
     descriptionKey: 'seo.stats.description',
+  },
+  // MCP consent screen (OAuth authorization_endpoint).
+  'oauth-authorize': {
+    titleKey: 'seo.oauthAuthorize.title',
+    descriptionKey: 'seo.oauthAuthorize.description',
+    returnAfterLogin: true,
   },
 };
 

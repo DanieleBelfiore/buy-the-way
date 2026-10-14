@@ -13,6 +13,10 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { beforeAll, afterAll, beforeEach, describe, it } from 'vitest';
 
@@ -412,6 +416,15 @@ describe('firestore.rules - items subcollection', () => {
       id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
       note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
       addedVia: 'suggested',
+    }));
+  });
+
+  it('allows item create with addedVia assistant (MCP)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(setDoc(doc(bobCtx() as any, 'lists', 'L1', 'items', 'I1'), {
+      id: 'I1', listId: 'L1', name: 'Bread', quantity: '1', category: 'bakery',
+      note: '', checked: false, createdByUid: BOB, createdAt: 1, updatedAt: 1,
+      addedVia: 'assistant',
     }));
   });
 
@@ -966,5 +979,40 @@ describe('firestore.rules - owner update field whitelist', () => {
     await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
       itemCount: 5, urgentCount: 2, updatedAt: 2,
     } as Record<string, unknown>));
+  });
+});
+
+describe('firestore.rules - MCP OAuth server collections', () => {
+  const seed = async (path: string, data: Record<string, unknown>): Promise<void> => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), data);
+    });
+  };
+
+  it.each(['oauthClients/C1', 'oauthCodes/H1', 'oauthTokens/H1', 'config/mcp'])(
+    'locks %s to the admin SDK (no client read or write)',
+    async (path) => {
+      await seed(path, { uid: ALICE });
+      await assertFails(getDoc(doc(aliceCtx() as any, path)));
+      await assertFails(setDoc(doc(aliceCtx() as any, path), { uid: ALICE }));
+      await assertFails(deleteDoc(doc(aliceCtx() as any, path)));
+      await assertFails(getDoc(doc(anonCtx() as any, path)));
+    },
+  );
+
+  it('lets a user read their own grants (Connected apps), nobody else', async () => {
+    await seed('oauthGrants/G1', { grantId: 'G1', uid: ALICE, clientId: 'C1', clientName: 'Claude', createdAt: 1, lastUsedAt: 1 });
+    await assertSucceeds(getDoc(doc(aliceCtx() as any, 'oauthGrants', 'G1')));
+    await assertSucceeds(getDocs(query(collection(aliceCtx() as any, 'oauthGrants'), where('uid', '==', ALICE))));
+    await assertFails(getDoc(doc(bobCtx() as any, 'oauthGrants', 'G1')));
+    await assertFails(getDocs(collection(bobCtx() as any, 'oauthGrants')));
+    await assertFails(getDoc(doc(anonCtx() as any, 'oauthGrants', 'G1')));
+  });
+
+  it('never lets a client write or delete a grant (revocation goes through a function)', async () => {
+    await seed('oauthGrants/G1', { grantId: 'G1', uid: ALICE, clientId: 'C1' });
+    await assertFails(setDoc(doc(aliceCtx() as any, 'oauthGrants', 'G2'), { grantId: 'G2', uid: ALICE, clientId: 'C1' }));
+    await assertFails(updateDoc(doc(aliceCtx() as any, 'oauthGrants', 'G1'), { clientName: 'x' }));
+    await assertFails(deleteDoc(doc(aliceCtx() as any, 'oauthGrants', 'G1')));
   });
 });

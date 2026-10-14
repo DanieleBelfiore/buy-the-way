@@ -36,7 +36,7 @@ Same per-task invariant applies:
 
 ## Auth domain is proxied through the app domain (do not "simplify" this)
 
-`VITE_FIREBASE_AUTH_DOMAIN` in production is **`buy-the-way.danielebelfiore.dev`**, not `buy-the-way-2ac6e.firebaseapp.com`. `netlify.toml` proxies `/__/auth/*` and `/__/firebase/*` to the firebaseapp.com origin so the handler is served first-party.
+`VITE_FIREBASE_AUTH_DOMAIN` in production is **`buytheway.app`**, not `buy-the-way-2ac6e.firebaseapp.com`. `netlify.toml` proxies `/__/auth/*` and `/__/firebase/*` to the firebaseapp.com origin so the handler is served first-party.
 
 **Why:** installed PWAs cannot sign in with a popup. In iOS standalone, `window.open` yields a detached Safari view with no `window.opener`, so the credential `postMessage` never reaches the app and `signInWithPopup` neither resolves nor rejects - the button spins forever with no console error. The only working flow is `signInWithRedirect`, and since firebase-js-sdk 9.15 that flow is broken on Safari when `authDomain` is third-party, because ITP partitions away the state the SDK wrote there.
 
@@ -49,6 +49,8 @@ Same per-task invariant applies:
 Skipping 3 gives `Errore 400: redirect_uri_mismatch` on every browser, desktop included, before the consent screen. Firebase Console's "Authorized domains" list is a **different** setting and does not cover this. Propagation after saving takes minutes to hours.
 
 Keep the old `*.firebaseapp.com` redirect URI registered: local dev keeps that `authDomain` because the vite dev server has no `/__/auth` proxy.
+
+**Domain moves.** The site moved from `buy-the-way.danielebelfiore.dev` to `buytheway.app` on 2026-10-14 (`tasks/domain-migration.md`). Besides the three settings above, a new domain also needs: Firebase Auth "Authorized domains", Storage CORS (`firebase/storage.cors.json` + `pnpm storage:cors`), Netlify env `APP_URL` / `INVITE_FROM_ADDRESS` and a verified Resend domain. Keep the old domain's entries until its redirect has been live for a few months: old invite links and installed PWAs still go through it.
 
 **Netlify header caveat:** custom `[[headers]]` do not apply to responses proxied to an external host. A `[[headers]]` block for `/__/auth/*` is dead config. This works out fine - the global `X-Frame-Options: DENY` / `frame-ancestors 'none'` also never reach that path, so the popup resolver's `/__/auth/iframe` stays framable.
 

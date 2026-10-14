@@ -8,5 +8,6 @@ Disallow: /lists
 Disallow: /lists/
 Disallow: /settings
 Disallow: /stats
+Disallow: /oauth/
 
-Sitemap: https://buy-the-way.danielebelfiore.dev/sitemap.xml
+Sitemap: https://buytheway.app/sitemap.xml

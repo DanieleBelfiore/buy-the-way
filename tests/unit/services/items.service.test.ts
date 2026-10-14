@@ -39,6 +39,7 @@ vi.mock('@/services/listFavorites.service', () => ({
 
 import {
   subscribeItems,
+  fetchItems,
   addItem,
   bulkAddItems,
   bulkRemoveItems,
@@ -52,7 +53,7 @@ import {
   copyItem,
   moveItem,
 } from '@/services/items.service';
-import { setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
 import { upsertCatalogEntry } from '@/services/catalog.service';
 import { upsertListFavorite } from '@/services/listFavorites.service';
 import type { Item } from '@/domain/types';
@@ -641,6 +642,34 @@ describe('items.service', () => {
       const onError = vi.fn();
       subscribeItems(listId, vi.fn(), onError);
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  describe('fetchItems', () => {
+    it('reads the items subcollection ordered by createdAt', async () => {
+      vi.mocked(getDocs).mockResolvedValueOnce({ docs: [], empty: true } as any);
+      await fetchItems(listId);
+      expect(orderBy).toHaveBeenCalledWith('createdAt', 'asc');
+      expect(getDocs).toHaveBeenCalledOnce();
+    });
+
+    it('maps docs to Item objects', async () => {
+      vi.mocked(getDocs).mockResolvedValueOnce({
+        docs: [
+          {
+            id: itemId,
+            data: () => ({ listId, name: 'Latte', quantity: '1', category: 'dairy', note: '', checked: true, createdByUid: 'uid-1', createdAt: 1, updatedAt: 1 }),
+          },
+        ],
+      } as any);
+      const items = await fetchItems(listId);
+      expect(items).toHaveLength(1);
+      expect(items[0]).toMatchObject({ id: itemId, name: 'Latte', checked: true });
+    });
+
+    it('propagates read errors', async () => {
+      vi.mocked(getDocs).mockRejectedValueOnce(new Error('permission-denied'));
+      await expect(fetchItems(listId)).rejects.toThrow('permission-denied');
     });
   });
 

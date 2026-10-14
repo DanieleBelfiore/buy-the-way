@@ -1,4 +1,4 @@
-export const DEFAULT_APP_URL = 'https://buy-the-way.danielebelfiore.dev';
+export const DEFAULT_APP_URL = 'https://buytheway.app';
 
 export const resolveAppUrl = (): string => process.env['APP_URL'] ?? DEFAULT_APP_URL;
 

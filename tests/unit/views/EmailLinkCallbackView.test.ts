@@ -15,6 +15,7 @@ vi.mock('@/stores/auth', () => ({
 }));
 
 import EmailLinkCallbackView from '@/views/EmailLinkCallbackView.vue';
+import { saveReturnTo } from '@/domain/returnTo';
 
 const messages = {
   en: {
@@ -42,6 +43,7 @@ const buildRouter = () =>
     routes: [
       { path: '/login', name: 'login', component: { template: '<div />' } },
       { path: '/lists', name: 'lists', component: { template: '<div />' } },
+      { path: '/oauth/authorize', name: 'oauth-authorize', component: { template: '<div />' } },
       { path: '/auth/email-link-callback', name: 'email-link-callback', component: EmailLinkCallbackView },
     ],
   });
@@ -83,6 +85,16 @@ describe('EmailLinkCallbackView', () => {
     expect(router.currentRoute.value.name).toBe('lists');
     expect(wrapper.find('[data-testid="magic-link-needs-email"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="magic-link-error"]').exists()).toBe(false);
+  });
+
+  it('returns to the remembered consent URL instead of /lists (MCP)', async () => {
+    localStorage.clear();
+    saveReturnTo('/oauth/authorize?client_id=c');
+    isMagicLinkCallbackMock.mockReturnValue(true);
+    completeMagicLinkSignInMock.mockResolvedValue('uid-1');
+    const { router } = await mountCallback();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/oauth/authorize?client_id=c');
   });
 
   it('falls back to email prompt when stored email is missing', async () => {

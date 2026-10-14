@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useLogoMotion } from '@/composables/useLogoMotion';
 import { useDocumentHead } from '@/composables/useDocumentHead';
+import { consumeReturnTo } from '@/domain/returnTo';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
 import { Send, X, Info } from '@lucide/vue';
@@ -25,10 +26,11 @@ const logoMotion = useLogoMotion();
 
 // Redirect as soon as Firebase resolves the authenticated user.
 // The guard only runs during navigation, so we must watch here too.
+// A sign-in started from the MCP consent screen resumes it (returnTo).
 watch(
   () => auth.user,
   (user) => {
-    if (user) router.push({ name: 'lists' });
+    if (user) router.push(consumeReturnTo() ?? { name: 'lists' });
   },
 );
 

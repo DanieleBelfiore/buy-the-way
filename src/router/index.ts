@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/auth';
-import { PUBLIC_ROUTE_NAMES } from '@/router/meta';
+import { PUBLIC_ROUTE_NAMES, ROUTE_META } from '@/router/meta';
+import { consumeReturnTo, saveReturnTo } from '@/domain/returnTo';
 import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 
 // One-shot flag so the default-list boot redirect only fires on the very
@@ -37,13 +38,20 @@ export const authGuard = async (
   const isPublicRoute = typeof to.name === 'string' && PUBLIC_ROUTE_NAMES.has(to.name);
 
   if (!isAuthenticated && !isPublicRoute) {
+    if (typeof to.name === 'string' && ROUTE_META[to.name]?.returnAfterLogin) {
+      saveReturnTo(to.fullPath);
+    }
     return { name: 'login' };
   }
 
   // The landing page and /login are public, but authenticated users have no
   // reason to see them - send them straight into the app (which then chains to
-  // the default-list boot redirect below).
-  if (isAuthenticated && (isLoginRoute || isHomeRoute)) {
+  // the default-list boot redirect below). Coming back from a sign-in that
+  // started on a `returnAfterLogin` route (Google redirect flow) resumes it.
+  if (isAuthenticated && isLoginRoute) {
+    return consumeReturnTo() ?? { name: 'lists' };
+  }
+  if (isAuthenticated && isHomeRoute) {
     return { name: 'lists' };
   }
 
@@ -137,6 +145,12 @@ const router = createRouter({
       path: '/stats',
       name: 'stats',
       component: () => import('@/views/StatsView.vue'),
+    },
+    {
+      // OAuth authorization_endpoint of the MCP server: consent screen.
+      path: '/oauth/authorize',
+      name: 'oauth-authorize',
+      component: () => import('@/views/OAuthAuthorizeView.vue'),
     },
   ],
 });

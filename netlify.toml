@@ -38,6 +38,28 @@
     "node_modules/firebase/**",
   ]
 
+# Retired domain: buy-the-way.danielebelfiore.dev moved to buytheway.app
+# (tasks/domain-migration.md). These two rules must stay first so nothing
+# else ever answers on the old host.
+#
+# PWAs installed from the old domain answer navigations from their service
+# worker cache and would never see the 301. Their update check for /sw.js
+# gets a retiring worker instead (public/sw-retire.js), which unregisters
+# itself and reloads; the next navigation then follows the redirect.
+[[redirects]]
+  from = "https://buy-the-way.danielebelfiore.dev/sw.js"
+  to = "/sw-retire.js"
+  status = 200
+  force = true
+
+# 301 keeping path and query, so invite and magic links already sent still
+# land on the right page.
+[[redirects]]
+  from = "https://buy-the-way.danielebelfiore.dev/*"
+  to = "https://buytheway.app/:splat"
+  status = 301
+  force = true
+
 # Firebase Auth handler, proxied onto our own origin. MUST stay above the SPA
 # fallback: Netlify applies the first matching rule, so a catch-all placed
 # earlier would swallow these and serve index.html instead.
@@ -49,7 +71,7 @@
 # Installed PWAs depend on the redirect flow (popups never report back in iOS
 # standalone), so this proxy is what makes PWA sign-in work at all.
 #
-# Paired with VITE_FIREBASE_AUTH_DOMAIN=buy-the-way.danielebelfiore.dev in the
+# Paired with VITE_FIREBASE_AUTH_DOMAIN=buytheway.app in the
 # production build env, AND with the matching redirect URI registered on the
 # OAuth client in Google Cloud Console - without it Google answers 400
 # redirect_uri_mismatch before the consent screen. See .claude/docs/firebase.md.
@@ -70,6 +92,57 @@
 [[redirects]]
   from = "/__/firebase/*"
   to = "https://buy-the-way-2ac6e.firebaseapp.com/__/firebase/:splat"
+  status = 200
+  force = true
+
+# MCP server OAuth endpoints (tasks/mcp-plan.md). Rewrites to the functions,
+# placed above the SPA fallback for the same first-match reason as above.
+# /oauth/authorize is NOT here: it is the SPA consent screen and must fall
+# through to index.html. The service worker skips these paths too
+# (`navigateFallbackDenylist` in src/pwa/manifest.ts).
+[[redirects]]
+  from = "/.well-known/oauth-authorization-server"
+  to = "/.netlify/functions/oauth-as-metadata"
+  status = 200
+  force = true
+
+# RFC 9728 clients may also ask for the resource-path-suffixed variant
+# (/.well-known/oauth-protected-resource/mcp).
+[[redirects]]
+  from = "/.well-known/oauth-protected-resource"
+  to = "/.netlify/functions/oauth-resource-metadata"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/.well-known/oauth-protected-resource/*"
+  to = "/.netlify/functions/oauth-resource-metadata"
+  status = 200
+  force = true
+
+# Anything else under /.well-known (e.g. openid-configuration, which some
+# clients probe) must 404 instead of getting index.html with a 200: an HTML
+# body there makes discovery fail in confusing ways.
+[[redirects]]
+  from = "/.well-known/*"
+  to = "/404"
+  status = 404
+
+[[redirects]]
+  from = "/oauth/register"
+  to = "/.netlify/functions/oauth-register"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/oauth/token"
+  to = "/.netlify/functions/oauth-token"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/oauth/revoke"
+  to = "/.netlify/functions/oauth-revoke"
   status = 200
   force = true
 

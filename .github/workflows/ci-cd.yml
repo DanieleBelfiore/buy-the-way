@@ -136,6 +136,11 @@ jobs:
       - name: Run firestore rules tests against emulator
         run: pnpm test:rules
 
+      # The MCP server runs src/services/* in Node through a custom-token
+      # sign-in. Same emulators + real rules, so it lives in this gate.
+      - name: Run MCP integration tests against emulator
+        run: pnpm test:mcp
+
   # ---------------------------------------------------------------------------
   # Gate 3 - Playwright + axe (light + dark)
   #

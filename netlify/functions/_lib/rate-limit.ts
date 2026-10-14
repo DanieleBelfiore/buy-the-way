@@ -109,4 +109,13 @@ export const RATE_LIMITS = {
   // Same endpoint, keyed by caller IP. The per-recipient bucket alone is no
   // cap at all for someone who uses a fresh address on every request.
   sendMagicLinkIp: { max: 10, windowMs: 60 * 60 * 1000, funcName: 'send-magic-link-ip' },
+  // MCP OAuth (tasks/mcp-plan.md, "Rate limiting"). claude.ai reaches us from
+  // Anthropic's shared egress IPs, so only registration is keyed by IP, with a
+  // high cap, plus a global daily ceiling that also bounds rotating-IP abuse.
+  oauthRegisterIp: { max: 200, windowMs: 60 * 60 * 1000, funcName: 'oauth-register-ip' },
+  oauthRegisterGlobal: { max: 1000, windowMs: 24 * 60 * 60 * 1000, funcName: 'oauth-register-global' },
+  // Consent screen calls, per signed-in uid.
+  oauthAuthorize: { max: 30, windowMs: 10 * 60 * 1000, funcName: 'oauth-authorize' },
+  // Code exchange + hourly refresh, per client_id. Never per IP.
+  oauthToken: { max: 60, windowMs: 60 * 60 * 1000, funcName: 'oauth-token' },
 } as const;

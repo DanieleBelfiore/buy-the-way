@@ -231,7 +231,7 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
     console.error('[send-invite] RESEND_API_KEY is not set');
     return jsonResponse(500, { error: 'server_misconfigured' });
   }
-  const from = process.env['INVITE_FROM_ADDRESS'] ?? 'Buy The Way <noreply@buy-the-way.danielebelfiore.dev>';
+  const from = process.env['INVITE_FROM_ADDRESS'] ?? 'Buy The Way <noreply@buytheway.app>';
   const appUrl = resolveAppUrl();
 
   const resend = new Resend(apiKey);

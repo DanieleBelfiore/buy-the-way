@@ -89,8 +89,19 @@ export const pwaOptions: Partial<VitePWAOptions> = {
   },
   workbox: {
     globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+    // Served as /sw.js on the retired domain only (netlify.toml).
+    globIgnores: ['**/sw-retire.js'],
     navigateFallback: '/index.html',
-    navigateFallbackDenylist: [/^\/__/, /firestore\.googleapis\.com/, /identitytoolkit\.googleapis\.com/],
+    navigateFallbackDenylist: [
+      /^\/__/,
+      /firestore\.googleapis\.com/,
+      /identitytoolkit\.googleapis\.com/,
+      // MCP server + OAuth endpoints are Netlify Functions (netlify.toml).
+      // /oauth/authorize is deliberately absent: it is the SPA consent screen.
+      /^\/mcp(\/|$)/,
+      /^\/\.well-known\//,
+      /^\/oauth\/(token|register|revoke)(\/|$)/,
+    ],
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import { createRouter, createMemoryHistory } from 'vue-router';
@@ -11,6 +11,7 @@ vi.mock('@/stores/auth', () => ({
 
 import LoginView from '@/views/LoginView.vue';
 import { useAuthStore } from '@/stores/auth';
+import { saveReturnTo } from '@/domain/returnTo';
 
 const i18n = createI18n({
   legacy: false,
@@ -41,8 +42,13 @@ const router = createRouter({
   routes: [
     { path: '/login', name: 'login', component: LoginView },
     { path: '/lists', name: 'lists', component: { template: '<div/>' } },
+    { path: '/oauth/authorize', name: 'oauth-authorize', component: { template: '<div/>' } },
   ],
 });
+
+// Mounted views keep their auth.user watcher alive; unmount between tests so a
+// later sign-in is not handled by every view mounted so far.
+enableAutoUnmount(afterEach);
 
 describe('LoginView', () => {
   const mockSignIn = vi.fn();
@@ -120,6 +126,15 @@ describe('LoginView', () => {
     await flushPromises();
 
     expect(router.currentRoute.value.name).toBe('lists');
+  });
+
+  it('returns to the remembered consent URL after sign-in (MCP)', async () => {
+    localStorage.clear();
+    saveReturnTo('/oauth/authorize?client_id=c&state=s');
+    mountView();
+    mockStore.user = { uid: 'u1', email: 'a@b.com', displayName: 'A' };
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/oauth/authorize?client_id=c&state=s');
   });
 
   describe('S2.3: magic-link sign-in', () => {

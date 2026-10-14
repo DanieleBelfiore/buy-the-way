@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    exclude: ['node_modules', 'dist', 'tests/rules/**', 'e2e/**'],
+    exclude: ['node_modules', 'dist', 'tests/rules/**', 'tests/mcp-integration/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       // json-summary produces coverage/coverage-summary.json, which the CI

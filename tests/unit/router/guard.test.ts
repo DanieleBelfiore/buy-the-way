@@ -12,6 +12,7 @@ vi.mock('@/stores/auth', () => ({
 import { useAuth, type AuthUser } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/auth';
 import { authGuard, __resetDefaultListRedirect } from '@/router/index';
+import { saveReturnTo, consumeReturnTo } from '@/domain/returnTo';
 import type { RouteLocationNormalized } from 'vue-router';
 
 const mockUseAuth = vi.mocked(useAuth);
@@ -36,6 +37,41 @@ describe('authGuard', () => {
       ensureProfile: vi.fn().mockResolvedValue(undefined),
       cachedDefaultListId: vi.fn().mockReturnValue(undefined),
     } as any);
+  });
+
+  describe('return after login (MCP consent screen)', () => {
+    const consentRoute = (): RouteLocationNormalized =>
+      ({ name: 'oauth-authorize', meta: {}, fullPath: '/oauth/authorize?client_id=c&state=s' }) as unknown as RouteLocationNormalized;
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('remembers the consent URL before sending an anonymous user to /login', async () => {
+      mockUseAuth.mockReturnValue({ user: ref(null), ready: ref(true) });
+      const result = await authGuard(consentRoute(), makeBootRoute());
+      expect(result).toEqual({ name: 'login' });
+      expect(consumeReturnTo()).toBe('/oauth/authorize?client_id=c&state=s');
+    });
+
+    it('does not remember ordinary protected routes', async () => {
+      mockUseAuth.mockReturnValue({ user: ref(null), ready: ref(true) });
+      await authGuard(makeRoute('lists'), makeBootRoute());
+      expect(consumeReturnTo()).toBeNull();
+    });
+
+    it('sends a freshly signed-in user from /login back to the consent URL', async () => {
+      saveReturnTo('/oauth/authorize?client_id=c&state=s');
+      mockUseAuth.mockReturnValue({ user: authedUser(), ready: ref(true) });
+      const result = await authGuard(makeRoute('login'), makeBootRoute());
+      expect(result).toBe('/oauth/authorize?client_id=c&state=s');
+      expect(consumeReturnTo()).toBeNull();
+    });
+
+    it('lets a signed-in user open the consent screen directly', async () => {
+      mockUseAuth.mockReturnValue({ user: authedUser(), ready: ref(true) });
+      expect(await authGuard(consentRoute(), makeBootRoute())).toBeUndefined();
+    });
   });
 
   it('allows navigation to /login for unauthenticated user when ready', async () => {

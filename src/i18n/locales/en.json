@@ -61,7 +61,7 @@
     "shareCopied": "List copied to clipboard!",
     "shareError": "Error sharing list.",
     "shareTitle": "🛒 List: {name}",
-    "shareFooter": "Buy The Way - Your Smart Grocery List\nhttps://buy-the-way.danielebelfiore.dev",
+    "shareFooter": "Buy The Way - Your Smart Grocery List\nhttps://buytheway.app",
     "shareNoteLabel": "Note",
     "deletedWithUndo": "List \"{name}\" deleted",
     "completionEmptyTitle": "All bought!",
@@ -129,7 +129,7 @@
     "voiceListening": "Listening…",
     "voicePermissionDenied": "Microphone permission denied. Enable it in your browser settings and reload the page.",
     "voicePermissionDeniedPwa": "Microphone permission denied. Check site permissions in your browser settings and reload the app.",
-    "voicePermissionDeniedAndroid": "Microphone permission denied. On Android this is not managed in the installed app's settings: open Chrome, go to buy-the-way.danielebelfiore.dev, tap the lock icon next to the URL → Permissions → Microphone → Allow. Then retry from a Chrome tab.",
+    "voicePermissionDeniedAndroid": "Microphone permission denied. On Android this is not managed in the installed app's settings: open Chrome, go to buytheway.app, tap the lock icon next to the URL → Permissions → Microphone → Allow. Then retry from a Chrome tab.",
     "voiceNoSpeech": "Didn't catch that. Try again.",
     "voiceUnsupported": "Voice input isn't available on this browser.",
     "voiceError": "Voice input error. Try again.",
@@ -435,6 +435,10 @@
     "stats": {
       "title": "Statistics · Buy The Way",
       "description": "Insights from your shopping habits."
+    },
+    "oauthAuthorize": {
+      "title": "Connect an AI assistant · Buy The Way",
+      "description": "Allow an AI assistant to access your lists."
     }
   },
   "stats": {
@@ -460,5 +464,31 @@
       "share": "{percent}% · {count} purchases",
       "tooltipItems": "No items | 1 item | {n} items"
     }
+  },
+  "oauthAuthorize": {
+    "loading": "Checking the request…",
+    "title": "Connect {client} to Buy The Way",
+    "intro": "{client} is asking to access your lists as an AI assistant.",
+    "canTitle": "It will be able to",
+    "canRead": "See your lists and their items",
+    "canEdit": "Add, edit, check off and remove items",
+    "canLists": "Create, rename and empty lists, move and copy items between lists",
+    "cannotTitle": "It will not be able to",
+    "cannot": "Delete lists, manage collaborators or see photos",
+    "signedInAs": "Signed in as {email}",
+    "redirectNotice": "After you choose, you will go back to {host}.",
+    "revokeHint": "You can revoke access at any time from Settings.",
+    "allow": "Allow",
+    "deny": "Deny",
+    "working": "One moment…",
+    "unavailableTitle": "Not available yet",
+    "unavailableBody": "Access through AI assistants is not available for your account yet.",
+    "back": "Back to the assistant",
+    "invalidTitle": "Invalid request",
+    "invalidBody": "This connection link is not valid. Try again from your AI assistant.",
+    "goToLists": "Go to your lists",
+    "errorTitle": "Something went wrong",
+    "errorBody": "The request could not be completed. Try again in a moment.",
+    "retry": "Try again"
   }
 }
