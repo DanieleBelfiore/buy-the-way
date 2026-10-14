@@ -20,6 +20,7 @@ describe('netlify.toml redirects', () => {
     '/oauth/register',
     '/oauth/token',
     '/oauth/revoke',
+    '/mcp',
   ])('routes %s before the SPA catch-all', (from) => {
     const at = froms.indexOf(from);
     expect(at).toBeGreaterThan(-1);

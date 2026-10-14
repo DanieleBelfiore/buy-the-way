@@ -25,5 +25,8 @@
     "eslint.config.js",
     "scripts/**/*.ts",
     "netlify/**/*.ts"
-  ]
+  ],
+  // netlify/mcp runs src/services in Node through the @/ alias, so it is
+  // checked by tsconfig.tests.json (paths + DOM libs) instead.
+  "exclude": ["netlify/mcp/**"]
 }

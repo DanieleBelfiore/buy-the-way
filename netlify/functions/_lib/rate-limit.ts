@@ -118,4 +118,8 @@ export const RATE_LIMITS = {
   oauthAuthorize: { max: 30, windowMs: 10 * 60 * 1000, funcName: 'oauth-authorize' },
   // Code exchange + hourly refresh, per client_id. Never per IP.
   oauthToken: { max: 60, windowMs: 60 * 60 * 1000, funcName: 'oauth-token' },
+  // /mcp, per uid: a burst cap for agent loops plus a daily ceiling, so one
+  // runaway client cannot eat the site's monthly function invocations.
+  mcp: { max: 120, windowMs: 10 * 60 * 1000, funcName: 'mcp' },
+  mcpDaily: { max: 1000, windowMs: 24 * 60 * 60 * 1000, funcName: 'mcp-daily' },
 } as const;

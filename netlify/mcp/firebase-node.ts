@@ -20,8 +20,10 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage';
  * invocation at a time; the MCP handler also serializes requests.
  */
 
-const requireEnv = (key: string): string => {
-  const value = process.env[key];
+// Static `process.env.X` reads on purpose: vite.mcp.config.ts inlines them
+// at build time from the CI's VITE_FIREBASE_* secrets (public web config),
+// and only a literal member access can be replaced that way.
+const required = (value: string | undefined, key: string): string => {
   if (!value) throw new Error(`${key} env var is not set`);
   return value;
 };
@@ -32,10 +34,10 @@ const splitHost = (hostPort: string): [string, number] => {
 };
 
 export const app = initializeApp({
-  apiKey: requireEnv('FIREBASE_WEB_API_KEY'),
-  projectId: requireEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: process.env['FIREBASE_STORAGE_BUCKET'],
-  appId: process.env['FIREBASE_APP_ID'],
+  apiKey: required(process.env.FIREBASE_WEB_API_KEY, 'FIREBASE_WEB_API_KEY'),
+  projectId: required(process.env.FIREBASE_PROJECT_ID, 'FIREBASE_PROJECT_ID'),
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  appId: process.env.FIREBASE_APP_ID,
 });
 export const auth = initializeAuth(app, { persistence: inMemoryPersistence });
 export const db = initializeFirestore(app, { localCache: memoryLocalCache() });

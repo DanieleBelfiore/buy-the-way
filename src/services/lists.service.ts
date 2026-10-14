@@ -76,7 +76,7 @@ export class NotACollaboratorError extends Error {
   }
 }
 
-const normalizeListName = (name: string): string => name.trim().toLowerCase();
+export const normalizeListName = (name: string): string => name.trim().toLowerCase();
 
 export const capitalizeListName = capitalizeInitial;
 
@@ -429,7 +429,7 @@ const loadListSnapshot = async (
   };
 };
 
-const adminsOf = (list: Pick<List, 'ownerUid' | 'admins'>): readonly string[] =>
+export const adminsOf = (list: Pick<List, 'ownerUid' | 'admins'>): readonly string[] =>
   list.admins ?? [list.ownerUid];
 
 /**

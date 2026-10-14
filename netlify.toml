@@ -146,6 +146,14 @@
   status = 200
   force = true
 
+# The MCP endpoint itself. Built into netlify/functions/mcp/ by
+# `pnpm build:mcp` in the CI deploy job (vite.mcp.config.ts).
+[[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/mcp"
+  status = 200
+  force = true
+
 # SPA fallback - Vue Router uses HTML5 history; all unmatched paths serve index.html.
 [[redirects]]
   from = "/*"

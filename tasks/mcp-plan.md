@@ -158,6 +158,8 @@ Input validated with zod schemas (lengths, enum categories), output as text + `s
 
 ### Checkpoint M3
 
+Code done 2026-10-14: `netlify/mcp/{handler,server,session}.ts`, 11 tools, `pnpm build:mcp` (vite.mcp.config.ts, output `netlify/functions/mcp/`, gitignored), `pnpm smoke:mcp` (imports the built bundle; run in CI on Node 22 = Lambda runtime), `/mcp` rewrite, rate limits `mcp` (120 / 10 min) + `mcpDaily` (1000 / day) per uid. Firebase web config inlined at build time from the CI `VITE_FIREBASE_*` secrets: no extra Netlify env vars. Tools return JSON text (no `structuredContent` yet). Known limit: photo purges after `remove_item` / `empty_list` are fire-and-forget in the services and may not finish once the function returns (orphaned Storage files, no user-visible effect).
+
 Manual: Claude Code and claude.ai custom connector, real account, end to end.
 
 ## Phase M4 - Management, docs, launch (~1 day)

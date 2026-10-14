@@ -5,7 +5,7 @@ import vueParser from 'vue-eslint-parser';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'playwright-report/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'playwright-report/**', 'netlify/functions/mcp/**'],
   },
   {
     files: ['**/*.vue'],

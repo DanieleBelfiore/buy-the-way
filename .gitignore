@@ -18,5 +18,8 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Built by `pnpm build:mcp` in CI (vite.mcp.config.ts), never committed
+netlify/functions/mcp/
+
 # Generated admin reports - contain PII, never commit
 scripts/out

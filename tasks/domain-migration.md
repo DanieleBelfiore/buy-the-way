@@ -1,6 +1,8 @@
 # Domain migration: buy-the-way.danielebelfiore.dev -> buytheway.app
 
-Analysis 2026-10-14. Target: apex `https://buytheway.app` as primary, `www.buytheway.app` and the old domain redirecting to it (301, path preserved).
+Analysis 2026-10-14. **Done 2026-10-14**: steps 1-4 completed and verified in production (301 with path and query, retiring `/sw.js` on the old host, `www` -> apex, build `authDomain` = `buytheway.app`, Google + magic-link sign-in, sender `noreply@buytheway.app`, Storage photos, installed PWA migrated). DMARC `p=none` added. Remaining: step 5 (Search Console change of address) and, after a few months, removing the old domain everywhere.
+
+Target: apex `https://buytheway.app` as primary, `www.buytheway.app` and the old domain redirecting to it (301, path preserved).
 
 ## What does NOT change
 

@@ -289,6 +289,31 @@ jobs:
           name: dist
           path: dist/
 
+      # /mcp function (tasks/mcp-plan.md): bundled here because it needs the
+      # services aliased onto the Node Firebase module. The public Firebase
+      # web config is inlined from the same secrets as the SPA build.
+      - name: Build MCP function
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: pnpm build:mcp
+
+      # Import the shipped bundle on the Lambda's Node major (22, see
+      # AWS_LAMBDA_JS_RUNTIME below) before deploying: import-time crashes of
+      # function bundles have reached production before.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Smoke-test MCP bundle on the Lambda Node version
+        run: node scripts/smoke-mcp-bundle.mjs
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
       - name: Install Netlify CLI
         run: npm install -g netlify-cli@latest
 
