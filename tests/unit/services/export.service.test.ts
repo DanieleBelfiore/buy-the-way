@@ -18,10 +18,7 @@ vi.mock('@/services/firebase', () => ({
 }));
 
 import {
-  buildExportPayload,
-  defaultExportFilename,
-  downloadUserDataExport,
-  exportUserData,
+  buildExportPayload
 } from '@/services/export.service';
 
 const UID = 'uid-self';
@@ -148,18 +145,6 @@ describe('export.service', () => {
       expect(out.catalog[0].name).toBe('Milk');
     });
 
-    it('returns null profile when the user doc does not exist', async () => {
-      getDocMock
-        .mockResolvedValueOnce({ exists: () => false })
-        .mockResolvedValueOnce({ exists: () => false });
-      getDocsMock.mockResolvedValue({ docs: [] });
-
-      const out = await buildExportPayload(UID);
-      expect(out.profile).toBeNull();
-      expect(out.lists).toEqual([]);
-      expect(out.catalog).toEqual([]);
-    });
-
     it('only fetches per-list bundles for lists the user has access to (array-contains query)', async () => {
       getDocMock
         .mockResolvedValueOnce(mockProfileTopLevel)
@@ -173,69 +158,6 @@ describe('export.service', () => {
       const { where, limit } = await import('firebase/firestore');
       expect(where).toHaveBeenCalledWith('collaboratorUids', 'array-contains', UID);
       expect(limit).toHaveBeenCalledWith(100);
-    });
-  });
-
-  describe('exportUserData (Blob wrapper)', () => {
-    it('returns a Blob of application/json containing the pretty-printed payload', async () => {
-      getDocMock
-        .mockResolvedValueOnce(mockProfileTopLevel)
-        .mockResolvedValueOnce(mockPrivateState);
-      getDocsMock.mockResolvedValue({ docs: [] });
-
-      const blob = await exportUserData(UID);
-      expect(blob.type).toBe('application/json');
-      const text = await blob.text();
-      const parsed = JSON.parse(text);
-      expect(parsed.schemaVersion).toBe(1);
-      expect(parsed.profile.uid).toBe(UID);
-      // Pretty-printed: indented JSON contains newlines.
-      expect(text.includes('\n')).toBe(true);
-    });
-  });
-
-  describe('downloadUserDataExport', () => {
-    it('creates an object URL and triggers a download link', async () => {
-      getDocMock
-        .mockResolvedValueOnce(mockProfileTopLevel)
-        .mockResolvedValueOnce(mockPrivateState);
-      getDocsMock.mockResolvedValue({ docs: [] });
-
-      const click = vi.fn();
-      const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
-      const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
-      const createElement = vi.spyOn(document, 'createElement').mockReturnValue({
-        click,
-        href: '',
-        download: '',
-        style: {},
-      } as unknown as HTMLAnchorElement);
-      const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
-      const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-
-      const filename = await downloadUserDataExport(UID, 'export.json');
-      expect(filename).toBe('export.json');
-      expect(createObjectURL).toHaveBeenCalled();
-      expect(click).toHaveBeenCalled();
-      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock');
-
-      createElement.mockRestore();
-      appendChild.mockRestore();
-      removeChild.mockRestore();
-      createObjectURL.mockRestore();
-      revokeObjectURL.mockRestore();
-    });
-  });
-
-  describe('defaultExportFilename', () => {
-    it('formats as buy-the-way-export-YYYY-MM-DD.json', () => {
-      const name = defaultExportFilename(new Date('2026-05-25T10:11:12Z'));
-      expect(name).toMatch(/^buy-the-way-export-2026-05-25\.json$/);
-    });
-
-    it('zero-pads month and day', () => {
-      const name = defaultExportFilename(new Date('2026-01-03T00:00:00Z'));
-      expect(name).toBe('buy-the-way-export-2026-01-03.json');
     });
   });
 });

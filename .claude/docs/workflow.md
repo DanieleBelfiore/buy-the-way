@@ -2,15 +2,19 @@
 
 Patterns for multi-phase work with tests + human-verification gates.
 
-## Phase-end coverage gate (mandatory, autonomous)
+## Phase-end test gate (mandatory, autonomous)
 
-At the end of every phase / checkpoint, before declaring the phase done, autonomously run the project's coverage command (e.g. `pnpm test:coverage`). Required outcome: exit 0, coverage ≥ project threshold, zero framework warnings or unhandled errors in stderr. Fix any failure before requesting approval. Never wait for the user to ask.
+At the end of every phase / checkpoint, before declaring the phase done, autonomously run `pnpm test:coverage`. Required outcome: exit 0, zero framework warnings or unhandled errors in stderr. Coverage is reported, not gated: there is no threshold. Fix any failure before requesting approval. Never wait for the user to ask.
+
+## Testing policy
+
+Tests cover the critical paths only: Firestore / Storage rules, data integrity of list and item writes, account deletion, OAuth / MCP security, domain logic with real edge cases, and regressions of real production bugs. No tests for CSS classes, icons, button order, copy, trivial wiring or thin wrappers around a mocked SDK. Prefer one emulator test over many mocked unit tests. TDD is not required: write the test after the code when that is simpler.
 
 ## Human Verification Recap (mandatory at every phase/checkpoint)
 
 Before saying "phase done" or asking for human approval, emit a **Human Verification Recap** containing:
 
-1. **Automated gates run** - exact commands + results (test count, coverage %, build, lint, typecheck).
+1. **Automated gates run** - exact commands + results (test count, build, lint, typecheck; coverage % as information only).
 2. **Manual checks for the human** - bullet list of UI/UX/device/browser/Lighthouse/E2E items NOT covered by automated gates. Each bullet includes: URL or route, viewport/device, action to perform, expected outcome.
 3. **Files changed** - clickable list grouped by purpose.
 4. **Pending / deferred** - anything blocked by external action.

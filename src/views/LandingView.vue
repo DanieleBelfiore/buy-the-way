@@ -8,7 +8,7 @@ import { useLogoMotion } from '@/composables/useLogoMotion';
 import { safeJsonLd } from '@/domain/jsonld';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
-import { RefreshCw, WifiOff, ShieldCheck } from '@lucide/vue';
+import { RefreshCw, WifiOff, ShieldCheck, Bot } from '@lucide/vue';
 
 const { t, tm, locale } = useI18n();
 const router = useRouter();
@@ -25,8 +25,8 @@ interface Highlight {
 }
 
 // Icons pair with highlights by index; the copy lives in i18n so the order
-// here must mirror home.highlights (sync, offline, privacy).
-const ICONS: readonly FunctionalComponent[] = [RefreshCw, WifiOff, ShieldCheck];
+// here must mirror home.highlights (sync, offline, privacy, AI assistant).
+const ICONS: readonly FunctionalComponent[] = [RefreshCw, WifiOff, ShieldCheck, Bot];
 
 const highlights = computed(() => {
   const raw = tm('home.highlights') as unknown;
@@ -153,7 +153,7 @@ const goToAbout = (): void => {
       :aria-label="t('home.highlightsTitle')"
     >
       <h2 class="sr-only">{{ t('home.highlightsTitle') }}</h2>
-      <ul class="grid gap-5 sm:grid-cols-3">
+      <ul class="grid gap-5 sm:grid-cols-2">
         <li
           v-for="(h, idx) in highlights"
           :key="idx"

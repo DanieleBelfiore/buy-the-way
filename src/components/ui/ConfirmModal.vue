@@ -12,8 +12,14 @@ const props = withDefaults(
     confirmLabel: string;
     cancelLabel: string;
     destructive?: boolean;
+    /**
+     * Cancel is the recommended choice (e.g. "keep suggesting"): it becomes
+     * the primary blue button and moves to the end, where the main action
+     * usually sits. Moved in the DOM, not with CSS, so tab order matches.
+     */
+    preferCancel?: boolean;
   }>(),
-  { destructive: false },
+  { destructive: false, preferCancel: false },
 );
 
 const emit = defineEmits<{ confirm: []; cancel: [] }>();
@@ -24,6 +30,12 @@ const confirmClasses = computed(() =>
   props.destructive
     ? 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900'
     : 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
+);
+
+const cancelClasses = computed(() =>
+  props.preferCancel
+    ? 'font-medium bg-primary text-white hover:bg-primary-hover active:bg-primary-active transition active:scale-[0.98] motion-reduce:active:scale-100'
+    : 'text-charcoal hover:bg-black/5 active:bg-black/10',
 );
 
 const openRef = toRef(props, 'open');
@@ -50,11 +62,15 @@ useFocusTrap(openRef, dialogRef);
     >
       <h2 :id="titleId" class="text-lg font-semibold text-charcoal">{{ props.title }}</h2>
       <p class="mt-2 text-sm text-muted-gray whitespace-pre-line">{{ props.message }}</p>
-      <div class="mt-5 flex flex-row items-center gap-2 w-full">
+      <!-- flex-wrap: when both labels do not fit side by side (long Italian
+           labels at 375 px), the last button drops to its own full-width row
+           instead of overflowing the dialog. -->
+      <div class="mt-5 flex flex-row flex-wrap items-center gap-2 w-full">
         <button
+          v-if="!props.preferCancel"
           data-testid="confirm-modal-cancel"
           type="button"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm text-charcoal hover:bg-black/5 active:bg-black/10"
+          :class="['flex-1 basis-auto whitespace-nowrap inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm', cancelClasses]"
           @click="emit('cancel')"
         >
           <X :size="16" :stroke-width="2" aria-hidden="true" />
@@ -64,7 +80,7 @@ useFocusTrap(openRef, dialogRef);
           data-testid="confirm-modal-confirm"
           type="button"
           :class="[
-            'flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition active:scale-[0.98] motion-reduce:active:scale-100',
+            'flex-1 basis-auto whitespace-nowrap inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition active:scale-[0.98] motion-reduce:active:scale-100',
             confirmClasses,
           ]"
           @click="emit('confirm')"
@@ -76,6 +92,18 @@ useFocusTrap(openRef, dialogRef);
             aria-hidden="true"
           />
           {{ props.confirmLabel }}
+        </button>
+        <button
+          v-if="props.preferCancel"
+          data-testid="confirm-modal-cancel"
+          type="button"
+          :class="['flex-1 basis-auto whitespace-nowrap inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm', cancelClasses]"
+          @click="emit('cancel')"
+        >
+          <!-- Check, not X: on a filled blue button an X reads as "close /
+               no", while here cancel is the recommended "yes, keep it". -->
+          <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
+          {{ props.cancelLabel }}
         </button>
       </div>
     </div>

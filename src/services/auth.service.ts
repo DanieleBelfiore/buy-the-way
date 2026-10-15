@@ -26,6 +26,7 @@ import { auth, db } from '@/services/firebase';
 import { claimPendingInvites, deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
 import { migrateLegacyPrivateFields, deletePrivateState } from '@/services/users.service';
 import { deleteAllNotifications } from '@/services/notifications.service';
+import { revokeAllConnectedApps } from '@/services/connectedApps.service';
 import type { AuthUser } from '@/composables/useAuth';
 import type { Locale } from '@/domain/types';
 
@@ -280,7 +281,16 @@ export const deleteAccount = async (uid: string): Promise<void> => {
   await deletePrivateState(uid);
   await deleteAllNotifications(uid);
 
-  // 5b. Delete user doc.
+  // 5b. Disconnect AI assistants (MCP grants + tokens), while the session can
+  // still call the revoke function. Best-effort: /mcp also refuses uids that
+  // no longer exist, so a failure here must not block the deletion.
+  try {
+    await revokeAllConnectedApps(uid);
+  } catch (err) {
+    console.warn('[auth] deleteAccount: connected apps revoke failed', err);
+  }
+
+  // 5c. Delete user doc.
   try {
     await deleteDoc(doc(db, 'users', uid));
   } catch (err) {

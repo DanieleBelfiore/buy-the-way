@@ -76,7 +76,7 @@
     "customBadgeHint": "You added this name yourself; it is not from the catalog.",
     "dontSuggestAgainTitle": "Stop suggesting this item?",
     "dontSuggestAgainMessage": "\"{name}\" will no longer appear in autocomplete suggestions across any of your lists.",
-    "dontSuggestAgainAction": "Don't suggest",
+    "dontSuggestAgainAction": "Don't suggest again",
     "keepSuggesting": "Keep suggesting",
     "markAsBought": "Mark as bought",
     "markAsToBuy": "Mark as to buy",
@@ -291,6 +291,20 @@
     "deleteAccountError": "Delete failed. Please try again.",
     "deleteAccountPartial": "Some data could not be removed. Your account is still active - please try again."
   },
+  "connectedApps": {
+    "title": "Connected apps",
+    "hint": "AI assistants that can use your lists.",
+    "unnamed": "AI assistant",
+    "connectedOn": "Connected {date}",
+    "lastUsed": "Last used {date}",
+    "disconnect": "Disconnect",
+    "disconnectAria": "Disconnect {client}",
+    "confirmTitle": "Disconnect {client}?",
+    "confirmMessage": "{client} will no longer be able to see or change your lists. To use it again, connect it from the assistant.",
+    "confirmCancel": "Cancel",
+    "done": "{client} disconnected",
+    "failed": "Couldn't disconnect {client}. Try again."
+  },
   "category": {
     "allBought": "All items in this category are bought",
     "label": "Category",
@@ -336,6 +350,7 @@
       "Share lists with family or roommates",
       "Smart favorites based on what you buy most",
       "Statistics on your shopping habits",
+      "Works with your AI assistant (Claude and others, via MCP)",
       "No ads, no tracking, no analytics"
     ],
     "faqTitle": "Frequently asked questions",
@@ -363,6 +378,10 @@
       {
         "q": "Is there a native app?",
         "a": "It is a PWA - install it from your browser to your home screen and it behaves like a native app."
+      },
+      {
+        "q": "Can I use Buy The Way with an AI assistant?",
+        "a": "Yes, in beta. In your assistant (Claude or another MCP-compatible one) add the connector https://buytheway.app/mcp, sign in and approve: it can read and update your lists, but not delete them or manage collaborators. Disconnect it any time from Settings → Connected apps."
       },
       {
         "q": "Can I delete my account?",
@@ -400,6 +419,10 @@
       {
         "title": "Private by design",
         "body": "No ads, no tracking, no analytics. Your lists stay yours."
+      },
+      {
+        "title": "From your AI assistant too",
+        "body": "Connect Claude or another AI assistant and ask it to update your lists: \"add what I need for a carbonara\". In beta."
       }
     ]
   },

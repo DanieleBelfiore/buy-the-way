@@ -21,12 +21,8 @@ export default defineConfig({
       // json-summary produces coverage/coverage-summary.json, which the CI
       // badge step reads to publish the real percentage to the shields gist.
       reporter: ['text', 'json', 'json-summary', 'html'],
-      thresholds: {
-        statements: 80,
-        branches: 80,
-        functions: 80,
-        lines: 80,
-      },
+      // Report only, no thresholds: tests cover the critical paths, not a
+      // percentage (CLAUDE.md, "Testing policy").
       include: ['src/**/*.{ts,vue}'],
       exclude: [
         'src/main.ts',

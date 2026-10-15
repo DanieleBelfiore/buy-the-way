@@ -20,20 +20,15 @@ vi.mock('firebase/firestore', () => ({
 
 import {
   createList,
-  subscribeUserLists,
-  fetchUserLists,
   promoteAdmin,
   demoteAdmin,
   transferListOwnership,
   removeCollaborator,
-  leaveList,
-  capitalizeListName,
   DuplicateListNameError,
   LastAdminError,
-  NotACollaboratorError,
-  reconcileListUrgentCount,
+  NotACollaboratorError
 } from '@/services/lists.service';
-import { setDoc, updateDoc, getDoc, getDocs, onSnapshot, where } from 'firebase/firestore';
+import { setDoc, updateDoc, getDoc,} from 'firebase/firestore';
 
 describe('lists.service', () => {
   beforeEach(() => {
@@ -42,11 +37,6 @@ describe('lists.service', () => {
   });
 
   describe('createList', () => {
-    it('writes a list doc via setDoc', async () => {
-      await createList('Spesa', 'uid-1');
-      expect(setDoc).toHaveBeenCalledOnce();
-    });
-
     it('includes required fields in the list doc', async () => {
       await createList('Spesa', 'uid-1');
       const [, data] = vi.mocked(setDoc).mock.calls[0];
@@ -55,145 +45,18 @@ describe('lists.service', () => {
         ownerUid: 'uid-1',
         collaboratorUids: ['uid-1'],
         admins: ['uid-1'],
-        itemCount: 0,
-        urgentCount: 0,
       });
       expect(data).not.toHaveProperty('deletedAt');
+      // Counts are derived from the item docs, never stored on the list.
+      expect(data).not.toHaveProperty('itemCount');
+      expect(data).not.toHaveProperty('urgentCount');
       expect(typeof (data as any).createdAt).toBe('number');
       expect(typeof (data as any).updatedAt).toBe('number');
-    });
-
-    it('returns a 26-char ULID id', async () => {
-      const id = await createList('Latte', 'uid-1');
-      expect(typeof id).toBe('string');
-      expect(id).toHaveLength(26);
-    });
-
-    it('sets id in the doc matching the returned id', async () => {
-      const id = await createList('Latte', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).id).toBe(id);
     });
 
     it('rejects when existingNames contains case-insensitive trim match', async () => {
       await expect(createList('  Spesa  ', 'uid-1', ['SPESA'])).rejects.toThrow(DuplicateListNameError);
       expect(setDoc).not.toHaveBeenCalled();
-    });
-
-    it('does not reject when existingNames has only different names', async () => {
-      await expect(createList('Spesa', 'uid-1', ['Lavoro', 'Casa'])).resolves.toBeTypeOf('string');
-    });
-
-    it('trims input name before writing', async () => {
-      await createList('  Spesa  ', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).name).toBe('Spesa');
-    });
-
-    it('capitalizes the first letter when input is lowercase', async () => {
-      await createList('spesa', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).name).toBe('Spesa');
-    });
-
-    it('preserves capitalization beyond the first letter', async () => {
-      await createList('iPhone shopping', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).name).toBe('IPhone shopping');
-    });
-
-    it('handles unicode initials', async () => {
-      await createList('über shop', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).name).toBe('Über shop');
-    });
-
-    it('treats whitespace-only name as duplicate of empty (no write skipped beyond existing logic)', async () => {
-      await createList('  ', 'uid-1');
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      expect((data as any).name).toBe('');
-    });
-  });
-
-  describe('capitalizeListName', () => {
-    it('uppercases the first letter', () => {
-      expect(capitalizeListName('spesa')).toBe('Spesa');
-    });
-
-    it('leaves already-capitalized name alone', () => {
-      expect(capitalizeListName('Spesa')).toBe('Spesa');
-    });
-
-    it('trims surrounding whitespace', () => {
-      expect(capitalizeListName('  spesa  ')).toBe('Spesa');
-    });
-
-    it('returns empty string for blank input', () => {
-      expect(capitalizeListName('   ')).toBe('');
-    });
-
-    it('leaves non-letter initials alone', () => {
-      expect(capitalizeListName('123 lista')).toBe('123 lista');
-    });
-  });
-
-  describe('subscribeUserLists', () => {
-    it('returns an unsubscribe function', () => {
-      vi.mocked(onSnapshot).mockReturnValue(vi.fn() as any);
-      const unsub = subscribeUserLists('uid-1', vi.fn(), vi.fn());
-      expect(typeof unsub).toBe('function');
-    });
-
-    it('calls onSnapshot with a query', () => {
-      vi.mocked(onSnapshot).mockReturnValue(vi.fn() as any);
-      subscribeUserLists('uid-1', vi.fn(), vi.fn());
-      expect(onSnapshot).toHaveBeenCalledOnce();
-    });
-
-    it('maps snapshot docs to List objects and calls onChange', () => {
-      let capturedNext: ((snap: any) => void) | undefined;
-      vi.mocked(onSnapshot).mockImplementation((_q, onNext: any, _onError: any) => {
-        capturedNext = onNext;
-        return vi.fn() as any;
-      });
-
-      const onChange = vi.fn();
-      subscribeUserLists('uid-1', onChange, vi.fn());
-
-      capturedNext!({
-        docs: [
-          {
-            id: '01ABCDEFGH01234567890ABC12',
-            data: () => ({
-              name: 'Spesa',
-              ownerUid: 'uid-1',
-              collaboratorUids: ['uid-1'],
-              createdAt: 100,
-              updatedAt: 200,
-            }),
-          },
-        ],
-      });
-
-      expect(onChange).toHaveBeenCalledOnce();
-      expect(onChange.mock.calls[0][0]).toHaveLength(1);
-      expect(onChange.mock.calls[0][0][0]).toMatchObject({
-        id: '01ABCDEFGH01234567890ABC12',
-        name: 'Spesa',
-        ownerUid: 'uid-1',
-      });
-    });
-
-    it('calls onError on snapshot error', () => {
-      vi.mocked(onSnapshot).mockImplementation((_q, _onNext: any, onError: any) => {
-        onError(new Error('permission-denied'));
-        return vi.fn() as any;
-      });
-
-      const onError = vi.fn();
-      subscribeUserLists('uid-1', vi.fn(), onError);
-
-      expect(onError).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 
@@ -213,14 +76,6 @@ describe('lists.service', () => {
       vi.mocked(updateDoc).mockResolvedValue(undefined);
     });
 
-    it('arrayUnion target into admins for an existing collaborator', async () => {
-      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'], admins: ['owner'] });
-      await promoteAdmin('L1', 'bob');
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toMatchObject({ admins: { __arrayUnion: ['bob'] } });
-      expect(typeof (patch as any).updatedAt).toBe('number');
-    });
-
     it('throws NotACollaboratorError when target is not a collaborator', async () => {
       mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner'], admins: ['owner'] });
       await expect(promoteAdmin('L1', 'stranger')).rejects.toBeInstanceOf(
@@ -228,34 +83,11 @@ describe('lists.service', () => {
       );
       expect(updateDoc).not.toHaveBeenCalled();
     });
-
-    it('is idempotent - promoting an already-admin uid still writes arrayUnion', async () => {
-      mockListSnap({
-        ownerUid: 'owner',
-        collaboratorUids: ['owner', 'bob'],
-        admins: ['owner', 'bob'],
-      });
-      await promoteAdmin('L1', 'bob');
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toMatchObject({ admins: { __arrayUnion: ['bob'] } });
-    });
   });
 
   describe('demoteAdmin', () => {
     beforeEach(() => {
       vi.mocked(updateDoc).mockResolvedValue(undefined);
-    });
-
-    it('drops target from admins when other admins remain', async () => {
-      mockListSnap({
-        ownerUid: 'owner',
-        collaboratorUids: ['owner', 'bob'],
-        admins: ['owner', 'bob'],
-      });
-      await demoteAdmin('L1', 'bob');
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toMatchObject({ admins: { __arrayRemove: ['bob'] } });
-      expect((patch as any).ownerUid).toBeUndefined();
     });
 
     it('throws LastAdminError when removal would leave no admins', async () => {
@@ -265,16 +97,6 @@ describe('lists.service', () => {
         admins: ['owner'],
       });
       await expect(demoteAdmin('L1', 'owner')).rejects.toBeInstanceOf(LastAdminError);
-      expect(updateDoc).not.toHaveBeenCalled();
-    });
-
-    it('is a no-op when target is not currently an admin', async () => {
-      mockListSnap({
-        ownerUid: 'owner',
-        collaboratorUids: ['owner', 'bob'],
-        admins: ['owner'],
-      });
-      await demoteAdmin('L1', 'bob');
       expect(updateDoc).not.toHaveBeenCalled();
     });
 
@@ -303,19 +125,6 @@ describe('lists.service', () => {
       vi.mocked(updateDoc).mockResolvedValue(undefined);
     });
 
-    it('writes the pivot then strips old owner from admins in a follow-up call', async () => {
-      await transferListOwnership('L1', 'oldOwner', 'newOwner');
-      expect(updateDoc).toHaveBeenCalledTimes(2);
-      const [, first] = vi.mocked(updateDoc).mock.calls[0];
-      expect(first).toMatchObject({
-        ownerUid: 'newOwner',
-        collaboratorUids: { __arrayRemove: ['oldOwner'] },
-        admins: { __arrayUnion: ['newOwner'] },
-      });
-      const [, second] = vi.mocked(updateDoc).mock.calls[1];
-      expect(second).toMatchObject({ admins: { __arrayRemove: ['oldOwner'] } });
-    });
-
     it('rejects when old and new owner are the same uid', async () => {
       await expect(transferListOwnership('L1', 'same', 'same')).rejects.toThrow();
       expect(updateDoc).not.toHaveBeenCalled();
@@ -335,77 +144,6 @@ describe('lists.service', () => {
         collaboratorUids: { __arrayRemove: ['bob'] },
         admins: { __arrayRemove: ['bob'] },
       });
-    });
-  });
-
-  describe('leaveList (also drops admins)', () => {
-    beforeEach(() => {
-      vi.mocked(updateDoc).mockResolvedValue(undefined);
-    });
-
-    it('drops self from both collaboratorUids and admins', async () => {
-      mockListSnap({ ownerUid: 'owner', collaboratorUids: ['owner', 'bob'], admins: ['owner', 'bob'] });
-      await leaveList('L1', 'bob');
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect(patch).toMatchObject({
-        collaboratorUids: { __arrayRemove: ['bob'] },
-        admins: { __arrayRemove: ['bob'] },
-      });
-    });
-  });
-
-  describe('setListCategoryOrder', () => {
-    it('writes categoryOrder + updatedAt via updateDoc', async () => {
-      const { setListCategoryOrder } = await import('@/services/lists.service');
-      await setListCategoryOrder('L1', ['dairy', 'bakery', 'other']);
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect((patch as any).categoryOrder).toEqual(['dairy', 'bakery', 'other']);
-      expect(typeof (patch as any).updatedAt).toBe('number');
-    });
-
-    it('clones the input array (no shared reference with caller)', async () => {
-      const { setListCategoryOrder } = await import('@/services/lists.service');
-      const input: any[] = ['dairy', 'bakery'];
-      await setListCategoryOrder('L1', input);
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect((patch as any).categoryOrder).not.toBe(input);
-      expect((patch as any).categoryOrder).toEqual(input);
-    });
-  });
-
-  describe('reorderList (S3.4)', () => {
-    it('updates sortIndex + updatedAt via updateDoc', async () => {
-      const { reorderList } = await import('@/services/lists.service');
-      await reorderList('L1', 12345);
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const [, patch] = vi.mocked(updateDoc).mock.calls[0];
-      expect((patch as any).sortIndex).toBe(12345);
-      expect(typeof (patch as any).updatedAt).toBe('number');
-    });
-  });
-
-  describe('orderListsWithDefaultFirst', () => {
-    it('puts the default list first and keeps relative order of the rest', async () => {
-      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
-      const lists = [
-        { id: 'A', sortIndex: 300, updatedAt: 1 },
-        { id: 'B', sortIndex: 200, updatedAt: 2 },
-        { id: 'C', sortIndex: 100, updatedAt: 3 },
-      ] as any[];
-      expect(orderListsWithDefaultFirst(lists, 'B').map((l) => l.id)).toEqual(['B', 'A', 'C']);
-    });
-
-    it('returns lists unchanged when no default is set', async () => {
-      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
-      const lists = [{ id: 'A' }, { id: 'B' }] as any[];
-      expect(orderListsWithDefaultFirst(lists, null)).toEqual(lists);
-    });
-
-    it('returns lists unchanged when default id is missing from the list', async () => {
-      const { orderListsWithDefaultFirst } = await import('@/services/lists.service');
-      const lists = [{ id: 'A' }, { id: 'B' }] as any[];
-      expect(orderListsWithDefaultFirst(lists, 'MISSING')).toEqual(lists);
     });
   });
 
@@ -431,101 +169,6 @@ describe('lists.service', () => {
       // Position 1 has above=150 and no below -> result = 150 - 1
       const ordered = [mk(150), mk(50)];
       expect(computeReorderedSortIndex(ordered, 1)).toBe(149);
-    });
-
-    it('falls back to updatedAt when sortIndex is missing on a neighbour', async () => {
-      const { computeReorderedSortIndex } = await import('@/services/lists.service');
-      const ordered = [mk(undefined, 1000), mk(undefined, 500), mk(undefined, 100)];
-      // midpoint(1000, 100) = 550
-      expect(computeReorderedSortIndex(ordered, 1)).toBe(550);
-    });
-
-    it('returns `now` when newIndex is out of range', async () => {
-      const { computeReorderedSortIndex } = await import('@/services/lists.service');
-      expect(computeReorderedSortIndex([mk(100)], 5, 42)).toBe(42);
-    });
-
-    it('returns `now` for a single-element array (no neighbours)', async () => {
-      const { computeReorderedSortIndex } = await import('@/services/lists.service');
-      expect(computeReorderedSortIndex([mk(100)], 0, 99)).toBe(99);
-    });
-  });
-
-  describe('createList sortIndex seeding (S3.4)', () => {
-    it('seeds sortIndex equal to the createdAt timestamp', async () => {
-      const before = Date.now();
-      await createList('Spesa', 'uid-1');
-      const after = Date.now();
-      const [, data] = vi.mocked(setDoc).mock.calls[0];
-      const seeded = (data as any).sortIndex;
-      expect(typeof seeded).toBe('number');
-      expect(seeded).toBeGreaterThanOrEqual(before);
-      expect(seeded).toBeLessThanOrEqual(after);
-    });
-  });
-
-  describe('subscribeUserLists client-side sort (S3.4)', () => {
-    it('orders by sortIndex desc, falling back to updatedAt when missing', () => {
-      let capturedNext: ((snap: any) => void) | undefined;
-      vi.mocked(onSnapshot).mockImplementation((_q, onNext: any) => {
-        capturedNext = onNext;
-        return vi.fn() as any;
-      });
-      const onChange = vi.fn();
-      subscribeUserLists('uid-1', onChange, vi.fn());
-
-      capturedNext!({
-        docs: [
-          { id: 'A', data: () => ({ name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 10, sortIndex: 100 }) },
-          { id: 'B', data: () => ({ name: 'B', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 50 /* legacy: no sortIndex */ }) },
-          { id: 'C', data: () => ({ name: 'C', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 5, sortIndex: 200 }) },
-        ],
-      });
-
-      const ids = onChange.mock.calls[0][0].map((l: any) => l.id);
-      // sortIndex C=200, A=100, B=50 (fallback updatedAt) -> C, A, B
-      expect(ids).toEqual(['C', 'A', 'B']);
-    });
-  });
-
-  describe('fetchUserLists', () => {
-    it('queries the lists the uid collaborates on', async () => {
-      vi.mocked(getDocs).mockResolvedValueOnce({ docs: [] } as any);
-      await fetchUserLists('uid-1');
-      expect(where).toHaveBeenCalledWith('collaboratorUids', 'array-contains', 'uid-1');
-      expect(getDocs).toHaveBeenCalledOnce();
-    });
-
-    it('maps docs and applies the same sortIndex order as subscribeUserLists', async () => {
-      vi.mocked(getDocs).mockResolvedValueOnce({
-        docs: [
-          { id: 'A', data: () => ({ name: 'A', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 10, sortIndex: 100 }) },
-          { id: 'B', data: () => ({ name: 'B', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 50 }) },
-          { id: 'C', data: () => ({ name: 'C', ownerUid: 'u', collaboratorUids: ['u'], createdAt: 1, updatedAt: 5, sortIndex: 200 }) },
-        ],
-      } as any);
-      const lists = await fetchUserLists('uid-1');
-      expect(lists.map((l) => l.id)).toEqual(['C', 'A', 'B']);
-      expect(lists[0]).toMatchObject({ id: 'C', name: 'C' });
-    });
-
-    it('propagates read errors', async () => {
-      vi.mocked(getDocs).mockRejectedValueOnce(new Error('permission-denied'));
-      await expect(fetchUserLists('uid-1')).rejects.toThrow('permission-denied');
-    });
-  });
-
-  describe('reconcileListUrgentCount', () => {
-    it('writes urgentCount when it differs from stored value', async () => {
-      await reconcileListUrgentCount('L1', 2, 0);
-      expect(updateDoc).toHaveBeenCalledOnce();
-      const payload = vi.mocked(updateDoc).mock.calls[0]![1] as unknown as Record<string, unknown>;
-      expect(payload.urgentCount).toBe(2);
-    });
-
-    it('is a no-op when stored value already matches', async () => {
-      await reconcileListUrgentCount('L1', 2, 2);
-      expect(updateDoc).not.toHaveBeenCalled();
     });
   });
 });

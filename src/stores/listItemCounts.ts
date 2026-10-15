@@ -13,9 +13,8 @@ export interface ListLiveCounts {
 /**
  * Item counts for the lists overview, derived from the real item docs of
  * each list - the same source the detail view counts from, so the two can
- * never disagree. The denormalized `itemCount` / `urgentCount` on the list
- * doc drift (blind decrements, non-atomic writes) and are only a fallback
- * for the instant before a list's first items snapshot arrives.
+ * never disagree. Counts are not stored on the list doc: until a list's first
+ * items snapshot arrives it has no entry here and the card shows no count.
  */
 export const useListItemCountsStore = defineStore('listItemCounts', () => {
   const counts = ref<Record<string, ListLiveCounts>>({});

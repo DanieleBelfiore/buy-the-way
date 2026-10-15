@@ -10,6 +10,7 @@ import { useThemeStore, type ThemeMode } from '@/stores/theme';
 import { useShareApp } from '@/composables/useShareApp';
 import { useSafeBack } from '@/composables/useSafeBack';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import ConnectedAppsSection from '@/components/settings/ConnectedAppsSection.vue';
 import FeedbackModal from '@/components/ui/FeedbackModal.vue';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
 import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
@@ -282,6 +283,8 @@ const reauthAndRetry = async () => {
       </h2>
       <LocaleSwitcher variant="segmented" />
     </section>
+
+    <ConnectedAppsSection @notify="showToast" />
 
     <div
       data-testid="settings-page-footer"

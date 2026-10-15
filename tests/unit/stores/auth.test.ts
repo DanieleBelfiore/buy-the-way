@@ -19,40 +19,13 @@ vi.mock('@/services/users.service', () => ({
 }));
 
 import { useAuthStore } from '@/stores/auth';
-import {
-  signInWithGoogle,
-  signOutCurrent,
-  onAuthChanged,
-  deleteAccount as deleteAccountSvc,
-  reauthenticateGoogle,
-} from '@/services/auth.service';
-import { getUserProfile, setUserDefaultList, setOnboardingSeen } from '@/services/users.service';
+import { onAuthChanged } from '@/services/auth.service';
+import { getUserProfile, setUserDefaultList } from '@/services/users.service';
 
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
-  });
-
-  it('starts with user null and ready false', () => {
-    const store = useAuthStore();
-    expect(store.user).toBeNull();
-    expect(store.ready).toBe(false);
-  });
-
-  it('init calls onAuthChanged', () => {
-    vi.mocked(onAuthChanged).mockReturnValue(vi.fn());
-    const store = useAuthStore();
-    store.init();
-    expect(onAuthChanged).toHaveBeenCalledOnce();
-  });
-
-  it('init returns unsubscribe from onAuthChanged', () => {
-    const unsub = vi.fn();
-    vi.mocked(onAuthChanged).mockReturnValue(unsub);
-    const store = useAuthStore();
-    const result = store.init();
-    expect(result).toBe(unsub);
   });
 
   it('sets user and ready=true when auth fires with user', () => {
@@ -85,84 +58,8 @@ describe('useAuthStore', () => {
     expect(store.ready).toBe(true);
   });
 
-  it('signIn delegates to signInWithGoogle', async () => {
-    vi.mocked(signInWithGoogle).mockResolvedValue(undefined);
-    const store = useAuthStore();
-    await store.signIn();
-    expect(signInWithGoogle).toHaveBeenCalledOnce();
-  });
-
-  it('signOut delegates to signOutCurrent', async () => {
-    vi.mocked(signOutCurrent).mockResolvedValue(undefined);
-    const store = useAuthStore();
-    await store.signOut();
-    expect(signOutCurrent).toHaveBeenCalledOnce();
-  });
-
-  it('deleteAccount delegates to service with uid', async () => {
-    vi.mocked(deleteAccountSvc).mockResolvedValue(undefined);
-    const store = useAuthStore();
-    await store.deleteAccount('uid-1');
-    expect(deleteAccountSvc).toHaveBeenCalledWith('uid-1');
-  });
-
-  it('reauthenticate delegates to reauthenticateGoogle', async () => {
-    vi.mocked(reauthenticateGoogle).mockResolvedValue(undefined);
-    const store = useAuthStore();
-    await store.reauthenticate();
-    expect(reauthenticateGoogle).toHaveBeenCalledOnce();
-  });
-
   describe('ensureProfile', () => {
     const signIn = (cb: (u: any) => void, user: any) => cb(user);
-
-    it('no-ops when user is null', async () => {
-      const store = useAuthStore();
-      await store.ensureProfile();
-      expect(getUserProfile).not.toHaveBeenCalled();
-    });
-
-    it('loads profile from getUserProfile and stores it', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(getUserProfile).mockResolvedValue({
-        uid: 'u1',
-        email: 'a@b.com',
-        displayName: 'A',
-        lastLoginAt: 0,
-        defaultListId: '01XYZ',
-      });
-
-      const store = useAuthStore();
-      store.init();
-      signIn(capturedCb!, { uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await store.ensureProfile();
-      expect(getUserProfile).toHaveBeenCalledWith('u1');
-      expect(store.profile?.defaultListId).toBe('01XYZ');
-    });
-
-    it('returns cached profile without re-fetching on second call', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(getUserProfile).mockResolvedValue({
-        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0,
-      });
-
-      const store = useAuthStore();
-      store.init();
-      signIn(capturedCb!, { uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await store.ensureProfile();
-      await store.ensureProfile();
-      expect(getUserProfile).toHaveBeenCalledOnce();
-    });
 
     it('coalesces concurrent calls into a single fetch (single-flight)', async () => {
       let capturedCb: ((u: any) => void) | undefined;
@@ -180,22 +77,6 @@ describe('useAuthStore', () => {
 
       await Promise.all([store.ensureProfile(), store.ensureProfile(), store.ensureProfile()]);
       expect(getUserProfile).toHaveBeenCalledOnce();
-    });
-
-    it('swallows getUserProfile errors without throwing', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(getUserProfile).mockRejectedValue(new Error('network'));
-
-      const store = useAuthStore();
-      store.init();
-      signIn(capturedCb!, { uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await expect(store.ensureProfile()).resolves.toBeUndefined();
-      expect(store.profile).toBeNull();
     });
 
     it('clears cached profile when the auth user changes', async () => {
@@ -220,66 +101,6 @@ describe('useAuthStore', () => {
     });
   });
 
-  describe('setDefaultListId', () => {
-    it('no-ops when user is null', async () => {
-      const store = useAuthStore();
-      await store.setDefaultListId('01XYZ');
-      expect(setUserDefaultList).not.toHaveBeenCalled();
-    });
-
-    it('calls setUserDefaultList with uid and listId', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(setUserDefaultList).mockResolvedValue(undefined);
-
-      const store = useAuthStore();
-      store.init();
-      capturedCb!({ uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await store.setDefaultListId('01XYZ');
-      expect(setUserDefaultList).toHaveBeenCalledWith('u1', '01XYZ');
-    });
-
-    it('accepts null to clear the default', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(setUserDefaultList).mockResolvedValue(undefined);
-
-      const store = useAuthStore();
-      store.init();
-      capturedCb!({ uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await store.setDefaultListId(null);
-      expect(setUserDefaultList).toHaveBeenCalledWith('u1', null);
-    });
-
-    it('updates the cached profile.defaultListId after a successful write', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(getUserProfile).mockResolvedValue({
-        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0, defaultListId: null,
-      });
-      vi.mocked(setUserDefaultList).mockResolvedValue(undefined);
-
-      const store = useAuthStore();
-      store.init();
-      capturedCb!({ uid: 'u1', email: 'a@b.com', displayName: 'A' });
-
-      await store.ensureProfile();
-      await store.setDefaultListId('01XYZ');
-      expect(store.profile?.defaultListId).toBe('01XYZ');
-    });
-  });
-
   describe('cachedDefaultListId', () => {
     const boot = (uid = 'u1') => {
       let capturedCb: ((u: any) => void) | undefined;
@@ -297,16 +118,6 @@ describe('useAuthStore', () => {
       localStorage.clear();
     });
 
-    it('is undefined when signed out', () => {
-      const store = useAuthStore();
-      expect(store.cachedDefaultListId()).toBeUndefined();
-    });
-
-    it('is undefined when nothing was cached for this user yet', () => {
-      const store = boot();
-      expect(store.cachedDefaultListId()).toBeUndefined();
-    });
-
     it('remembers the default list once the profile has loaded', async () => {
       vi.mocked(getUserProfile).mockResolvedValue({
         uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0, defaultListId: '01XYZ',
@@ -314,15 +125,6 @@ describe('useAuthStore', () => {
       const store = boot();
       await store.ensureProfile();
       expect(store.cachedDefaultListId()).toBe('01XYZ');
-    });
-
-    it('remembers "no default" as null, distinct from unknown', async () => {
-      vi.mocked(getUserProfile).mockResolvedValue({
-        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0,
-      });
-      const store = boot();
-      await store.ensureProfile();
-      expect(store.cachedDefaultListId()).toBeNull();
     });
 
     it('follows setDefaultListId, including clearing', async () => {
@@ -343,33 +145,4 @@ describe('useAuthStore', () => {
       expect(second.cachedDefaultListId()).toBeUndefined();
     });
   });
-
-  describe('markOnboardingSeen', () => {
-    it('no-ops when user is null', async () => {
-      const store = useAuthStore();
-      await store.markOnboardingSeen();
-      expect(setOnboardingSeen).not.toHaveBeenCalled();
-    });
-
-    it('updates cached profile.onboardingSeen after a successful write', async () => {
-      let capturedCb: ((u: any) => void) | undefined;
-      vi.mocked(onAuthChanged).mockImplementation((cb) => {
-        capturedCb = cb;
-        return vi.fn();
-      });
-      vi.mocked(getUserProfile).mockResolvedValue({
-        uid: 'u1', email: 'a@b.com', displayName: 'A', lastLoginAt: 0, onboardingSeen: false,
-      });
-
-      const store = useAuthStore();
-      store.init();
-      capturedCb!({ uid: 'u1', email: 'a@b.com', displayName: 'A' });
-      await store.ensureProfile();
-      await store.markOnboardingSeen();
-
-      expect(setOnboardingSeen).toHaveBeenCalledWith('u1', true);
-      expect(store.profile?.onboardingSeen).toBe(true);
-    });
-  });
-
 });

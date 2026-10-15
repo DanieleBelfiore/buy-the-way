@@ -74,50 +74,6 @@ describe('LoginView', () => {
     await router.isReady();
   });
 
-  it('renders sign-in CTA button', () => {
-    const wrapper = mountView();
-    expect(wrapper.find('[data-testid="sign-in-btn"]').exists()).toBe(true);
-  });
-
-  it('calls signIn on CTA click', async () => {
-    mockSignIn.mockResolvedValue(undefined);
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
-    expect(mockSignIn).toHaveBeenCalledOnce();
-  });
-
-  it('disables button while signing in', async () => {
-    let resolve: () => void;
-    mockSignIn.mockReturnValue(new Promise<void>((r) => { resolve = r; }));
-
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('[data-testid="sign-in-btn"]').attributes('disabled')).toBeDefined();
-    resolve!();
-  });
-
-  it('shows error message on signIn failure', async () => {
-    mockSignIn.mockRejectedValue(new Error('auth/popup-closed-by-user'));
-
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('[data-testid="sign-in-error"]').exists()).toBe(true);
-  });
-
-  it('re-enables button after sign-in error', async () => {
-    mockSignIn.mockRejectedValue(new Error('error'));
-
-    const wrapper = mountView();
-    await wrapper.find('[data-testid="sign-in-btn"]').trigger('click');
-    await wrapper.vm.$nextTick();
-
-    expect(wrapper.find('[data-testid="sign-in-btn"]').attributes('disabled')).toBeUndefined();
-  });
-
   it('redirects to lists when auth.user becomes non-null', async () => {
     mountView();
 
@@ -138,20 +94,6 @@ describe('LoginView', () => {
   });
 
   describe('S2.3: magic-link sign-in', () => {
-    it('shows the magic-link form when the toggle is clicked', async () => {
-      const wrapper = mountView();
-      expect(wrapper.find('[data-testid="magic-link-form"]').exists()).toBe(false);
-      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
-      expect(wrapper.find('[data-testid="magic-link-form"]').exists()).toBe(true);
-    });
-
-    it('disables Send while the email is empty', async () => {
-      const wrapper = mountView();
-      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
-      const btn = wrapper.find('[data-testid="magic-link-send"]');
-      expect((btn.element as HTMLButtonElement).disabled).toBe(true);
-    });
-
     it('calls sendMagicLink with the entered email and shows the sent notice', async () => {
       mockSendMagicLink.mockResolvedValue(undefined);
       const wrapper = mountView();
@@ -164,32 +106,6 @@ describe('LoginView', () => {
       expect(wrapper.find('input[type="email"]').exists()).toBe(false);
       expect(wrapper.find('[data-testid="magic-link-send"]').exists()).toBe(false);
       expect(wrapper.find('[data-testid="magic-link-cancel"]').exists()).toBe(false);
-    });
-
-    it('returns to the email form when Use another email is clicked', async () => {
-      mockSendMagicLink.mockResolvedValue(undefined);
-      const wrapper = mountView();
-      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
-      await wrapper.find('input[type="email"]').setValue('user@example.com');
-      await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
-      await flushPromises();
-      await wrapper.find('[data-testid="magic-link-use-another-email"]').trigger('click');
-      expect(wrapper.find('[data-testid="magic-link-sent"]').exists()).toBe(false);
-      expect(wrapper.find('input[type="email"]').exists()).toBe(true);
-      expect(wrapper.find('[data-testid="magic-link-send"]').exists()).toBe(true);
-      expect((wrapper.find('input[type="email"]').element as HTMLInputElement).value).toBe(
-        'user@example.com',
-      );
-    });
-
-    it('surfaces an error when sendMagicLink rejects', async () => {
-      mockSendMagicLink.mockRejectedValue(new Error('quota exceeded'));
-      const wrapper = mountView();
-      await wrapper.find('[data-testid="magic-link-toggle"]').trigger('click');
-      await wrapper.find('input[type="email"]').setValue('user@example.com');
-      await wrapper.find('[data-testid="magic-link-send"]').trigger('click');
-      await flushPromises();
-      expect(wrapper.find('[data-testid="sign-in-error"]').exists()).toBe(true);
     });
   });
 });

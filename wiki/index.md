@@ -17,7 +17,8 @@ Content catalog for buy-the-way. Agents: read this first on query, then open lin
 | [concepts/auth-and-collaboration.md](concepts/auth-and-collaboration.md) | Sign-in, collaborators, admins, invites |
 | [concepts/offline-and-sync.md](concepts/offline-and-sync.md) | Offline-first, LWW, realtime subscriptions, cold boot path |
 | [concepts/routing.md](concepts/routing.md) | Routes, auth guard, default-list boot redirect |
-| [concepts/testing.md](concepts/testing.md) | Vitest, rules tests, Playwright, coverage gate |
+| [concepts/testing.md](concepts/testing.md) | Testing policy (critical paths only), rules tests, Playwright, coverage as report |
+| [concepts/mcp-server.md](concepts/mcp-server.md) | Remote MCP server for AI assistants, OAuth 2.1, beta gate, Connected apps |
 | [concepts/ci-deploy.md](concepts/ci-deploy.md) | GitHub Actions, Netlify, Firebase deploy |
 
 ## Entities

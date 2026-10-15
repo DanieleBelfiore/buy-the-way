@@ -11,6 +11,7 @@ import {
   resolveAccessToken,
   revokeToken,
   revokeGrant,
+  revokeGrantOf,
   grantIdFor,
 } from '@/../netlify/functions/_lib/oauth-store';
 import { readMcpGate, isMcpAllowed, __resetMcpGateCache, MCP_GATE_CACHE_MS } from '@/../netlify/functions/_lib/mcp-gate';
@@ -109,6 +110,35 @@ describe('oauth-store', () => {
 
     await expect(revokeToken('unknown', undefined)).resolves.toBeUndefined();
     await expect(revokeGrant('missing-grant')).resolves.toBeUndefined();
+  });
+
+  it('keeps the first createdAt when the same client is approved again', async () => {
+    const client = await newClient();
+    await issueTokens({ uid: 'u7', clientId: client.clientId, clientName: 'Claude', resource: RESOURCE }, T0);
+    await issueTokens({ uid: 'u7', clientId: client.clientId, clientName: 'Claude', resource: RESOURCE }, T0 + 5000);
+    const grant = await getFirestore().collection('oauthGrants').doc(grantIdFor('u7', client.clientId)).get();
+    expect(grant.data()).toMatchObject({ createdAt: T0, lastUsedAt: T0 + 5000 });
+  });
+
+  it('revokes a grant from Connected apps only for its owner', async () => {
+    const client = await newClient();
+    const issued = await issueTokens({ uid: 'u8', clientId: client.clientId, clientName: 'Claude', resource: RESOURCE }, T0);
+    const grantId = grantIdFor('u8', client.clientId);
+
+    // Someone else's grant id: untouched, reported as not found.
+    expect(await revokeGrantOf('intruder', grantId)).toBe(false);
+    expect(await resolveAccessToken(issued.accessToken, T0 + 1)).not.toBeNull();
+
+    expect(await revokeGrantOf('u8', grantId)).toBe(true);
+    expect(await resolveAccessToken(issued.accessToken, T0 + 1)).toBeNull();
+    expect(await rotateRefreshToken(issued.refreshToken, client.clientId, T0 + 1)).toEqual({ ok: false, reason: 'invalid' });
+    const left = await getFirestore().collection('oauthTokens').where('grantId', '==', grantId).get();
+    expect(left.empty).toBe(true);
+
+    // Already gone, and ids that are not valid document ids.
+    expect(await revokeGrantOf('u8', grantId)).toBe(false);
+    expect(await revokeGrantOf('u8', '')).toBe(false);
+    expect(await revokeGrantOf('u8', 'a/b')).toBe(false);
   });
 });
 

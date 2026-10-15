@@ -2,7 +2,7 @@
 type: concept
 tags: [testing, vitest, playwright]
 sources: 2
-updated: 2026-10-13
+updated: 2026-10-15
 ---
 
 # Testing
@@ -10,7 +10,8 @@ updated: 2026-10-13
 ## Unit / component (Vitest)
 
 - Command: `pnpm test:run`, coverage: `pnpm test:coverage`
-- Gate: **≥80%** all files; **zero** `[Vue warn]`, `[auth]`, or unhandled errors in stderr
+- Gate: exit 0 and **zero** `[Vue warn]`, `[auth]`, or unhandled errors in stderr. Coverage is a report, no threshold (dropped 2026-10-15).
+- Scope: critical paths only (rules, data integrity, account deletion, OAuth / MCP security, domain edge cases, real regressions). No tests for markup, styling, copy or trivial wiring; TDD not required. Source: `CLAUDE.md` "Testing policy".
 - Setup: `tests/setup.ts` - **Node 26 localStorage polyfill** (do not remove)
 - Vue hygiene: fake timers for debounced composables, `router.push` + `isReady` before mount, `@click` on autocomplete options for tests - see [claude-docs](../sources/claude-docs.md) (vue.md)
 

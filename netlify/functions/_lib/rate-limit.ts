@@ -116,6 +116,9 @@ export const RATE_LIMITS = {
   oauthRegisterGlobal: { max: 1000, windowMs: 24 * 60 * 60 * 1000, funcName: 'oauth-register-global' },
   // Consent screen calls, per signed-in uid.
   oauthAuthorize: { max: 30, windowMs: 10 * 60 * 1000, funcName: 'oauth-authorize' },
+  // Connected apps "Disconnect", per signed-in uid. Fails open: revoking
+  // access is a safety action and costs a few Firestore ops.
+  oauthRevokeGrant: { max: 30, windowMs: 10 * 60 * 1000, funcName: 'oauth-revoke-grant' },
   // Code exchange + hourly refresh, per client_id. Never per IP.
   oauthToken: { max: 60, windowMs: 60 * 60 * 1000, funcName: 'oauth-token' },
   // /mcp, per uid: a burst cap for agent loops plus a daily ceiling, so one

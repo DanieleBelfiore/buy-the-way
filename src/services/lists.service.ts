@@ -98,8 +98,6 @@ export const createList = async (
     ownerUid,
     collaboratorUids: [ownerUid],
     admins: [ownerUid],
-    itemCount: 0,
-    urgentCount: 0,
     wallpaper: pickRandomWallpaper(),
     // S3.4: seed with `now` so newly created lists float to the top of the
     // user's overview by default. User-driven reorders override this.
@@ -537,17 +535,4 @@ export const deleteList = async (listId: string): Promise<void> => {
   await purgeListSubcollection(listId, 'favoriteState');
 
   await deleteDoc(doc(db, 'lists', listId));
-};
-
-/** Fix denormalized urgentCount when it drifted (legacy docs, missed writes). */
-export const reconcileListUrgentCount = async (
-  listId: string,
-  urgentCount: number,
-  storedUrgentCount = 0,
-): Promise<void> => {
-  if (storedUrgentCount === urgentCount) return;
-  await updateDoc(doc(db, 'lists', listId), {
-    urgentCount,
-    updatedAt: Date.now(),
-  });
 };

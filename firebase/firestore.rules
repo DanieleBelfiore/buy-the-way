@@ -112,9 +112,12 @@ service cloud.firestore {
       // whichever update branch authorises the write. Only CHANGED fields are
       // checked, so a doc already holding an out-of-bounds value (written
       // before these checks existed) is not frozen for unrelated edits.
-      // Counters are deliberately not bounded below: they are denormalized
-      // and can drift, so a decrement past zero must not reject the item
-      // write it is batched with.
+      // LEGACY itemCount / urgentCount: the app no longer stores counts on the
+      // list (they are derived from the item docs), but builds released before
+      // that still increment them in the same batch as each item write, and
+      // installed PWAs only update on prompt. They stay writable, as numbers
+      // with no lower bound, so those batches keep committing. Drop them from
+      // these rules once old builds are gone (tasks/drop-list-counters.md).
       function validListUpdateValues() {
         let d = request.resource.data;
         return (!listFieldChanged('name')
@@ -144,8 +147,9 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
-        && request.resource.data.itemCount == 0
-        && request.resource.data.urgentCount == 0
+        // LEGACY counters: optional, and zero when an old build seeds them.
+        && request.resource.data.get('itemCount', 0) == 0
+        && request.resource.data.get('urgentCount', 0) == 0
         && request.resource.data.wallpaper is string
         && request.resource.data.createdAt is number
         && request.resource.data.updatedAt is number
@@ -195,7 +199,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['collaboratorUids', 'updatedAt'])
         )
-        // Any collaborator may bump itemCount / urgentCount + updatedAt (denormalized counters on item writes).
+        // Any collaborator may bump updatedAt on item writes (plus the LEGACY
+        // counters, see validListUpdateValues).
         || (
           uid() in resource.data.collaboratorUids
           && request.resource.data.diff(resource.data).affectedKeys()

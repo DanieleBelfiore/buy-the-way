@@ -7,6 +7,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/services/firebase';
 import { buildMcpServer } from '@/../netlify/mcp/server';
 import { ensureSignedIn } from '@/../netlify/mcp/session';
+import { ensureAuthUser } from './auth-users';
 
 // The 11 MCP tools end to end: an MCP client talks to the real server over an
 // in-memory transport, the server runs the unchanged src/services through the
@@ -21,6 +22,7 @@ const STRANGER = 'tools-stranger';
 type ToolResult = { isError?: boolean; content: Array<{ type: string; text: string }> };
 
 const connectAs = async (uid: string): Promise<Client> => {
+  await ensureAuthUser(uid);
   await ensureSignedIn(uid);
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
   await buildMcpServer(uid).connect(serverSide);
@@ -35,6 +37,15 @@ const call = async (client: Client, name: string, args: Record<string, unknown>)
 const json = <T = any>(r: ToolResult): T => {
   expect(r.isError, r.content[0]?.text).toBeFalsy();
   return JSON.parse(r.content[0]!.text) as T;
+};
+
+type ListSummary = { id: string; itemCount: number; urgentCount: number };
+
+/** Counts as list_lists reports them, for one list. */
+const countsOf = async (client: Client, id: string) => {
+  const lists = json<{ lists: ListSummary[] }>(await call(client, 'list_lists', {})).lists;
+  const { itemCount, urgentCount } = lists.find((l) => l.id === id)!;
+  return { itemCount, urgentCount };
 };
 
 const errorText = (r: ToolResult): string => {
@@ -99,8 +110,12 @@ describe('MCP tools', () => {
     expect(list.name).toBe('Spesa');
     expect(list.items).toHaveLength(3);
     expect(list.items.find((i: { name: string }) => i.name === 'Pane').priority).toBe('urgent');
+    expect(list).toMatchObject({ itemCount: 3, urgentCount: 1 });
+    expect(await countsOf(owner, spesa)).toEqual({ itemCount: 3, urgentCount: 1 });
+    // Counts are derived from the item docs, never stored on the list.
     const doc = await getFirestore().collection('lists').doc(spesa).get();
-    expect(doc.data()).toMatchObject({ itemCount: 3, urgentCount: 1 });
+    expect(doc.data()).not.toHaveProperty('itemCount');
+    expect(doc.data()).not.toHaveProperty('urgentCount');
     const items = await getFirestore().collection('lists').doc(spesa).collection('items').get();
     expect(items.docs.every((d) => d.data()['addedVia'] === 'assistant')).toBe(true);
   });
@@ -108,8 +123,17 @@ describe('MCP tools', () => {
   it('rejects an unknown category through the schema, before any write', async () => {
     const r = await call(owner, 'add_items', { list_id: spesa, items: [{ name: 'x', category: 'toys' }] });
     expect(r.isError).toBe(true);
-    const doc = await getFirestore().collection('lists').doc(spesa).get();
-    expect(doc.data()!['itemCount']).toBe(3);
+    expect((await countsOf(owner, spesa)).itemCount).toBe(3);
+  });
+
+  it('reports real counts even when a legacy doc holds stale counters', async () => {
+    await getFirestore().collection('lists').doc(spesa).update({ itemCount: 99, urgentCount: 42 });
+    expect(await countsOf(owner, spesa)).toEqual({ itemCount: 3, urgentCount: 1 });
+    expect(json(await call(owner, 'get_list', { list_id: spesa }))).toMatchObject({ itemCount: 3, urgentCount: 1 });
+    await getFirestore().collection('lists').doc(spesa).update({
+      itemCount: FieldValue.delete(),
+      urgentCount: FieldValue.delete(),
+    });
   });
 
   it('checks, edits and removes items', async () => {
@@ -125,8 +149,7 @@ describe('MCP tools', () => {
     expect(after.map((i) => i['name']).sort()).toEqual(['Latte', 'Pane']);
     expect(after.find((i) => i['name'] === 'Latte')).toMatchObject({ checked: true, quantity: '3', note: 'Scremato' });
     expect(after.find((i) => i['name'] === 'Pane')!['priority']).toBeUndefined();
-    const doc = await getFirestore().collection('lists').doc(spesa).get();
-    expect(doc.data()).toMatchObject({ itemCount: 2, urgentCount: 0 });
+    expect(await countsOf(owner, spesa)).toEqual({ itemCount: 2, urgentCount: 0 });
     expect(errorText(await call(owner, 'remove_item', { list_id: spesa, item_id: 'missing' }))).toMatch(/not found/i);
   });
 
@@ -170,7 +193,7 @@ describe('MCP tools', () => {
     expect(json(await call(owner, 'empty_list', { list_id: spesa, scope: 'all' }))).toMatchObject({ removed: 1 });
     names = json(await call(owner, 'get_list', { list_id: spesa })).items;
     expect(names).toEqual([]);
-    expect((await getFirestore().collection('lists').doc(spesa).get()).data()!['itemCount']).toBe(0);
+    expect(await countsOf(owner, spesa)).toEqual({ itemCount: 0, urgentCount: 0 });
 
     const history = await getFirestore().collection('lists').doc(spesa).collection('history').get();
     expect(history.size).toBe(2);

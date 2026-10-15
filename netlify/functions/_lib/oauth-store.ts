@@ -131,15 +131,19 @@ export const issueTokens = async (
   now = Date.now(),
 ): Promise<IssuedTokens> => {
   const grantId = grantIdFor(input.uid, input.clientId);
+  const grantRef = grants().doc(grantId);
+  // Re-approving the same client refreshes the grant: createdAt stays the
+  // date of the first approval, shown in Connected apps.
+  const existing = await grantRef.get();
   const batch = db().batch();
   batch.set(
-    grants().doc(grantId),
+    grantRef,
     {
       grantId,
       uid: input.uid,
       clientId: input.clientId,
       clientName: input.clientName,
-      createdAt: now,
+      ...(existing.exists ? {} : { createdAt: now }),
       lastUsedAt: now,
     },
     { merge: true },
@@ -221,6 +225,19 @@ export const revokeGrant = async (grantId: string): Promise<void> => {
     if (snap.size < DELETE_BATCH) break;
   }
   await grants().doc(grantId).delete();
+};
+
+/**
+ * Connected apps: the signed-in user revokes one of their grants. A grant id
+ * that does not exist or belongs to someone else is left alone and reported
+ * as not found, so the call cannot reveal other users' grants.
+ */
+export const revokeGrantOf = async (uid: string, grantId: string): Promise<boolean> => {
+  if (!grantId || grantId.includes('/')) return false;
+  const snap = await grants().doc(grantId).get();
+  if (!snap.exists || snap.data()?.['uid'] !== uid) return false;
+  await revokeGrant(grantId);
+  return true;
 };
 
 /**

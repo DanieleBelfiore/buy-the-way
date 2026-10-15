@@ -5,7 +5,7 @@ import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/services/firebase';
 import { createList, fetchUserLists } from '@/services/lists.service';
-import { bulkAddItems, fetchItems } from '@/services/items.service';
+import { bulkAddItems, countListItems, fetchItems } from '@/services/items.service';
 import type { ULID } from '@/domain/id';
 
 // Proves the MCP data path end to end: a firebase-admin custom token signs
@@ -63,8 +63,11 @@ describe('MCP data path (client SDK in Node, custom token, real rules)', () => {
     expect(items.map((i) => i.name)).toEqual(['Latte', 'Mele']);
     expect(items.every((i) => i.addedVia === 'assistant')).toBe(true);
 
+    // Counts come from count() aggregations over the items, which the
+    // Node client SDK runs under the same rules as the app.
+    await expect(countListItems(listId)).resolves.toEqual({ itemCount: 2, urgentCount: 0 });
     const listSnap = await getDoc(doc(db, 'lists', listId));
-    expect(listSnap.data()?.['itemCount']).toBe(2);
+    expect(listSnap.data()).not.toHaveProperty('itemCount');
   });
 
   it('returns the new list from fetchUserLists', async () => {

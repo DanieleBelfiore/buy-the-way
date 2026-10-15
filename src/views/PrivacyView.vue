@@ -63,7 +63,7 @@ const sections = computed<LegalSection[]>(() => {
       <header class="space-y-2">
         <h1 class="text-2xl font-semibold">{{ t('legal.privacy.title') }}</h1>
         <p class="text-sm text-muted-gray">
-          {{ t('legal.privacy.lastUpdated', { date: t('legal.lastUpdated') }) }}
+          {{ t('legal.privacy.lastUpdated', { date: t('legal.privacyLastUpdated') }) }}
         </p>
       </header>
 

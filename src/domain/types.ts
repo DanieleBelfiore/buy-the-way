@@ -40,9 +40,9 @@ export interface List {
    * into `collaboratorUids`, removing the entry from this list.
    */
   pendingInviteEmails?: readonly string[];
-  itemCount?: number;
-  /** Denormalized count of items with priority "urgent". */
-  urgentCount?: number;
+  // No itemCount / urgentCount: counts are derived from the item docs
+  // (stores/listItemCounts, countListItems). Legacy docs may still hold the
+  // old denormalized fields; nothing reads them (scripts/drop-list-counters.mjs).
   wallpaper?: string;
   /**
    * S3.4: user-controlled ordering. Higher value = earlier in the lists

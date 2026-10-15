@@ -49,7 +49,6 @@ import {
 } from '@/services/catalog.service';
 import { uploadItemPhoto, removeItemPhoto } from '@/services/itemPhotos.service';
 import { isCustomItemName } from '@/domain/public-catalog';
-import { countUrgentItems } from '@/domain/priority';
 import type { Category, Item, ItemPriority, ListFavoriteState } from '@/domain/types';
 import type { ItemAddedVia } from '@/domain/itemProvenance';
 import type { ULID } from '@/domain/id';
@@ -273,7 +272,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
         await recordListHistory(listId.value, historyItems, uid, 'empty_fallback');
         markListHistoryRecorded(listId.value);
       }
-      await emptyList(listId.value, ids, { urgentRemoved: countUrgentItems(targets) });
+      await emptyList(listId.value, ids);
       if (ids.length === items.length) {
         clearListHistoryRecorded(listId.value);
       }
@@ -305,9 +304,7 @@ export const useListDetailActions = (deps: ListDetailActionsDeps) => {
       durationMs: 3000,
       commit: async () => {
         try {
-          await bulkRemoveItems(listId.value, targetIds, {
-            urgentRemoved: countUrgentItems(targets),
-          });
+          await bulkRemoveItems(listId.value, targetIds);
         } catch (err) {
           console.error('[useListDetailActions] bulkRemoveItems failed:', err);
         } finally {

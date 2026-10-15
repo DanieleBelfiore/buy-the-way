@@ -3,11 +3,11 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { initAdmin } from '../functions/_lib/firebase-admin';
 import { resolveAppUrl } from '../functions/_lib/branded-email';
 import { oauthJson, oauthPreflight } from '../functions/_lib/oauth';
-import { resolveAccessToken } from '../functions/_lib/oauth-store';
+import { resolveAccessToken, revokeGrant } from '../functions/_lib/oauth-store';
 import { isMcpAllowed } from '../functions/_lib/mcp-gate';
 import { checkRateLimit, rateLimitedResponse, RATE_LIMITS } from '../functions/_lib/rate-limit';
 import { buildMcpServer } from './server';
-import { ensureSignedIn, serialized } from './session';
+import { ensureSignedIn, serialized, UserGoneError } from './session';
 
 /**
  * The /mcp endpoint (MCP Streamable HTTP, stateless, JSON responses).
@@ -48,11 +48,13 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
   if (!token) return unauthorized(appUrl);
 
   let uid: string;
+  let grantId: string;
   try {
     initAdmin();
     const info = await resolveAccessToken(token);
     if (!info) return unauthorized(appUrl, 'invalid_token');
     uid = info.uid;
+    grantId = info.grantId;
   } catch (err) {
     console.error('[mcp] token resolution failed:', err);
     return oauthJson(500, { error: 'server_error' });
@@ -86,6 +88,12 @@ export default async (req: Request, _ctx: Context): Promise<Response> => {
       return withCors(await transport.handleRequest(req));
     });
   } catch (err) {
+    if (err instanceof UserGoneError) {
+      // Account deleted while the assistant kept its token: drop the grant
+      // so its refresh token dies too.
+      await revokeGrant(grantId).catch((e) => console.warn('[mcp] revoking orphan grant failed:', e));
+      return unauthorized(appUrl, 'invalid_token');
+    }
     console.error('[mcp] request failed:', err);
     return oauthJson(500, { error: 'server_error' });
   }

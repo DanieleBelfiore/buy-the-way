@@ -47,7 +47,7 @@ const toml = readFileSync(TOML_PATH, 'utf8');
 
 const scripts = extractInlineScriptHashes(html);
 if (scripts.length === 0) {
-  console.log('No inline <script> blocks in index.html — nothing to check.');
+  console.log('No inline <script> blocks in index.html: nothing to check.');
   process.exit(0);
 }
 

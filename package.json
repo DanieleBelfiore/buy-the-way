@@ -25,6 +25,7 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage",
     "storage:cors": "bash scripts/apply-storage-cors.sh",
     "firebase:wipe:prod": "node scripts/wipe-firestore.mjs",
+    "firebase:drop-list-counters": "node scripts/drop-list-counters.mjs",
     "report:users": "node scripts/report-users.mjs",
     "report:custom-products": "node scripts/report-custom-products.mjs",
     "csp:hash": "node scripts/check-csp-hash.mjs",

@@ -88,3 +88,22 @@ Append-only timeline. Newest entries at the bottom.
 - MCP server in progress: M1 (services runnable in Node via `netlify/mcp/firebase-node.ts`, `pnpm test:mcp`) and M2 (OAuth 2.1 authorization server in `netlify/functions/oauth-*`, consent screen `/oauth/authorize`, private-beta gate `config/mcp`).
 - Pages touched: none yet. A concept page for the MCP server is planned with M4, once the tool surface is final.
 - Notes: Firestore collections `oauthClients`, `oauthCodes`, `oauthTokens`, `oauthGrants`, `config` are new and not yet in concepts/data-model.
+
+## [2026-10-15] sync | Drop the denormalized list counters
+
+- `itemCount` / `urgentCount` on `lists/{id}` drifted (production: Eurospin stored 5 with 9 real items) and only the MCP `list_lists` tool still read them. They are no longer written or read: item writes bump `updatedAt` only, `ListCard` shows no count until the live one arrives, `reconcileListUrgentCount` is gone, MCP counts come from `countListItems` (`count()` aggregations).
+- Rules keep the fields optional and writable for older app builds (installed PWAs update on prompt). Cleanup script `scripts/drop-list-counters.mjs`; follow-up in `tasks/drop-list-counters.md`.
+- Pages touched: concepts/data-model.
+
+## [2026-10-15] sync | Testing policy: critical paths only, coverage as report
+
+- The 80% coverage thresholds are gone from `vitest.config.ts`; `pnpm test:coverage` still runs in CI and feeds the badge. TDD is no longer the default for this repo.
+- Tests are kept for rules, data integrity, account deletion, OAuth / MCP security, domain edge cases and real regressions. An audit of the existing ~1600 tests is planned to drop markup / styling / wiring tests.
+- Pages touched: concepts/testing.
+
+## [2026-10-15] ingest | MCP server, Connected apps, account deletion
+
+- Source: `.claude/docs/firebase.md` (new section "MCP server"), `tasks/mcp-plan.md` (M1-M4).
+- New page `concepts/mcp-server.md`: request path, OAuth endpoints, beta gate, Connected apps, account deletion (grants revoked, `/mcp` refuses deleted uids), rate-limit keys.
+- `concepts/data-model.md`: OAuth collections and `config/mcp`, closing the open note of 2026-10-14. TTL field is `expireAt` (Date); the plan said `expiresAt`, fixed there too.
+- Pages touched: overview, index, concepts/data-model, concepts/mcp-server.

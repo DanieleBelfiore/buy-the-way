@@ -2,7 +2,7 @@
 type: overview
 tags: [buy-the-way]
 sources: 3
-updated: 2026-05-28
+updated: 2026-10-15
 ---
 
 # buy-the-way overview
@@ -18,7 +18,7 @@ updated: 2026-05-28
 | Backend | Firebase Auth, Firestore, Storage |
 | Serverless | Netlify Functions + firebase-admin |
 | Build / host | Vite, Netlify |
-| Tests | Vitest (≥80% coverage), Playwright e2e, Firestore rules tests |
+| Tests | Vitest (critical paths, coverage as report), Playwright e2e, Firestore rules and MCP emulator tests |
 
 ## Repository map (mental model)
 
@@ -28,7 +28,8 @@ src/stores/         # Pinia state + Firestore subscriptions
 src/services/       # only layer that talks to Firebase SDK
 src/domain/         # pure types, ranking, sort, catalogs
 firebase/           # firestore.rules, storage.rules, indexes
-netlify/functions/  # email, notify, rate limits (admin SDK)
+netlify/functions/  # email, notify, OAuth, rate limits (admin SDK)
+netlify/mcp/        # MCP server for AI assistants (client SDK as the user)
 .claude/docs/       # agent coding discipline (authoritative for agents)
 wiki/               # compiled project knowledge (this tree)
 raw/                # immutable ingested sources
@@ -41,6 +42,7 @@ SPEC.md             # product source of truth
 2. **Lists** - Owner creates lists; adds collaborators by registered email; realtime item sync.
 3. **Items** - Autocomplete from personal + public catalog; categories, photos, voice, bulk paste, favorites algorithm.
 4. **Notifications** - In-app inbox (no FCM, no browser permission); server function `notify-list-event` writes `users/{uid}/notifications` on list events. **Switched off since 2026-10-05** via `FEATURES.notifications` (`src/domain/features.ts`): bell hidden, client dispatch is a no-op. Full removal is tracked in `tasks/todo.md` (Backlog).
+5. **AI assistants** - remote MCP server at `/mcp` with OAuth 2.1, private beta; see [MCP server](concepts/mcp-server.md).
 
 ## Where to read next
 
@@ -50,6 +52,7 @@ SPEC.md             # product source of truth
 - [Offline and sync](concepts/offline-and-sync.md)
 - [Testing](concepts/testing.md)
 - [CI and deploy](concepts/ci-deploy.md)
+- [MCP server](concepts/mcp-server.md)
 
 ## Agent vs wiki
 

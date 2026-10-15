@@ -47,28 +47,6 @@ describe('report-users buildUserReports', () => {
     expect(u1.ownedLists).toEqual([{ id: 'L1', name: 'Casa' }]);
     expect(u1.sharedLists).toEqual([]);
   });
-
-  it('classifies shared lists (collaborator, not owner) with role', () => {
-    const reports = buildUserReports(rawFixture());
-    const u2 = reports.find((r) => r.uid === 'u2')!;
-    // u2 owns L2, and is a plain collaborator on L1 (owned by u1).
-    expect(u2.ownedLists).toEqual([{ id: 'L2', name: 'Ufficio' }]);
-    expect(u2.sharedLists).toEqual([{ id: 'L1', name: 'Casa', role: 'collaborator' }]);
-  });
-
-  it('defaults missing private state and counts to zero/undefined without throwing', () => {
-    const reports = buildUserReports(rawFixture());
-    const u2 = reports.find((r) => r.uid === 'u2')!;
-    expect(u2.completedShopCount).toBe(0);
-    expect(u2.lastCompletedShopAt).toBeUndefined();
-    expect(u2.notifications).toBe(0);
-    expect(u2.completions).toBe(0);
-  });
-
-  it('sorts users by lastLoginAt descending, nulls last', () => {
-    const reports = buildUserReports(rawFixture());
-    expect(reports.map((r) => r.uid)).toEqual(['u1', 'u2']);
-  });
 });
 
 describe('report-users renderDashboard (XSS safety)', () => {
@@ -81,16 +59,5 @@ describe('report-users renderDashboard (XSS safety)', () => {
     expect(html).not.toContain('<img src=x onerror');
     // The escaped form is present instead.
     expect(html).toContain('\\u003c');
-  });
-
-  it('produces a self-contained HTML document with the user count and project', () => {
-    const html = renderDashboard(buildUserReports(rawFixture()), {
-      projectId: 'buy-the-way-2ac6e',
-      generatedAt: 0,
-    });
-    expect(html.startsWith('<!DOCTYPE html>')).toBe(true);
-    expect(html).toContain('buy-the-way-2ac6e');
-    expect(html).toContain('anna@x.it');
-    expect(html).toContain('bob@y.it');
   });
 });

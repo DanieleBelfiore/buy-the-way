@@ -1,6 +1,7 @@
 {
   "legal": {
     "lastUpdated": "2026-05-27",
+    "privacyLastUpdated": "2026-10-15",
     "footer": {
       "about": "About",
       "privacy": "Privacy",
@@ -21,39 +22,44 @@
           "body": "When you sign in we collect: your email address (from Google or the one you provide for the sign-in link), display name and profile photo when available from the method you choose, an authentication identifier (uid) provided by Firebase Authentication, and the date and time of your last sign-in. While you use the service we store: lists and items (name, quantity, note, priority, checked state), any photos you upload for items, collaborators and pending invites (including invited email addresses), in-app notifications, usage counters for your personal catalog, and wallpaper and favorites preferences per list. When you share a list, your name, email and profile photo are visible to the other collaborators on that list. Your browser stores local preferences and an offline cache in localStorage and IndexedDB, and on the device that requested the sign-in link it keeps the email used to complete passwordless sign-in. If you use voice input, audio is processed by your browser's speech engine (e.g. Google or Apple) outside our direct control. The feedback form sends email, uid, message, app version and user agent through Netlify Forms. We do not use profiling cookies, analytics tools or advertising."
         },
         {
+          "id": "ai-assistants",
+          "heading": "3. AI assistants (MCP)",
+          "body": "You can optionally connect an AI assistant (for example Claude) to your lists through the MCP protocol. The connection is made only after your explicit consent on a Buy The Way screen that shows which assistant is asking.\nWhat the assistant can do: see your lists and their items; add, edit, check off and remove items; create, rename and empty lists; move and copy items between lists. It cannot delete lists, manage collaborators or see photos. Items it adds are marked as added by an assistant.\nWhat we store to manage the connection: the name the assistant registered with and its redirect addresses, the date of connection and of last use, and access tokens stored only in hashed form with an expiry (1 hour for access, 30 days for renewal).\nThe list content the assistant reads or changes goes through the assistant's provider, which processes it as an independent controller under its own privacy policy: we do not control it.\nYou can disconnect an assistant at any time from Settings → Connected apps: the connection and its tokens are deleted immediately. Deleting your account revokes every connection."
+        },
+        {
           "id": "legal-basis",
-          "heading": "3. Legal basis",
+          "heading": "4. Legal basis",
           "body": "The processing of your data is based on the performance of the contract you enter into with us when you start using the service (art. 6.1.b GDPR). Sending transactional emails strictly necessary for the service (sign-in links, list invites) is based on contract performance or our legitimate interest in delivering the feature you requested. Security logs, anti-abuse counters on email functions and abuse prevention rely on our legitimate interest in keeping the service safe (art. 6.1.f GDPR)."
         },
         {
           "id": "processors",
-          "heading": "4. Data processors",
+          "heading": "5. Data processors",
           "body": "We rely on the following sub-processors: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Storage, Firebase Hosting) for authentication, database, photo storage and app hosting; Resend Inc. for transactional email delivery (list invites and sign-in links); Netlify Inc. for progressive web app hosting, serverless functions and feedback form collection. These providers process data on our behalf. Where data is transferred outside the EEA, standard contractual clauses or equivalent safeguards under their agreements apply."
         },
         {
           "id": "retention",
-          "heading": "5. Data retention and deletion",
-          "body": "Your account data is retained for as long as your account is active. You can delete your account at any time from Settings → Delete account; the operation removes your owned lists, your collaborator references in other users' lists, your personal catalog, your photos, your user profile and revokes sign-in access. JSON export from Settings creates a file on your device and does not store an additional copy on our servers. Feedback messages submitted through the form are kept for as long as needed to handle the report. Rate-limit metadata on email functions is kept for short time windows for anti-abuse purposes. Firebase backups follow a 30-day rolling window after which deleted data is permanently removed."
+          "heading": "6. Data retention and deletion",
+          "body": "Your account data is retained for as long as your account is active. You can delete your account at any time from Settings → Delete account; the operation removes your owned lists, your collaborator references in other users' lists, your personal catalog, your photos, your user profile, disconnects AI assistants and revokes sign-in access. JSON export from Settings creates a file on your device and does not store an additional copy on our servers. Feedback messages submitted through the form are kept for as long as needed to handle the report. Rate-limit metadata on server functions is kept for short time windows for anti-abuse purposes. Firebase backups follow a 30-day rolling window after which deleted data is permanently removed."
         },
         {
           "id": "rights",
-          "heading": "6. Your rights",
+          "heading": "7. Your rights",
           "body": "You have the right to access your data, rectify it, request erasure, port it to another service, object to certain processing and request its restriction. The erasure right is exercised self-service through the Delete account flow in Settings. The portability right can also be exercised through Export my data in Settings, which downloads a JSON file with your profile, lists, items and catalog. For any other request write to danielebelfiorepc@gmail.com. You can also lodge a complaint with the Italian data protection authority (Garante per la Protezione dei Dati Personali, www.garanteprivacy.it)."
         },
         {
           "id": "children",
-          "heading": "7. Children",
+          "heading": "8. Children",
           "body": "The service is not directed at users under the age of 16. We do not knowingly collect data from minors. Access requires a Google account or an email address you control; the chosen provider's terms govern the applicable minimum age."
         },
         {
           "id": "changes",
-          "heading": "8. Changes to this policy",
+          "heading": "9. Changes to this policy",
           "body": "When we change this policy in a material way we will publish an in-app banner on next sign-in and update the date below. Continued use of the service after the effective date constitutes acceptance of the revised policy."
         },
         {
           "id": "effective-date",
-          "heading": "9. Effective date",
-          "body": "This version of the Privacy Policy is effective from 27 May 2026."
+          "heading": "10. Effective date",
+          "body": "This version of the Privacy Policy is effective from 15 October 2026."
         }
       ]
     },

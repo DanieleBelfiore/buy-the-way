@@ -76,7 +76,7 @@
     "customBadgeHint": "Articolo personalizzato, non viene dal catalogo",
     "dontSuggestAgainTitle": "Smettere di suggerire questo articolo?",
     "dontSuggestAgainMessage": "\"{name}\" non comparirà più nei suggerimenti dell'autocompletamento in nessuna delle tue liste.",
-    "dontSuggestAgainAction": "Non suggerire",
+    "dontSuggestAgainAction": "Non suggerire più",
     "keepSuggesting": "Continua a suggerire",
     "markAsBought": "Segna come comprato",
     "markAsToBuy": "Segna come da comprare",
@@ -291,6 +291,20 @@
     "deleteAccountError": "Eliminazione fallita. Riprova.",
     "deleteAccountPartial": "Alcuni dati non sono stati rimossi. L'account è ancora attivo - riprova."
   },
+  "connectedApps": {
+    "title": "App collegate",
+    "hint": "Assistenti AI che possono usare le tue liste.",
+    "unnamed": "Assistente AI",
+    "connectedOn": "Collegata il {date}",
+    "lastUsed": "Ultimo uso: {date}",
+    "disconnect": "Scollega",
+    "disconnectAria": "Scollega {client}",
+    "confirmTitle": "Scollegare {client}?",
+    "confirmMessage": "{client} non potrà più vedere né modificare le tue liste. Per usarlo di nuovo dovrai ricollegarlo dall'assistente.",
+    "confirmCancel": "Annulla",
+    "done": "Collegamento rimosso: {client}",
+    "failed": "Non è stato possibile scollegare {client}. Riprova."
+  },
   "category": {
     "allBought": "Tutti gli articoli di questa categoria sono stati comprati",
     "label": "Categoria",
@@ -336,6 +350,7 @@
       "Condividi le liste con familiari o coinquilini",
       "Preferiti intelligenti basati su ciò che acquisti più spesso",
       "Statistiche sulle tue abitudini di acquisto",
+      "Collegabile al tuo assistente AI (Claude e altri, tramite MCP)",
       "Nessuna pubblicità, nessun tracking, nessuna analytics"
     ],
     "faqTitle": "Domande frequenti",
@@ -363,6 +378,10 @@
       {
         "q": "Esiste un'app nativa?",
         "a": "È una PWA - installala dal browser alla schermata home e si comporta come un'app nativa."
+      },
+      {
+        "q": "Posso usare Buy The Way con un assistente AI?",
+        "a": "Sì, in beta. Nel tuo assistente (Claude o un altro compatibile con MCP) aggiungi il connettore https://buytheway.app/mcp, accedi e approva: potrà leggere e aggiornare le tue liste, ma non eliminarle né gestire i collaboratori. Lo scolleghi quando vuoi da Impostazioni → App collegate."
       },
       {
         "q": "Posso eliminare il mio account?",
@@ -400,6 +419,10 @@
       {
         "title": "Privata per scelta",
         "body": "Nessuna pubblicità, nessun tracking, nessuna analytics. Le tue liste restano tue."
+      },
+      {
+        "title": "Anche dal tuo assistente AI",
+        "body": "Collega Claude o un altro assistente AI e chiedigli di aggiornare le liste: \"aggiungi quello che serve per una carbonara\". In beta."
       }
     ]
   },

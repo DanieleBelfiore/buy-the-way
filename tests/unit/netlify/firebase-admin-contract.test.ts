@@ -28,6 +28,15 @@ describe('firebase-admin package contract', () => {
     expect(typeof auth.getAuth).toBe('function');
   });
 
+  it('exposes the Auth methods the functions and /mcp call', async () => {
+    const { Auth } = await import('firebase-admin/auth');
+    // verifyIdToken: consent + Connected apps; createCustomToken: /mcp
+    // sign-in; getUser: /mcp refusing deleted accounts.
+    for (const method of ['verifyIdToken', 'createCustomToken', 'getUser'] as const) {
+      expect(typeof Auth.prototype[method]).toBe('function');
+    }
+  });
+
   it('exposes getFirestore, used by the rate limiter and the functions', async () => {
     const firestore = await import('firebase-admin/firestore');
     expect(typeof firestore.getFirestore).toBe('function');

@@ -64,6 +64,20 @@ Per-user state that no collaborator should ever read (onboarding flag, per-user 
 
 `rateLimits/{uid}_{funcName}` and any other Firestore doc that only the serverless functions touch must `allow read, write: if false` so the client SDK can't even attempt to read or mutate them. The Netlify functions go through `firebase-admin`, which bypasses rules.
 
+## MCP server: OAuth collections and the client SDK as the user
+
+The `/mcp` endpoint (`netlify/mcp/`, plan in `tasks/mcp-plan.md`) lets AI assistants use the app over OAuth 2.1. Rules that keep it safe:
+
+- **Server-only collections.** `oauthClients`, `oauthCodes`, `oauthTokens` and `config` are `allow read, write: if false`. `oauthGrants` is readable by its owner only (`resource.data.uid == uid()`), so client queries must filter `where('uid', '==', uid)`; it is never client-writable. Revoking goes through `oauth-revoke-grant`, which deletes the grant **and** its tokens.
+- **Only hashes.** Codes and tokens are stored as SHA-256 hashes. Expiry logic reads `expiresAtMs`; the Date field `expireAt` exists for the Firestore TTL policy on `oauthCodes` and `oauthTokens`. Keep both when adding a new token-like doc.
+- **Rules stay the enforcement point.** `/mcp` never writes data through firebase-admin. It mints a custom token (`createCustomToken(uid, { via: 'mcp' })`), signs the **client** SDK in with it and calls the unchanged `src/services/*`. A tool that needs a write the rules do not allow is a rules question, not a reason to switch to admin.
+- **Custom-token sign-in creates missing users.** `ensureSignedIn` (`netlify/mcp/session.ts`) calls `getUser(uid)` first and throws `UserGoneError` for a deleted account; the handler revokes the grant and answers 401. Do not remove that check. `deleteAccount` also calls `revokeAllConnectedApps`.
+- **Beta gate.** `config/mcp` `{ open, allowedUids }`, read with a 60 s cache, fails closed (missing doc or read error = closed). Checked in `oauth-authorize` and on every `/mcp` request. Opening to everyone is `open: true` in the console, no deploy.
+- **Rate limits never per IP**, except unauthenticated client registration: claude.ai traffic comes from Anthropic's shared IPs. Key by uid or `client_id` (`RATE_LIMITS` in `netlify/functions/_lib/rate-limit.ts`).
+- **Services must run in Node.** `vite.mcp.config.ts` aliases `@/services/firebase` to `netlify/mcp/firebase-node.ts` and keeps `firebase-admin` external. A service that touches `window`, `localStorage` or IndexedDB at import time breaks the bundle; `pnpm smoke:mcp` (Node 22, the Lambda runtime) catches import-time crashes in CI.
+- **Counts are derived, never stored.** List item counts come from the item docs (`countListItems` uses `count()` aggregations). Do not add denormalized counters to list docs (`tasks/drop-list-counters.md`).
+- **New `addedVia` values** need the rules allow-list too; `tests/unit/firebase/rules-parity.test.ts` fails otherwise.
+
 ## firebase-admin: modular subpaths only, never the namespace
 
 In `netlify/functions/`, always import from `firebase-admin/app`, `firebase-admin/auth`, `firebase-admin/firestore`. Never `import admin from 'firebase-admin'` with `admin.apps` / `admin.auth()` / `admin.firestore()` / `admin.credential.cert()`.

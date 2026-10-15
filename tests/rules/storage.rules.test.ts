@@ -38,8 +38,6 @@ const seedList = async (
     ownerUid,
     collaboratorUids: [...collaboratorUids],
     admins: [ownerUid],
-    itemCount: 0,
-    urgentCount: 0,
     wallpaper: '',
     createdAt: 1,
     updatedAt: 1,

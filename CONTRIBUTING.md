@@ -66,7 +66,7 @@ Rules:
 - Target branch: `main`.
 - Keep PRs focused. One feature or fix per PR.
 - All CI checks must be green before review is requested.
-- Add or update tests for every behaviour change.
+- Add or update tests when a change touches a critical path: Firestore / Storage rules, data integrity, account deletion, OAuth / MCP security, domain logic with edge cases, or a real regression. UI markup and styling need no tests.
 - Do not include unrelated formatting or refactoring in a feature PR.
 
 ### PR size guidelines
@@ -137,11 +137,10 @@ These constraints are fixed and must not be relaxed:
 - **No analytics** - never in v1 or v1.x.
 - **No third-party error monitoring** - Sentry was tried and rolled back; do not reintroduce without an explicit decision.
 - **No soft-delete for lists** - list deletion is immediate hard-delete from List Settings, gated by an irreversible-action confirm modal. Items support Undo via toast countdown, lists do not.
-- **No em-dash `—` (U+2014) anywhere in the repo** - source, tests, i18n strings, comments, docs, commit messages, PR bodies. Use a plain ASCII hyphen `-`, a colon `:`, or split the sentence. Pre-commit check:
+- **No em-dash (U+2014) anywhere in the repo** - source, tests, i18n strings, comments, docs, commit messages, PR bodies. Use a plain ASCII hyphen `-`, a colon `:`, or split the sentence. Pre-commit check:
 
   ```bash
-  grep -r "—" --include="*.{ts,vue,json,md,yml,toml,html,css}" . \
-    | grep -v node_modules | grep -v /dist/ | grep -v /coverage/
+  grep -rIn $'\xe2\x80\x94' . --exclude-dir={node_modules,.git,dist,dev-dist,coverage}
   ```
 
   Must return empty.

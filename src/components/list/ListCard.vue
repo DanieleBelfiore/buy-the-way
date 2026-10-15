@@ -12,7 +12,10 @@ const props = withDefaults(
     list: List;
     isDefault?: boolean;
     members?: readonly UserProfile[];
-    /** Live counts from the list's item docs; the stored ones are the fallback. */
+    /**
+     * Live counts from the list's item docs. Undefined until the first items
+     * snapshot arrives: the card then shows neither a count nor "Empty".
+     */
     itemCount?: number;
     urgentCount?: number;
   }>(),
@@ -30,8 +33,7 @@ const handlePinClick = (ev: MouseEvent): void => {
   emit('toggle-default', props.list.id);
 };
 
-const itemCount = computed(() => props.itemCount ?? props.list.itemCount ?? 0);
-const urgentCount = computed(() => props.urgentCount ?? props.list.urgentCount ?? 0);
+const urgentCount = computed(() => props.urgentCount ?? 0);
 
 const initialFor = (m: UserProfile): string => {
   const source = m.displayName.trim() || m.email;
@@ -179,9 +181,14 @@ const pinButtonClass = computed(() => {
             : 'text-muted-gray',
         ]"
       >
+        <span
+          v-if="props.itemCount === undefined"
+          data-testid="card-count-loading"
+          aria-hidden="true"
+        >&nbsp;</span>
         <ItemCountWithUrgent
-          v-if="itemCount > 0"
-          :count="itemCount"
+          v-else-if="props.itemCount > 0"
+          :count="props.itemCount"
           :urgent-count="urgentCount"
           :muted="hasWallpaper"
         />

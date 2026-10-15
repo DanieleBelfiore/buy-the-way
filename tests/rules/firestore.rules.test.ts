@@ -246,35 +246,55 @@ describe('firestore.rules - lists/{id} create', () => {
   it('allows owner-uid creator who is in collaboratorUids and admins=[self]', async () => {
     await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
-      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins is missing', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE],
-      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when admins includes someone other than the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE, BOB], admins: [ALICE, BOB],
-      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when ownerUid is not the caller', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: BOB, collaboratorUids: [BOB], admins: [BOB],
-      itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+      wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 
   it('denies creation when caller is not in collaboratorUids', async () => {
     await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
       id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [BOB], admins: [ALICE],
+      wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+    }));
+  });
+
+  // LEGACY: app builds before the counters were dropped still seed
+  // itemCount / urgentCount = 0 (installed PWAs update on prompt only).
+  it('still allows a legacy client to seed zeroed counters', async () => {
+    await assertSucceeds(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
       itemCount: 0, urgentCount: 0, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+    }));
+  });
+
+  it('denies seeding non-zero counters', async () => {
+    await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L1'), {
+      id: 'L1', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
+      itemCount: 5, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
+    }));
+    await assertFails(setDoc(doc(aliceCtx() as any, 'lists', 'L2'), {
+      id: 'L2', name: 'New', ownerUid: ALICE, collaboratorUids: [ALICE], admins: [ALICE],
+      urgentCount: 1, wallpaper: '01.jpg', createdAt: 1, updatedAt: 1,
     }));
   });
 });
@@ -890,7 +910,7 @@ describe('firestore.rules - list update value validation', () => {
     await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { itemCount: 1, updatedAt: 3 }));
   });
 
-  it('allows a counter decrement below zero (denormalized counters can drift)', async () => {
+  it('allows a legacy counter decrement below zero (the old counters drift)', async () => {
     await seedList('L1', ALICE, [ALICE, BOB], { admins: [ALICE], itemCount: 0 });
     await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { itemCount: -1, updatedAt: 2 }));
   });
@@ -974,7 +994,14 @@ describe('firestore.rules - owner update field whitelist', () => {
     } as Record<string, unknown>));
   });
 
-  it('allows any collaborator to bump itemCount / urgentCount + updatedAt only', async () => {
+  it('allows any collaborator to bump updatedAt alone (every item write does)', async () => {
+    await seedList('L1', ALICE, [ALICE, BOB]);
+    await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), { updatedAt: 2 }));
+  });
+
+  // LEGACY: older app builds still batch counter increments with item writes.
+  // Rejecting them would fail the whole batch, so the item write too.
+  it('allows any collaborator to bump legacy itemCount / urgentCount + updatedAt only', async () => {
     await seedList('L1', ALICE, [ALICE, BOB], { itemCount: 0, urgentCount: 0 });
     await assertSucceeds(updateDoc(doc(bobCtx() as any, 'lists', 'L1'), {
       itemCount: 5, urgentCount: 2, updatedAt: 2,

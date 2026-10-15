@@ -1,16 +1,16 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
+  getCountFromServer,
   updateDoc,
   deleteDoc,
   deleteField,
   onSnapshot,
   query,
   orderBy,
+  where,
   writeBatch,
-  increment,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
@@ -19,22 +19,16 @@ import type { ULID } from '@/domain/id';
 import type { Item, Category, ItemPriority } from '@/domain/types';
 import type { ItemAddedVia } from '@/domain/itemProvenance';
 import { capitalizeInitial } from '@/domain/text';
-import { countUrgentItems, isUrgentPriority } from '@/domain/priority';
 import { upsertCatalogEntry } from '@/services/catalog.service';
 import { upsertListFavorite } from '@/services/listFavorites.service';
 import { notifyListEvent } from '@/services/notify.service';
 import { purgeItemPhotoStorage } from '@/services/itemPhotos.service';
 
-const listCounterUpdate = (opts: {
-  itemDelta?: number;
-  urgentDelta?: number;
-  now?: number;
-}): Record<string, unknown> => {
-  const patch: Record<string, unknown> = { updatedAt: opts.now ?? Date.now() };
-  if (opts.itemDelta) patch.itemCount = increment(opts.itemDelta);
-  if (opts.urgentDelta) patch.urgentCount = increment(opts.urgentDelta);
-  return patch;
-};
+// Item writes bump the parent list's updatedAt so lists sorted by recency
+// reflect activity. Item counts are NOT stored on the list: they are derived
+// from the item docs (stores/listItemCounts, MCP count() queries), so they
+// can never drift.
+const listTouch = (now = Date.now()): { updatedAt: number } => ({ updatedAt: now });
 
 const itemsQuery = (listId: ULID) =>
   query(collection(db, 'lists', listId, 'items'), orderBy('createdAt', 'asc'));
@@ -57,6 +51,22 @@ export const subscribeItems = (
 export const fetchItems = async (listId: ULID): Promise<Item[]> => {
   const snapshot = await getDocs(itemsQuery(listId));
   return toItems(snapshot.docs);
+};
+
+/**
+ * Item and urgent counts of a list, computed server-side from the item docs
+ * with count() aggregations (billed about 1 read per 1000 items), for callers
+ * that need the numbers without the items themselves.
+ */
+export const countListItems = async (
+  listId: ULID,
+): Promise<{ itemCount: number; urgentCount: number }> => {
+  const items = collection(db, 'lists', listId, 'items');
+  const [all, urgent] = await Promise.all([
+    getCountFromServer(items),
+    getCountFromServer(query(items, where('priority', '==', 'urgent'))),
+  ]);
+  return { itemCount: all.data().count, urgentCount: urgent.data().count };
 };
 
 export const addItem = async (params: {
@@ -90,17 +100,13 @@ export const addItem = async (params: {
 
   const itemsCol = collection(db, 'lists', params.listId, 'items');
 
-  // Atomic: item write + parent itemCount bump succeed or fail together.
+  // Atomic: item write + parent updatedAt bump succeed or fail together.
   // Catalog + favorite upserts are denormalised caches; if they fail the row
   // still exists and the user is unblocked. Errors are logged so the drift
   // is observable rather than silent.
   const batch = writeBatch(db);
   batch.set(doc(itemsCol, id), item);
-  batch.update(doc(db, 'lists', params.listId), listCounterUpdate({
-    itemDelta: 1,
-    urgentDelta: isUrgentPriority(params.priority) ? 1 : undefined,
-    now,
-  }));
+  batch.update(doc(db, 'lists', params.listId), listTouch(now));
   await batch.commit();
 
   void notifyListEvent({
@@ -125,7 +131,7 @@ export const addItem = async (params: {
   return id;
 };
 
-// Slot reserved per batch for the parent-list `itemCount += N` update.
+// Slot reserved per batch for the parent-list updatedAt bump.
 // Firestore caps batches at 500 ops, so each chunk fits 499 item sets + 1
 // list update => self-contained atomic batch.
 const BULK_ADD_BATCH_SIZE = 499;
@@ -141,9 +147,8 @@ export interface BulkAddRow {
 /**
  * Add many items to one list in one (or more) atomic batches.
  *
- * - Each batch contains N item writes + the matching `itemCount += N`
- *   increment on the parent list. If the batch fails, neither the items nor
- *   the counter are touched - no drift.
+ * - Each batch contains N item writes + the parent list's updatedAt bump.
+ *   If the batch fails, nothing is written.
  * - Catalog + favorite upserts run AFTER each batch commits, best-effort.
  *
  * Returns the array of created item IDs in the same order as `rows`.
@@ -193,11 +198,7 @@ export const bulkAddItems = async (params: {
       committed.push({ name, category: row.category });
     }
 
-    batch.update(listRef, listCounterUpdate({
-      itemDelta: chunk.length,
-      urgentDelta: countUrgentItems(chunk) || undefined,
-      now,
-    }));
+    batch.update(listRef, listTouch(now));
 
     await batch.commit();
   }
@@ -236,7 +237,7 @@ export const toggleChecked = async (
     updatedAt: now,
   });
   // Bump parent list's updatedAt so lists sorted by recency reflect activity.
-  // Rules allow any collaborator to touch only updatedAt (subset of itemCount+updatedAt branch).
+  // Rules allow any collaborator to touch updatedAt alone.
   await updateDoc(doc(db, 'lists', listId), { updatedAt: now });
 };
 
@@ -264,14 +265,8 @@ export const bulkToggleChecked = async (
 
 export const removeItem = async (listId: ULID, itemId: ULID): Promise<void> => {
   const itemsCol = collection(db, 'lists', listId, 'items');
-  const itemRef = doc(itemsCol, itemId);
-  const snap = await getDoc(itemRef);
-  const wasUrgent = isUrgentPriority(snap.data()?.priority as ItemPriority | undefined);
-  await deleteDoc(itemRef);
-  await updateDoc(doc(db, 'lists', listId), listCounterUpdate({
-    itemDelta: -1,
-    urgentDelta: wasUrgent ? -1 : undefined,
-  }));
+  await deleteDoc(doc(itemsCol, itemId));
+  await updateDoc(doc(db, 'lists', listId), listTouch());
   // I1: cascade-purge any attached Storage objects. The doc is already
   // gone so we skip the doc-patch step (purgeItemPhotoStorage). Best-
   // effort: items without a photo are no-ops; transient Storage failures
@@ -305,22 +300,8 @@ export const updateItem = async (
     payload.priority = deleteField();
   }
 
-  let listPatch = listCounterUpdate({});
-  if (patch.priority !== undefined) {
-    const snap = await getDoc(doc(itemsCol, itemId));
-    const prev = snap.data()?.priority as ItemPriority | undefined;
-    const next = patch.priority;
-    const wasUrgent = isUrgentPriority(prev);
-    const willBeUrgent = isUrgentPriority(next);
-    if (wasUrgent && !willBeUrgent) {
-      listPatch = listCounterUpdate({ urgentDelta: -1 });
-    } else if (!wasUrgent && willBeUrgent) {
-      listPatch = listCounterUpdate({ urgentDelta: 1 });
-    }
-  }
-
   await updateDoc(doc(itemsCol, itemId), payload);
-  await updateDoc(doc(db, 'lists', listId), listPatch);
+  await updateDoc(doc(db, 'lists', listId), listTouch(now));
 
   void notifyListEvent({
     listId,
@@ -371,11 +352,7 @@ export const copyItem = async (
 
   const batch = writeBatch(db);
   batch.set(doc(dstItemsCol, newItem.id), newItem);
-  batch.update(doc(db, 'lists', dstListId), listCounterUpdate({
-    itemDelta: 1,
-    urgentDelta: isUrgentPriority(item.priority) ? 1 : undefined,
-    now,
-  }));
+  batch.update(doc(db, 'lists', dstListId), listTouch(now));
   await batch.commit();
 
   await upsertCatalogEntry(byUid, name, item.category);
@@ -398,16 +375,8 @@ export const moveItem = async (
   const batch = writeBatch(db);
   batch.set(doc(dstItemsCol, newItem.id), newItem);
   batch.delete(doc(srcItemsCol, item.id));
-  batch.update(doc(db, 'lists', dstListId), listCounterUpdate({
-    itemDelta: 1,
-    urgentDelta: isUrgentPriority(item.priority) ? 1 : undefined,
-    now,
-  }));
-  batch.update(doc(db, 'lists', srcListId), listCounterUpdate({
-    itemDelta: -1,
-    urgentDelta: isUrgentPriority(item.priority) ? -1 : undefined,
-    now,
-  }));
+  batch.update(doc(db, 'lists', dstListId), listTouch(now));
+  batch.update(doc(db, 'lists', srcListId), listTouch(now));
   await batch.commit();
 
   await upsertCatalogEntry(byUid, name, item.category);
@@ -416,29 +385,24 @@ export const moveItem = async (
 };
 
 // S3.2: bulk operations. Each batch reserves slots for the parent-list
-// `itemCount` update(s); chunk sizes are picked to stay inside Firestore's
-// 500-op batch cap while keeping every commit atomic with its counter bump.
+// update(s); chunk sizes are picked to stay inside Firestore's 500-op batch
+// cap while keeping every commit atomic with its updatedAt bump.
 
 /** Delete N items from one list in chunked atomic batches. */
 export const bulkRemoveItems = async (
   listId: ULID,
   itemIds: ULID[],
-  opts?: { urgentRemoved?: number },
 ): Promise<void> => {
   if (itemIds.length === 0) return;
   const itemsCol = collection(db, 'lists', listId, 'items');
   const listRef = doc(db, 'lists', listId);
-  const urgentRemoved = opts?.urgentRemoved ?? 0;
   // 499 deletes + 1 list-update per batch.
   const CHUNK = 499;
   for (let i = 0; i < itemIds.length; i += CHUNK) {
     const chunk = itemIds.slice(i, i + CHUNK);
     const batch = writeBatch(db);
     for (const id of chunk) batch.delete(doc(itemsCol, id));
-    batch.update(listRef, listCounterUpdate({
-      itemDelta: -chunk.length,
-      urgentDelta: i === 0 && urgentRemoved ? -urgentRemoved : undefined,
-    }));
+    batch.update(listRef, listTouch());
     await batch.commit();
   }
 
@@ -453,7 +417,7 @@ export const bulkRemoveItems = async (
 
 /**
  * Copy N items into a destination list. Each chunk is one batch: N item
- * writes + 1 dst itemCount bump.
+ * writes + 1 dst list update.
  */
 export const bulkCopyItems = async (
   items: Item[],
@@ -479,11 +443,7 @@ export const bulkCopyItems = async (
       ids.push(newItem.id);
       committed.push({ name, category: src.category });
     }
-    batch.update(dstListRef, listCounterUpdate({
-      itemDelta: chunk.length,
-      urgentDelta: countUrgentItems(chunk) || undefined,
-      now,
-    }));
+    batch.update(dstListRef, listTouch(now));
     await batch.commit();
   }
 
@@ -505,7 +465,7 @@ export const bulkCopyItems = async (
  * 2 list-update (src -, dst +). 498 items per chunk so the 500-op cap is
  * respected (498*2 + 2 = 998 ... wait - too many). Actually: per item we
  * need 1 set (in dst) + 1 delete (from src). That's 2 ops per item, plus
- * 2 counter ops per batch. So max items per batch = floor((500 - 2) / 2) = 249.
+ * 2 list updates per batch. So max items per batch = floor((500 - 2) / 2) = 249.
  */
 export const bulkMoveItems = async (
   srcListId: ULID,
@@ -534,17 +494,8 @@ export const bulkMoveItems = async (
       ids.push(newItem.id);
       committed.push({ name, category: src.category });
     }
-    const urgentInChunk = countUrgentItems(chunk);
-    batch.update(dstListRef, listCounterUpdate({
-      itemDelta: chunk.length,
-      urgentDelta: urgentInChunk || undefined,
-      now,
-    }));
-    batch.update(srcListRef, listCounterUpdate({
-      itemDelta: -chunk.length,
-      urgentDelta: urgentInChunk ? -urgentInChunk : undefined,
-      now,
-    }));
+    batch.update(dstListRef, listTouch(now));
+    batch.update(srcListRef, listTouch(now));
     await batch.commit();
   }
 
@@ -568,24 +519,17 @@ const EMPTY_LIST_BATCH_SIZE = 499;
 export const emptyList = async (
   listId: ULID,
   itemIds: ULID[],
-  opts?: { urgentRemoved?: number },
 ): Promise<void> => {
   if (itemIds.length === 0) return;
   const itemsCol = collection(db, 'lists', listId, 'items');
   const listRef = doc(db, 'lists', listId);
-  const urgentRemoved = opts?.urgentRemoved ?? 0;
   for (let i = 0; i < itemIds.length; i += EMPTY_LIST_BATCH_SIZE) {
     const chunk = itemIds.slice(i, i + EMPTY_LIST_BATCH_SIZE);
     const batch = writeBatch(db);
     for (const id of chunk) batch.delete(doc(itemsCol, id));
-    // Decrement by the chunk size in the SAME batch as the deletes - if the
-    // batch fails the count is untouched, if it succeeds the deletes and the
-    // counter move together. Avoids the previous "items still present but
-    // itemCount=0" inconsistency on partial failure.
-    batch.update(listRef, listCounterUpdate({
-      itemDelta: -chunk.length,
-      urgentDelta: i === 0 && urgentRemoved ? -urgentRemoved : undefined,
-    }));
+    // updatedAt bump in the SAME batch as the deletes, so the chunk commits
+    // atomically.
+    batch.update(listRef, listTouch());
     await batch.commit();
   }
   // I1: cascade-purge Storage photos. Docs are already gone so we skip the

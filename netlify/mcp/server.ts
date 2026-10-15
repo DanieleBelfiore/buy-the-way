@@ -15,6 +15,7 @@ import {
   bulkCopyItems,
   bulkMoveItems,
   bulkToggleChecked,
+  countListItems,
   emptyList,
   fetchItems,
   removeItem,
@@ -81,11 +82,13 @@ const note = z.string().trim().max(1000);
 const category = z.enum(CATEGORY_ORDER as [Category, ...Category[]]);
 const priority = z.enum(['urgent', 'optional']);
 
-const listView = (list: List, uid: string) => ({
+type ListCounts = { itemCount: number; urgentCount: number };
+
+// Counts always come from the item docs, never from fields on the list doc.
+const listView = (list: List, uid: string, counts: ListCounts) => ({
   id: list.id,
   name: list.name,
-  itemCount: list.itemCount ?? 0,
-  urgentCount: list.urgentCount ?? 0,
+  ...counts,
   isAdmin: adminsOf(list).includes(uid),
   sharedWith: Math.max(0, list.collaboratorUids.length - 1),
 });
@@ -143,9 +146,11 @@ export const buildMcpServer = (uid: string): McpServer => {
       inputSchema: {},
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    guarded('list_lists', async () => ({
-      lists: (await fetchUserLists(uid)).map((l) => listView(l, uid)),
-    })),
+    guarded('list_lists', async () => {
+      const lists = await fetchUserLists(uid);
+      const counts = await Promise.all(lists.map((l) => countListItems(l.id)));
+      return { lists: lists.map((l, i) => listView(l, uid, counts[i]!)) };
+    }),
   );
 
   server.registerTool(
@@ -159,7 +164,8 @@ export const buildMcpServer = (uid: string): McpServer => {
     guarded('get_list', async ({ list_id }: { list_id: string }) => {
       const list = await requireList(list_id);
       const items = await fetchItems(list.id);
-      return { ...listView(list, uid), items: items.map(itemView) };
+      const counts = { itemCount: items.length, urgentCount: countUrgentItems(items) };
+      return { ...listView(list, uid, counts), items: items.map(itemView) };
     }),
   );
 
@@ -361,7 +367,7 @@ export const buildMcpServer = (uid: string): McpServer => {
       if (!latest || !sameIds(latest.items, snapshot)) {
         await recordListHistory(list.id, snapshot, uid, 'empty_fallback');
       }
-      await emptyList(list.id, targets.map((i) => i.id), { urgentRemoved: countUrgentItems(targets) });
+      await emptyList(list.id, targets.map((i) => i.id));
       return { removed: targets.length, scope };
     }),
   );

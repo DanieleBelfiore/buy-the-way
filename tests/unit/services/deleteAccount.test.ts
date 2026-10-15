@@ -47,18 +47,23 @@ vi.mock('@/services/notifications.service', () => ({
   deleteAllNotifications: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/services/connectedApps.service', () => ({
+  revokeAllConnectedApps: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   deleteAccount,
   RequiresRecentLoginError,
-  PartialDeletionError,
+  PartialDeletionError
 } from '@/services/auth.service';
 import {
   getDocs,
   deleteDoc,
-  writeBatch,
+  writeBatch
 } from 'firebase/firestore';
 import { auth } from '@/services/firebase';
 import { deleteList, leaveList, transferListOwnership } from '@/services/lists.service';
+import { revokeAllConnectedApps } from '@/services/connectedApps.service';
 
 const mGetDocs = vi.mocked(getDocs);
 const mDeleteDoc = vi.mocked(deleteDoc);
@@ -129,6 +134,29 @@ describe('auth.service.deleteAccount', () => {
     );
     expect(userDeleteCalls.length).toBeGreaterThan(0);
     expect(firebaseDelete).toHaveBeenCalledOnce();
+  });
+
+  it('disconnects every connected AI assistant before deleting the auth user', async () => {
+    const order: string[] = [];
+    vi.mocked(revokeAllConnectedApps).mockImplementationOnce(async () => {
+      order.push('revoke');
+    });
+    firebaseDelete.mockImplementationOnce(async () => {
+      order.push('authDelete');
+    });
+    await deleteAccount(UID);
+    expect(revokeAllConnectedApps).toHaveBeenCalledWith(UID);
+    expect(order).toEqual(['revoke', 'authDelete']);
+  });
+
+  // Best-effort: the /mcp endpoint also refuses uids that no longer exist,
+  // so a failed revocation must not block the account deletion.
+  it('still deletes the account when disconnecting assistants fails', async () => {
+    vi.mocked(revokeAllConnectedApps).mockRejectedValueOnce(new Error('HTTP 500'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await deleteAccount(UID);
+    expect(firebaseDelete).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith('[auth] deleteAccount: connected apps revoke failed', expect.any(Error));
   });
 
   it('transfers ownership to next collaborator when owned list is shared', async () => {

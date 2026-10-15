@@ -9,7 +9,7 @@ import { ArrowLeft, Settings as SettingsIcon, Share2, WandSparkles } from '@luci
 import { notifyListEvent } from '@/services/notify.service';
 import { useSafeBack } from '@/composables/useSafeBack';
 import { VueDraggable } from 'vue-draggable-plus';
-import { reconcileListUrgentCount, setListCategoryOrder } from '@/services/lists.service';
+import { setListCategoryOrder } from '@/services/lists.service';
 import { recordListHistory } from '@/services/history.service';
 import {
   clearListHistoryRecorded,
@@ -83,18 +83,6 @@ const possibleDuplicateIds = computed(() => duplicateItemIds(itemsStore.visibleI
 const itemCount = computed(() => itemsStore.visibleItems.length);
 const urgentItemCount = computed(() => countUrgentItems(itemsStore.visibleItems));
 
-watch(
-  [urgentItemCount, () => list.value?.urgentCount, () => list.value?.id, () => itemsStore.loading],
-  ([computedUrgent, storedUrgent, id, loading]) => {
-    if (!id || loading) return;
-    const stored = storedUrgent ?? 0;
-    if (stored === computedUrgent) return;
-    void reconcileListUrgentCount(id, computedUrgent, stored).catch((err) => {
-      console.warn('[ListDetailView] reconcileListUrgentCount failed:', err);
-    });
-  },
-);
-
 const boughtCount = computed(() => itemsStore.visibleItems.filter((i) => i.checked).length);
 const boughtPercent = computed(() =>
   itemCount.value === 0 ? 0 : Math.round((boughtCount.value / itemCount.value) * 100),
@@ -102,7 +90,7 @@ const boughtPercent = computed(() =>
 const usersCount = computed(() => list.value?.collaboratorUids.length ?? 0);
 
 // Category-reorder is intentionally open to every collaborator (shared
-// per-list ordering, mirrors itemCount writes). The firestore rule mirrors
+// per-list ordering). The firestore rule mirrors
 // this on the server.
 const canReorderCategories = computed(() =>
   authStore.user
@@ -895,6 +883,7 @@ watch(
       :confirm-label="t('item.dontSuggestAgainAction')"
       :cancel-label="t('item.keepSuggesting')"
       destructive
+      prefer-cancel
       @confirm="handleDontSuggestConfirm"
       @cancel="closeDontSuggest"
     />

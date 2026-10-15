@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/services/firebase';
 import handler from '@/../netlify/mcp/handler';
-import { createClient, issueTokens } from '@/../netlify/functions/_lib/oauth-store';
+import { createClient, grantIdFor, issueTokens } from '@/../netlify/functions/_lib/oauth-store';
+import { ensureAuthUser } from './auth-users';
 import { __resetMcpGateCache } from '@/../netlify/functions/_lib/mcp-gate';
 import { RATE_LIMITS } from '@/../netlify/functions/_lib/rate-limit';
 
@@ -46,6 +48,7 @@ beforeAll(async () => {
   if (!process.env['FIRESTORE_EMULATOR_HOST']) throw new Error('Run through `pnpm test:mcp`');
   if (getApps().length === 0) initializeApp({ projectId: 'demo-buy-the-way' });
   process.env['APP_URL'] = APP;
+  await ensureAuthUser(UID);
   const client = await createClient({ redirectUris: ['https://claude.ai/cb'], clientName: 'Claude' });
   accessToken = (await issueTokens({ uid: UID, clientId: client.clientId, clientName: 'Claude', resource: `${APP}/mcp` })).accessToken;
 });
@@ -103,6 +106,22 @@ describe('/mcp handler', () => {
     const { id } = JSON.parse(createdText) as { id: string };
     const doc = await getFirestore().collection('lists').doc(id).get();
     expect(doc.data()).toMatchObject({ ownerUid: UID, name: 'Via http' });
+  });
+
+  // A deleted account must not come back: signing in with a custom token
+  // would silently re-create the Auth user. The grant goes away too.
+  it('refuses a token whose user no longer exists, and revokes its grant', async () => {
+    const GONE = 'handler-deleted-user';
+    await gate({ open: false, allowedUids: [UID, GONE] });
+    const client = await createClient({ redirectUris: ['https://claude.ai/cb'], clientName: 'Claude' });
+    const { accessToken: goneToken } = await issueTokens({ uid: GONE, clientId: client.clientId, clientName: 'Claude', resource: `${APP}/mcp` });
+
+    const res = await rpc(INIT, goneToken);
+    expect(res.status).toBe(401);
+    expect(res.headers.get('WWW-Authenticate')).toContain('error="invalid_token"');
+    await expect(getAdminAuth().getUser(GONE)).rejects.toMatchObject({ code: 'auth/user-not-found' });
+    expect((await getFirestore().collection('oauthGrants').doc(grantIdFor(GONE, client.clientId)).get()).exists).toBe(false);
+    expect((await rpc(INIT, goneToken)).status).toBe(401);
   });
 
   it('returns 429 once the per-user bucket is full', async () => {

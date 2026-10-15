@@ -1,6 +1,7 @@
 {
   "legal": {
     "lastUpdated": "2026-05-27",
+    "privacyLastUpdated": "2026-10-15",
     "footer": {
       "about": "Chi siamo",
       "privacy": "Privacy",
@@ -21,39 +22,44 @@
           "body": "Al momento dell'accesso raccogliamo: indirizzo email (da Google o fornito per il link di accesso), nome visualizzato e foto profilo quando disponibili dal metodo scelto, identificatore di autenticazione (uid) fornito da Firebase Authentication, data e ora dell'ultimo accesso. Durante l'uso del servizio memorizziamo: liste e articoli (nome, quantità, note, priorità, stato spuntato), eventuali foto caricate sugli articoli, collaboratori e inviti in sospeso (inclusi gli indirizzi email invitati), notifiche in-app, contatori d'uso del catalogo personale, preferenze di sfondo e preferiti per ogni lista. Condividendo una lista, nome, email e foto del profilo sono visibili agli altri collaboratori di quella lista. Il browser conserva in locale (localStorage e IndexedDB) preferenze di interfaccia, cache offline e, sul dispositivo che ha richiesto il link di accesso, l'email usata per completare l'accesso senza password. Se usi l'aggiunta vocale, l'audio è elaborato dal motore di riconoscimento vocale del tuo browser (ad es. Google o Apple), al di fuori del nostro controllo diretto. Il modulo di feedback invia email, uid, messaggio, versione app e user agent tramite Netlify Forms. Non usiamo cookie di profilazione, strumenti analytics o pubblicità."
         },
         {
+          "id": "ai-assistants",
+          "heading": "3. Assistenti AI (MCP)",
+          "body": "Puoi collegare facoltativamente un assistente AI (ad esempio Claude) alle tue liste tramite il protocollo MCP. Il collegamento avviene solo dopo il tuo consenso esplicito su una schermata di Buy The Way, dove vedi quale assistente lo chiede.\nCosa può fare l'assistente: vedere le tue liste e i loro articoli, aggiungere, modificare, spuntare e togliere articoli, creare, rinominare e svuotare liste, spostare e copiare articoli tra liste. Non può eliminare liste, gestire i collaboratori né vedere le foto. Gli articoli che aggiunge sono contrassegnati come aggiunti da un assistente.\nCosa conserviamo per gestire il collegamento: il nome con cui l'assistente si è registrato e i suoi indirizzi di ritorno, la data del collegamento e dell'ultimo utilizzo, i token di accesso salvati solo in forma cifrata (hash) con scadenza (1 ora per l'accesso, 30 giorni per il rinnovo).\nI contenuti delle liste che l'assistente legge o modifica passano dal fornitore dell'assistente, che li tratta come titolare autonomo secondo la propria informativa: non ne abbiamo il controllo.\nPuoi scollegare un assistente in qualsiasi momento da Impostazioni → App collegate: il collegamento e i suoi token vengono cancellati subito. Eliminando l'account vengono revocati tutti i collegamenti."
+        },
+        {
           "id": "legal-basis",
-          "heading": "3. Base giuridica",
+          "heading": "4. Base giuridica",
           "body": "Il trattamento dei tuoi dati si fonda sull'esecuzione del contratto che concludi con noi al momento dell'utilizzo del servizio (art. 6.1.b GDPR). L'invio di email transazionali strettamente necessarie al servizio (link di accesso, inviti alla lista) si fonda sull'esecuzione del contratto o sul legittimo interesse a erogare la funzione richiesta. I log di sicurezza, i contatori anti-abuso sulle funzioni email e la prevenzione degli abusi si basano sul nostro legittimo interesse a mantenere il servizio sicuro (art. 6.1.f GDPR)."
         },
         {
           "id": "processors",
-          "heading": "4. Responsabili del trattamento",
+          "heading": "5. Responsabili del trattamento",
           "body": "Ci avvaliamo dei seguenti responsabili del trattamento: Google Ireland Limited (Firebase Authentication, Cloud Firestore, Firebase Storage, Firebase Hosting) per autenticazione, database, archivio delle foto e hosting dell'app; Resend Inc. per l'invio di email transazionali (inviti alla lista e link di accesso); Netlify Inc. per l'hosting della progressive web app, l'esecuzione delle funzioni serverless e la raccolta dei messaggi di feedback. Tali fornitori trattano i dati per nostro conto. Ove applicabile, i trasferimenti verso paesi extra-SEE sono coperti da Clausole Contrattuali Standard o da garanzie equivalenti previste nei rispettivi accordi."
         },
         {
           "id": "retention",
-          "heading": "5. Conservazione e cancellazione",
-          "body": "I dati del tuo account sono conservati finché l'account è attivo. Puoi eliminare l'account in qualsiasi momento da Impostazioni → Elimina account; l'operazione rimuove le liste di cui sei proprietario, i riferimenti come collaboratore nelle liste altrui, il tuo catalogo personale, le tue foto, il tuo profilo utente e revoca l'accesso. L'esportazione JSON da Impostazioni genera un file sul tuo dispositivo e non crea una copia aggiuntiva sui nostri server. I messaggi di feedback inviati tramite il form sono conservati finché necessari per gestire la segnalazione. I metadati di rate limiting sulle funzioni email sono conservati per brevi finestre temporali ai fini anti-abuso. I backup di Firebase seguono una finestra mobile di 30 giorni dopo i quali i dati cancellati sono rimossi in modo permanente."
+          "heading": "6. Conservazione e cancellazione",
+          "body": "I dati del tuo account sono conservati finché l'account è attivo. Puoi eliminare l'account in qualsiasi momento da Impostazioni → Elimina account; l'operazione rimuove le liste di cui sei proprietario, i riferimenti come collaboratore nelle liste altrui, il tuo catalogo personale, le tue foto, il tuo profilo utente, scollega gli assistenti AI e revoca l'accesso. L'esportazione JSON da Impostazioni genera un file sul tuo dispositivo e non crea una copia aggiuntiva sui nostri server. I messaggi di feedback inviati tramite il form sono conservati finché necessari per gestire la segnalazione. I metadati di rate limiting sulle funzioni server sono conservati per brevi finestre temporali ai fini anti-abuso. I backup di Firebase seguono una finestra mobile di 30 giorni dopo i quali i dati cancellati sono rimossi in modo permanente."
         },
         {
           "id": "rights",
-          "heading": "6. I tuoi diritti",
+          "heading": "7. I tuoi diritti",
           "body": "Hai il diritto di accedere ai tuoi dati, rettificarli, richiederne la cancellazione, ottenerne la portabilità verso altro servizio, opporti a determinati trattamenti e richiederne la limitazione. Il diritto alla cancellazione si esercita in autonomia tramite la funzione Elimina account in Impostazioni. Il diritto alla portabilità può essere esercitato anche tramite Esporta i miei dati in Impostazioni, che scarica un file JSON con profilo, liste, articoli e catalogo. Per qualsiasi altra richiesta scrivi a danielebelfiorepc@gmail.com. Puoi inoltre proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it)."
         },
         {
           "id": "children",
-          "heading": "7. Minori",
+          "heading": "8. Minori",
           "body": "Il servizio non è rivolto a utenti di età inferiore ai 16 anni. Non raccogliamo consapevolmente dati di minori. L'accesso richiede un account Google o un indirizzo email di cui tu abbia il controllo; i termini del provider scelto regolano l'età minima applicabile."
         },
         {
           "id": "changes",
-          "heading": "8. Modifiche all'informativa",
+          "heading": "9. Modifiche all'informativa",
           "body": "In caso di modifiche sostanziali pubblicheremo un avviso in-app al successivo accesso e aggiorneremo la data sotto riportata. L'uso continuato del servizio dopo la data di efficacia costituisce accettazione della versione aggiornata."
         },
         {
           "id": "effective-date",
-          "heading": "9. Data di efficacia",
-          "body": "Questa versione dell'Informativa Privacy è efficace dal 27 maggio 2026."
+          "heading": "10. Data di efficacia",
+          "body": "Questa versione dell'Informativa Privacy è efficace dal 15 ottobre 2026."
         }
       ]
     },

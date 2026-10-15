@@ -15,7 +15,7 @@ Estimate: 5.5-8.5 working days over four phases, each closed by a checkpoint (co
 ## Architecture Decisions
 
 - **Transport:** MCP Streamable HTTP, stateless (`sessionIdGenerator: undefined`, JSON responses, no SSE stream). Fits a Netlify Function: no long-lived connection, no session store.
-- **Data access (option B, chosen 2026-10-14):** the MCP function never writes Firestore through `firebase-admin`. Per request it resolves the bearer token to a uid, mints a Firebase custom token (`createCustomToken(uid, { via: 'mcp' })`), signs in the **client** SDK with `signInWithCustomToken` and calls the existing `src/services/*`. Firestore rules stay the single enforcement point and the denormalized counters (`itemCount`, `urgentCount`, catalog, favorites) stay consistent because the same batch code runs.
+- **Data access (option B, chosen 2026-10-14):** the MCP function never writes Firestore through `firebase-admin`. Per request it resolves the bearer token to a uid, mints a Firebase custom token (`createCustomToken(uid, { via: 'mcp' })`), signs in the **client** SDK with `signInWithCustomToken` and calls the existing `src/services/*`. Firestore rules stay the single enforcement point and the catalog and favorite usage counters stay consistent because the same batch code runs. (List item counts are no longer stored: `list_lists` computes them with `count()` aggregations, see `tasks/drop-list-counters.md`.)
 - **Node build of the services:** `src/services/firebase.ts` uses `import.meta.env`, IndexedDB persistence and a module singleton. A dedicated Vite SSR build (`vite.mcp.config.ts`) aliases `@/services/firebase` to `netlify/mcp/firebase-node.ts` (memory persistence, config from `process.env`) and emits `netlify/functions/mcp.mjs` (gitignored, built in CI before `netlify deploy`). `firebase-admin` stays external, as in `netlify.toml` (bundling it breaks `SDK_VERSION` at import time).
 - **Singleton safety:** a Lambda container serves one invocation at a time, so one client-SDK app per container is safe. The handler still serializes requests behind a mutex and re-signs-in only when the uid changes.
 - **Authorization server:** first-party OAuth 2.1, implemented in Netlify Functions:
@@ -39,7 +39,7 @@ The MCP ships to production closed. Only allow-listed users can connect; opening
   - `/mcp`: every request re-checks the gate, so closing it again (or removing a uid) cuts off existing tokens within a minute.
 - **Stays public on purpose:** `.well-known` metadata and client registration (rate limited). They expose nothing and clients need them to reach the consent screen.
 - **App UI:** "Connected apps" renders only when the user has at least one grant, so non-beta users never see it. No client feature flag, no deploy to open.
-- **Launch checklist (the "little effort" part):** set `open: true`; merge the launch PR prepared in M4 with privacy page, README, landing/about mention. Optional afterwards: Anthropic connector directory.
+- **Launch checklist (the "little effort" part):** set `open: true` on `config/mcp`; drop the "In beta" / "in beta" wording from `home.highlights[3]` and the AI assistant FAQ in `about.faq` (it + en) and the "Private beta" note in README. Privacy section, README instructions and landing/about mention already shipped (2026-10-15). Optional afterwards: Anthropic connector directory.
 
 ## Rate limiting (added 2026-10-14)
 
@@ -49,7 +49,7 @@ claude.ai (web, desktop, mobile) reaches the server from Anthropic's cloud, not 
 |---|---|---|
 | `/oauth/register` | IP, high cap (`RATE_LIMITS.oauthRegisterIp`) + global daily cap (`RATE_LIMITS.oauthRegisterGlobal`) | Only unauthenticated endpoint that writes. The global cap bounds abuse even from rotating IPs. |
 | `oauth-authorize` | uid (from the ID token) | |
-| `/oauth/token` | `client_id` (`RATE_LIMITS.oauthTokenClient`), plus uid once the code / refresh token is resolved | Never per IP. |
+| `/oauth/token` | `client_id` (`RATE_LIMITS.oauthToken`) | Never per IP. |
 | `/mcp` | uid (`RATE_LIMITS.mcp`) | |
 
 Exact numbers are set in M2 from the Netlify legacy free quota (125k invocations / month).
@@ -59,12 +59,12 @@ Exact numbers are set in M2 from the Netlify legacy free quota (125k invocations
 | Path | Fields | Client rules |
 |---|---|---|
 | `oauthClients/{clientId}` | redirectUris, clientName, createdAt | `read, write: if false` |
-| `oauthCodes/{codeHash}` | uid, clientId, redirectUri, codeChallenge, resource, expiresAt | `read, write: if false` |
-| `oauthTokens/{tokenHash}` | uid, clientId, grantId, kind (`access`/`refresh`), expiresAt | `read, write: if false` |
+| `oauthCodes/{codeHash}` | uid, clientId, redirectUri, codeChallenge, resource, expiresAtMs, expireAt (Date, TTL) | `read, write: if false` |
+| `oauthTokens/{tokenHash}` | uid, clientId, grantId, resource, kind (`access`/`refresh`), expiresAtMs, expireAt (Date, TTL), usedAtMs (rotated refresh) | `read, write: if false` |
 | `oauthGrants/{grantId}` | uid, clientId, clientName, createdAt, lastUsedAt | `read: if uid matches`, `write: if false` |
 | `config/mcp` | open, allowedUids | `read, write: if false` |
 
-Revocation from the app goes through a function (it must delete tokens too). Expired docs are cleaned lazily on lookup; a Firestore TTL policy on `expiresAt` is set up in the console (ops step).
+Revocation from the app goes through a function (it must delete tokens too). Expired docs are ignored on lookup; a Firestore TTL policy on the `expireAt` Date field of `oauthCodes` and `oauthTokens` deletes them (console ops step).
 
 ## Phase M1 - Services in Node (~1 day)
 
@@ -164,8 +164,9 @@ Manual: Claude Code and claude.ai custom connector, real account, end to end.
 
 ## Phase M4 - Management, docs, launch (~1 day)
 
-- Settings section "Connected apps": list `oauthGrants`, revoke button (`oauth-revoke-grant` function).
-- `.claude/docs/firebase.md` (new server-only collections, custom token claim, beta gate), wiki ingest. These ship with M4.
+- [x] Settings section "Connected apps" (2026-10-15): `src/components/settings/ConnectedAppsSection.vue` lists the user's `oauthGrants` live (owner-read query, `src/services/connectedApps.service.ts`) and disconnects through `netlify/functions/oauth-revoke-grant.ts` (ID token, owner check in `revokeGrantOf`, rate limit `oauthRevokeGrant` 30 / 10 min per uid, fails open, not gated by the beta switch). Hidden while the user has no grant. Also fixed: re-approving a client no longer resets the grant's `createdAt`.
+- [x] Account deletion disconnects assistants (2026-10-15): `deleteAccount` calls `revokeAllConnectedApps` (best-effort), and `/mcp` checks the uid still exists before minting a custom token (`ensureSignedIn` throws `UserGoneError`; the handler revokes the grant and answers 401 `invalid_token`). Without it, a custom-token sign-in silently re-created the deleted Auth user. Gap left: a warm container already signed in as that uid keeps the session until its ID token expires (max 1 h), and only if the client-side revocation also failed.
+- [x] `.claude/docs/firebase.md` section "MCP server" and wiki page `concepts/mcp-server.md` (2026-10-15).
 - Launch PR, prepared but merged only when opening: privacy page (what MCP clients can access, how to revoke), README user instructions, landing/about mention.
 - Ops: Firestore TTL policy on `expiresAt`, env vars on Netlify, smoke test in production.
 - Deferred: Client ID Metadata Documents, Anthropic connector directory submission, more tools (collaborators, wallpaper, category order, list deletion).

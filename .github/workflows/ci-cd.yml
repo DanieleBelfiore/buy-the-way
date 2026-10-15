@@ -60,7 +60,7 @@ jobs:
       # The README coverage badge reads a gist that shields.io renders through
       # its `endpoint` API. Republishing it here is what keeps the badge from
       # drifting into a lie: the number always comes from the run that just
-      # passed the 80% threshold gate in vitest.config.ts.
+      # passed. Coverage is a report, not a gate (no thresholds).
       #
       # Gated on push-to-main because pull_request runs (forks especially) have
       # no access to GIST_TOKEN, and a PR must not overwrite main's badge.

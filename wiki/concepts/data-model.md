@@ -2,7 +2,7 @@
 type: concept
 tags: [firebase, firestore]
 sources: 2
-updated: 2026-10-05
+updated: 2026-10-15
 ---
 
 # Data model
@@ -16,14 +16,35 @@ Firestore is default-deny; every new path needs a rule in the **same task** as t
 | `users/{uid}` | Public profile: `uid`, `email`, `displayName`, `photoURL` (readable by any signed-in user for lookup/avatars) |
 | `users/{uid}/private/state` | Owner-only: onboarding, `defaultListId`, `lastSeenLists`, etc. |
 | `users/{uid}/notifications/{id}` | In-app notification feed; server write, owner read/delete |
-| `lists/{listId}` | `ownerUid`, `collaboratorUids`, `admins`, name, wallpaper, `categoryOrder`, counts |
+| `lists/{listId}` | `ownerUid`, `collaboratorUids`, `admins`, name, wallpaper, `categoryOrder`. No item counts (see below) |
 | `lists/{listId}/items/{itemId}` | Item fields: name, qty, category, checked, priority, photos URLs, timestamps, optional immutable `addedVia` |
 | `lists/{listId}/favoriteState/{slug}` | Per-list favorites shelf: usage counts, `pinned` / `excluded` / `dismissedFavorite` |
 | `lists/{listId}/history/{historyId}` | Immutable completed-shopping snapshots (see below); read by the suggest sheet |
 | `catalog/{uid}/entries/{entryId}` | Personal catalog: usage, pinned, excluded |
 | `rateLimits/{uid}_{funcName}` | Token bucket for Netlify functions; **client deny all** |
+| `oauthClients`, `oauthCodes`, `oauthTokens`, `oauthGrants`, `config/mcp` | MCP server and its OAuth state, see below |
 
 Subcollection rules must `get()` the parent list doc to verify collaborator membership - rules do not inherit.
+
+## MCP and OAuth collections
+
+Written only by Netlify functions through firebase-admin ([MCP server](mcp-server.md)).
+
+| Path | Content | Client access |
+|------|---------|---------------|
+| `oauthClients/{clientId}` | Registered clients: `redirectUris`, `clientName`, `createdAt` | none |
+| `oauthCodes/{sha256(code)}` | Single-use auth codes, PKCE challenge, `expiresAtMs`, `expireAt` (TTL) | none |
+| `oauthTokens/{sha256(token)}` | Access and refresh tokens: `uid`, `clientId`, `grantId`, `kind`, `expiresAtMs`, `expireAt` (TTL), `usedAtMs` | none |
+| `oauthGrants/{grantId}` | One per user + client: `uid`, `clientId`, `clientName`, `createdAt`, `lastUsedAt` | owner read |
+| `config/mcp` | Beta gate: `open`, `allowedUids` | none |
+
+`grantId` is `sha256(uid:clientId)`. A Firestore TTL policy on `expireAt` purges expired codes and tokens.
+
+## Item counts are derived, never stored
+
+The list doc used to carry denormalized `itemCount` / `urgentCount`, bumped with `increment()` next to every item write. They drifted (a lost write left them wrong forever) and were dropped on 2026-10-15. Counts now always come from the item docs: the lists overview uses `stores/listItemCounts` (one items listener per list), the detail view counts its loaded items, the MCP `list_lists` tool uses `countListItems` (`count()` aggregations). Old docs may still hold the fields until `pnpm firebase:drop-list-counters --apply` runs; the rules keep accepting them for app builds released before the change ([`tasks/drop-list-counters.md`](../../tasks/drop-list-counters.md)).
+
+Other counters are event counts, not copies of existing data, so they cannot drift against anything: `usageCount` on catalog entries and favorite state (how often a product was added, input for ranking), `completedShopCount` on `users/{uid}/private/state`. The history entry `itemCount` is immutable and pinned by the rules to `items.size()`.
 
 ## List history (`lists/{listId}/history`)
 
