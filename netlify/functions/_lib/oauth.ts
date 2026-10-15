@@ -13,6 +13,12 @@ export const OAUTH_TTL = {
   accessMs: 60 * 60 * 1000,
   /** Sliding: every refresh issues a new refresh token with a fresh TTL. */
   refreshMs: 30 * 24 * 60 * 60 * 1000,
+  /**
+   * A rotated refresh token presented again within this window is refused
+   * without revoking the grant: a client retrying a refresh whose answer was
+   * lost, or two parallel requests refreshing at once, is not a theft.
+   */
+  refreshReuseGraceMs: 30_000,
 } as const;
 
 /** Only grant types the server implements. Public clients, PKCE mandatory. */

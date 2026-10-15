@@ -64,6 +64,16 @@ describe('OAuthAuthorizeView (MCP consent screen)', () => {
     expect(text).toContain('Delete lists, manage collaborators or see photos');
   });
 
+  it('names the redirect host up front, since the client name is not verified', async () => {
+    const remote = (await mountView()).wrapper.get('[data-testid="oauth-redirect-warning"]').text();
+    expect(remote).toContain('you will go to claude.ai');
+    expect(remote).toContain('“Claude” is chosen by the app and is not verified');
+
+    callOAuthAuthorize.mockResolvedValueOnce({ status: 'ok', clientName: 'Claude Code', redirectHost: 'localhost:33418' });
+    const local = (await mountView()).wrapper.get('[data-testid="oauth-redirect-warning"]').text();
+    expect(local).toContain('an app on this device (localhost:33418)');
+  });
+
   it('approve sends the user back to the client with the code', async () => {
     const { wrapper } = await mountView();
     callOAuthAuthorize.mockResolvedValueOnce({ status: 'redirect', redirectTo: 'https://claude.ai/cb?code=c&state=s1' });

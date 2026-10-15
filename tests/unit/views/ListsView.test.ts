@@ -6,6 +6,8 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 
 vi.mock('@/stores/lists', () => ({ useListsStore: vi.fn() }));
 vi.mock('@/stores/auth', () => ({ useAuthStore: vi.fn() }));
+// registerSW imports the build-only `virtual:pwa-register` module.
+vi.mock('@/pwa/registerSW', () => ({ refreshApp: vi.fn() }));
 
 const { mockCountsSync, mockCountsStop, liveCounts } = vi.hoisted(() => ({
   mockCountsSync: vi.fn(),

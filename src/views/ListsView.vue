@@ -5,7 +5,9 @@ import { useI18n } from 'vue-i18n';
 import { useListsStore } from '@/stores/lists';
 import { useListItemCountsStore } from '@/stores/listItemCounts';
 import { useAuthStore } from '@/stores/auth';
-import { Plus, X, Settings as SettingsIcon, BarChart3, Bell } from '@lucide/vue';
+import { Plus, X, Settings as SettingsIcon, BarChart3, Bell, RefreshCw } from '@lucide/vue';
+import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/composables/usePullToRefresh';
+import { refreshApp } from '@/pwa/registerSW';
 import OnboardingTour from '@/components/onboarding/OnboardingTour.vue';
 import NotificationsPopover from '@/components/notifications/NotificationsPopover.vue';
 import { useNotifications } from '@/composables/useNotifications';
@@ -241,6 +243,9 @@ const orderedLists = computed(() =>
 // a brief flash).
 const localLists = ref<List[]>([]);
 const isDraggingList = ref(false);
+
+const listScrollEl = ref<HTMLElement | null>(null);
+const { pull, pulling, refreshing } = usePullToRefresh(listScrollEl, refreshApp, () => isDraggingList.value);
 
 watch(
   orderedLists,
@@ -568,8 +573,25 @@ watch(
     </div>
 
     <div class="flex-1 min-h-0 flex flex-col">
+    <!-- Pull-to-refresh indicator: grows with the pull, pushing the cards down. -->
+    <div
+      class="shrink-0 flex items-end justify-center overflow-hidden"
+      :class="pulling ? '' : 'transition-[height] duration-200 motion-reduce:transition-none'"
+      :style="{ height: `${pull}px` }"
+      aria-hidden="true"
+    >
+      <RefreshCw
+        :size="22"
+        :stroke-width="2.25"
+        class="mb-3 text-primary motion-reduce:!transform-none"
+        :class="refreshing ? 'animate-spin motion-reduce:animate-none' : ''"
+        :style="refreshing ? undefined : { opacity: Math.min(pull / PULL_THRESHOLD_PX, 1), transform: `rotate(${pull * 4}deg)` }"
+      />
+    </div>
+    <p v-if="refreshing" class="sr-only" role="status">{{ t('pwa.refreshing') }}</p>
     <!-- List of cards (only this block scrolls when there are many lists) -->
     <section
+      ref="listScrollEl"
       class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-5 pb-[max(5rem,env(safe-area-inset-bottom))]"
     >
       <Transition name="state-fade" mode="out-in">

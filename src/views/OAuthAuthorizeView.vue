@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { Check, X } from '@lucide/vue';
+import { Check, ShieldAlert, X } from '@lucide/vue';
 import { useAuthStore } from '@/stores/auth';
 import { useDocumentHead } from '@/composables/useDocumentHead';
 import {
@@ -42,6 +42,10 @@ const redirectHost = ref('');
 const exitUrl = ref('');
 const deciding = ref(false);
 const params = pickOAuthParams(route.query);
+
+// Loopback redirect = a native app on this device (e.g. a CLI client).
+const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+const redirectIsLocal = computed(() => LOOPBACK.test(redirectHost.value));
 
 const apply = (action: OAuthAction, result: OAuthAuthorizeResult): void => {
   if (result.status === 'redirect') {
@@ -107,6 +111,24 @@ onMounted(loadRequest);
           <p class="text-sm text-muted-gray">{{ t('oauthAuthorize.intro', { client: clientName }) }}</p>
         </div>
 
+        <!-- Anyone can register a client under any name, so the redirect host
+             is the only verified fact on this screen: shown up front, not in
+             the fine print. -->
+        <div
+          data-testid="oauth-redirect-warning"
+          class="flex gap-2 rounded-xl border border-cream-soft bg-cream px-3 py-2.5 text-sm text-charcoal"
+        >
+          <ShieldAlert class="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          <i18n-t
+            :keypath="redirectIsLocal ? 'oauthAuthorize.redirectWarningLocal' : 'oauthAuthorize.redirectWarning'"
+            tag="p"
+            class="leading-snug"
+          >
+            <template #host><strong class="font-semibold break-all">{{ redirectHost }}</strong></template>
+            <template #client>{{ clientName }}</template>
+          </i18n-t>
+        </div>
+
         <div class="space-y-2">
           <p class="text-sm font-semibold text-charcoal">{{ t('oauthAuthorize.canTitle') }}</p>
           <ul class="space-y-1.5 text-sm text-charcoal">
@@ -124,7 +146,6 @@ onMounted(loadRequest);
 
         <div class="space-y-1 text-xs text-muted-gray">
           <p v-if="auth.user?.email">{{ t('oauthAuthorize.signedInAs', { email: auth.user.email }) }}</p>
-          <p>{{ t('oauthAuthorize.redirectNotice', { host: redirectHost }) }}</p>
           <p>{{ t('oauthAuthorize.revokeHint') }}</p>
         </div>
 

@@ -80,10 +80,16 @@ describe('oauth-store', () => {
     expect(rotated.uid).toBe('u3');
     expect(await resolveAccessToken(rotated.tokens.accessToken, T0 + 2000)).not.toBeNull();
 
-    // Replaying the rotated token is treated as theft: the grant goes away.
-    expect(await rotateRefreshToken(first.refreshToken, client.clientId, T0 + 3000)).toEqual({ ok: false, reason: 'reused' });
-    expect(await resolveAccessToken(rotated.tokens.accessToken, T0 + 4000)).toBeNull();
-    expect(await rotateRefreshToken(rotated.tokens.refreshToken, client.clientId, T0 + 5000)).toEqual({ ok: false, reason: 'invalid' });
+    // A replay inside the grace window (retry, parallel refresh) is refused
+    // but the grant survives.
+    expect(await rotateRefreshToken(first.refreshToken, client.clientId, T0 + 3000)).toEqual({ ok: false, reason: 'invalid' });
+    expect(await resolveAccessToken(rotated.tokens.accessToken, T0 + 4000)).not.toBeNull();
+
+    // Later, replaying the rotated token is treated as theft: the grant goes away.
+    const later = T0 + 1000 + OAUTH_TTL.refreshReuseGraceMs;
+    expect(await rotateRefreshToken(first.refreshToken, client.clientId, later)).toEqual({ ok: false, reason: 'reused' });
+    expect(await resolveAccessToken(rotated.tokens.accessToken, later + 1)).toBeNull();
+    expect(await rotateRefreshToken(rotated.tokens.refreshToken, client.clientId, later + 2)).toEqual({ ok: false, reason: 'invalid' });
   });
 
   it('refuses a refresh token from another client or past its expiry', async () => {

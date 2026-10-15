@@ -25,6 +25,8 @@ pnpm firebase:drop-list-counters --apply   # asks for the project ID, then write
 
 Dry run on 2026-10-15: 11 lists scanned, 11 with legacy counters.
 
+Applied on 2026-10-15 after the release (`--apply`, 11 lists cleaned); a dry run afterwards found 0 with legacy counters (checked on the Eurospin doc too). Step 2 done.
+
 A list used from an old build afterwards gets the field back through `increment()`. Harmless, nothing reads it.
 
 ## Step 3: close the legacy path (a few weeks later)

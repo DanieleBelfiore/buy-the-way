@@ -167,8 +167,8 @@ Manual: Claude Code and claude.ai custom connector, real account, end to end.
 - [x] Settings section "Connected apps" (2026-10-15): `src/components/settings/ConnectedAppsSection.vue` lists the user's `oauthGrants` live (owner-read query, `src/services/connectedApps.service.ts`) and disconnects through `netlify/functions/oauth-revoke-grant.ts` (ID token, owner check in `revokeGrantOf`, rate limit `oauthRevokeGrant` 30 / 10 min per uid, fails open, not gated by the beta switch). Hidden while the user has no grant. Also fixed: re-approving a client no longer resets the grant's `createdAt`.
 - [x] Account deletion disconnects assistants (2026-10-15): `deleteAccount` calls `revokeAllConnectedApps` (best-effort), and `/mcp` checks the uid still exists before minting a custom token (`ensureSignedIn` throws `UserGoneError`; the handler revokes the grant and answers 401 `invalid_token`). Without it, a custom-token sign-in silently re-created the deleted Auth user. Gap left: a warm container already signed in as that uid keeps the session until its ID token expires (max 1 h), and only if the client-side revocation also failed.
 - [x] `.claude/docs/firebase.md` section "MCP server" and wiki page `concepts/mcp-server.md` (2026-10-15).
-- Launch PR, prepared but merged only when opening: privacy page (what MCP clients can access, how to revoke), README user instructions, landing/about mention.
-- Ops: Firestore TTL policy on `expiresAt`, env vars on Netlify, smoke test in production.
+- [x] Launch content (2026-10-15, shipped directly, marked "in beta"): privacy section "AI assistants", README connect/disconnect (claude.ai connector recommended), landing highlight, About feature and FAQ.
+- [x] Ops (2026-10-15): Firestore TTL policies on `expireAt` for `oauthCodes` and `oauthTokens`; `pnpm firebase:drop-list-counters --apply` cleaned the 11 production lists (dry run afterwards: 0 left); throwaway `deploy-check` client deleted from `oauthClients`.
 - Deferred: Client ID Metadata Documents, Anthropic connector directory submission, more tools (collaborators, wallpaper, category order, list deletion).
 
 ### Checkpoint M4

@@ -165,6 +165,7 @@ export type RotateResult =
  * Refresh token rotation (OAuth 2.1 for public clients). A rotated token is
  * kept, marked used, until it expires: presenting it again means it leaked,
  * so the whole grant is revoked and the legitimate client must re-authorize.
+ * A replay within `OAUTH_TTL.refreshReuseGraceMs` is only refused.
  */
 export const rotateRefreshToken = async (
   refreshToken: string,
@@ -179,7 +180,11 @@ export const rotateRefreshToken = async (
     if (data.kind !== 'refresh' || data.clientId !== clientId || data.expiresAtMs <= now) {
       return { ok: false, reason: 'invalid' };
     }
-    if (data.usedAtMs !== undefined) return { reuse: data.grantId };
+    if (data.usedAtMs !== undefined) {
+      // Within the grace window it is a retry or a race, not a theft.
+      if (now - data.usedAtMs < OAUTH_TTL.refreshReuseGraceMs) return { ok: false, reason: 'invalid' };
+      return { reuse: data.grantId };
+    }
     const grantSnap = await tx.get(grants().doc(data.grantId));
     if (!grantSnap.exists) return { ok: false, reason: 'invalid' };
     tx.update(ref, { usedAtMs: now });
