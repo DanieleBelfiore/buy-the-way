@@ -325,7 +325,7 @@
   "pwa": {
     "updateAvailable": "Nuova versione disponibile",
     "updateRequiredTitle": "Aggiornamento obbligatorio",
-    "updateRequiredMessage": "È uscita una nuova versione. Ricarica per continuare a usare l'app.",
+    "updateRequiredMessage": "È uscita una nuova versione.\nRicarica per continuare a usare l'app.",
     "reload": "Ricarica",
     "refreshing": "Aggiornamento…",
     "installMessage": "Installa Buy The Way per un accesso rapido",

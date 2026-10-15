@@ -46,7 +46,7 @@ const onReload = async (): Promise<void> => {
       </h2>
       <p
         id="update-required-message"
-        class="mt-2 text-sm text-muted-gray break-words"
+        class="mt-2 text-sm text-muted-gray break-words whitespace-pre-line"
       >
         {{ t('pwa.updateRequiredMessage') }}
       </p>
