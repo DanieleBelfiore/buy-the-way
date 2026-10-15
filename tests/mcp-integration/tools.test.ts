@@ -8,8 +8,9 @@ import { auth } from '@/services/firebase';
 import { buildMcpServer } from '@/../netlify/mcp/server';
 import { ensureSignedIn } from '@/../netlify/mcp/session';
 import { ensureAuthUser } from './auth-users';
+import { normalizeName } from '@/domain/public-catalog';
 
-// The 11 MCP tools end to end: an MCP client talks to the real server over an
+// The 17 MCP tools end to end: an MCP client talks to the real server over an
 // in-memory transport, the server runs the unchanged src/services through the
 // client SDK signed in with a custom token, against the emulators and the
 // real rules. Same path as production minus HTTP and OAuth (covered by
@@ -67,16 +68,20 @@ describe('MCP tools', () => {
   let spesa: string;
   let weekend: string;
 
-  it('lists the 11 tools with safety annotations', async () => {
+  it('lists the 17 tools with safety annotations', async () => {
     owner = await connectAs(OWNER);
     const { tools } = await owner.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
-      'add_items', 'copy_items', 'create_list', 'empty_list', 'get_list', 'list_lists',
-      'move_items', 'remove_item', 'rename_list', 'set_item_checked', 'update_item',
+      'add_items', 'copy_items', 'create_list', 'empty_list', 'get_favorites', 'get_history',
+      'get_list', 'get_stats', 'list_lists', 'move_items', 'remove_item', 'rename_list',
+      'set_default_list', 'set_favorite', 'set_item_checked', 'suggest_items', 'update_item',
     ]);
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
     expect(byName['list_lists']!.annotations?.readOnlyHint).toBe(true);
     expect(byName['get_list']!.annotations?.readOnlyHint).toBe(true);
+    for (const name of ['get_favorites', 'suggest_items', 'get_history', 'get_stats']) {
+      expect(byName[name]!.annotations?.readOnlyHint).toBe(true);
+    }
     expect(byName['remove_item']!.annotations?.destructiveHint).toBe(true);
     expect(byName['empty_list']!.annotations?.destructiveHint).toBe(true);
     expect(byName['add_items']!.annotations?.destructiveHint).toBe(false);
@@ -212,5 +217,128 @@ describe('MCP tools', () => {
     expect(errorText(await call(stranger, 'empty_list', { list_id: weekend, scope: 'all' }))).toMatch(/not found/i);
     owner = await connectAs(OWNER);
     expect(json(await call(owner, 'get_list', { list_id: weekend })).items).toHaveLength(2);
+  });
+});
+
+describe('MCP tools: favorites, suggestions, history, stats, default list', () => {
+  const PLANNER = 'tools-planner';
+  const DAY = 24 * 60 * 60 * 1000;
+  let planner: Client;
+  let casa: string;
+
+  const seedHistory = async (listId: string, daysAgo: number, names: string[]) => {
+    const id = `h${daysAgo}`;
+    await getFirestore().collection('lists').doc(listId).collection('history').doc(id).set({
+      id,
+      listId,
+      completedAt: Date.now() - daysAgo * DAY,
+      itemCount: names.length,
+      recordedByUid: PLANNER,
+      trigger: 'completion',
+      items: names.map((name) => ({ id: `${id}-${name}`, name, category: 'other', quantity: '1', checked: true })),
+    });
+  };
+
+  const seedFavorite = async (listId: string, name: string, usageCount: number) => {
+    const slug = normalizeName(name);
+    await getFirestore().collection('lists').doc(listId).collection('favoriteState').doc(slug).set({
+      slug, name, category: 'other', usageCount, lastUsedAt: Date.now(),
+    });
+  };
+
+  const favoriteNames = async () =>
+    json<{ favorites: Array<{ name: string; pinned?: boolean }> }>(await call(planner, 'get_favorites', { list_id: casa })).favorites;
+
+  it('sets up a list with history and favorites', async () => {
+    planner = await connectAs(PLANNER);
+    await getFirestore().collection('users').doc(PLANNER).set({ uid: PLANNER, email: 'p@example.com', displayName: 'P' });
+    casa = json<{ id: string }>(await call(planner, 'create_list', { name: 'casa' })).id;
+    json(await call(planner, 'add_items', { list_id: casa, items: [{ name: 'pane', category: 'bakery' }] }));
+    for (const daysAgo of [21, 14, 7]) await seedHistory(casa, daysAgo, ['Latte', 'Pane']);
+    await getFirestore().collection('lists').doc(casa).collection('favoriteState').get()
+      .then((snap) => Promise.all(snap.docs.map((d) => d.ref.delete())));
+    await seedFavorite(casa, 'Uova', 5);
+    await seedFavorite(casa, 'Burro', 1);
+  });
+
+  it('get_favorites ranks like the app shelf: below the usage threshold stays hidden', async () => {
+    expect((await favoriteNames()).map((f) => f.name)).toEqual(['Uova']);
+  });
+
+  it('set_favorite pins, unpins and needs a category for an unknown item', async () => {
+    json(await call(planner, 'set_favorite', { list_id: casa, name: 'burro', favorite: true }));
+    expect(await favoriteNames()).toEqual([
+      { name: 'Burro', category: 'other', timesAdded: 1, pinned: true },
+      expect.objectContaining({ name: 'Uova' }),
+    ]);
+
+    json(await call(planner, 'set_favorite', { list_id: casa, name: 'Uova', favorite: false }));
+    expect((await favoriteNames()).map((f) => f.name)).toEqual(['Burro']);
+
+    expect(errorText(await call(planner, 'set_favorite', { list_id: casa, name: 'Zucchero', favorite: true }))).toMatch(/category/i);
+    json(await call(planner, 'set_favorite', { list_id: casa, name: 'zucchero', favorite: true, category: 'other' }));
+    expect((await favoriteNames()).map((f) => f.name)).toContain('Zucchero');
+  });
+
+  it('suggest_items proposes what is due and skips what is already on the list', async () => {
+    const r = json<{ shopsInHistory: number; suggestions: Array<Record<string, unknown>> }>(
+      await call(planner, 'suggest_items', { list_id: casa }),
+    );
+    expect(r.shopsInHistory).toBe(3);
+    expect(r.suggestions).toEqual([
+      { name: 'Latte', category: 'other', quantity: '1', due: true, timesBought: 3, everyDays: 7 },
+    ]);
+  });
+
+  it('get_history returns past shops newest first, without uids', async () => {
+    const { shops } = json<{ shops: Array<{ date: string; items: unknown[] }> }>(
+      await call(planner, 'get_history', { list_id: casa, limit: 2 }),
+    );
+    expect(shops).toHaveLength(2);
+    expect(Date.parse(shops[0]!.date)).toBeGreaterThan(Date.parse(shops[1]!.date));
+    expect(JSON.stringify(shops)).not.toContain(PLANNER);
+  });
+
+  it('get_stats reads only the caller\'s own catalog', async () => {
+    const entries = getFirestore().collection('catalog').doc(PLANNER).collection('entries');
+    await entries.get().then((snap) => Promise.all(snap.docs.map((d) => d.ref.delete())));
+    await entries.doc('c1').set({ id: 'c1', ownerUid: PLANNER, name: 'Latte', category: 'dairy', usageCount: 3, lastUsedAt: 1 });
+    await entries.doc('c2').set({ id: 'c2', ownerUid: PLANNER, name: 'Mele', category: 'fruit_vegetables', usageCount: 1, lastUsedAt: 1 });
+    const stats = json(await call(planner, 'get_stats', {}));
+    expect(stats.topItems).toEqual([
+      { name: 'Latte', category: 'dairy', timesAdded: 3 },
+      { name: 'Mele', category: 'fruit_vegetables', timesAdded: 1 },
+    ]);
+    expect(stats.categories[0]).toEqual({ category: 'dairy', timesAdded: 3, percent: 75 });
+    expect(stats.totals).toMatchObject({ totalUsage: 4 });
+
+    const other = await connectAs('tools-stats-other');
+    expect(json(await call(other, 'get_stats', {})).topItems).toEqual([]);
+    planner = await connectAs(PLANNER);
+  });
+
+  it('set_default_list marks the list as default and can clear it', async () => {
+    json(await call(planner, 'set_default_list', { list_id: casa }));
+    const isDefault = async () =>
+      json<{ lists: Array<{ id: string; isDefault: boolean }> }>(await call(planner, 'list_lists', {}))
+        .lists.find((l) => l.id === casa)!.isDefault;
+    expect(await isDefault()).toBe(true);
+    json(await call(planner, 'set_default_list', { list_id: null }));
+    expect(await isDefault()).toBe(false);
+  });
+
+  it('never reaches favorites, suggestions, history or default of a list the user is not a member of', async () => {
+    const stranger = await connectAs(STRANGER);
+    for (const [name, args] of [
+      ['get_favorites', { list_id: casa }],
+      ['set_favorite', { list_id: casa, name: 'Uova', favorite: true }],
+      ['suggest_items', { list_id: casa }],
+      ['get_history', { list_id: casa }],
+      ['set_default_list', { list_id: casa }],
+    ] as const) {
+      expect(errorText(await call(stranger, name, args)), name).toMatch(/not found/i);
+    }
+    planner = await connectAs(PLANNER);
+    expect((await favoriteNames()).map((f) => f.name)).not.toContain('Uova');
   });
 });

@@ -107,3 +107,8 @@ Append-only timeline. Newest entries at the bottom.
 - New page `concepts/mcp-server.md`: request path, OAuth endpoints, beta gate, Connected apps, account deletion (grants revoked, `/mcp` refuses deleted uids), rate-limit keys.
 - `concepts/data-model.md`: OAuth collections and `config/mcp`, closing the open note of 2026-10-14. TTL field is `expireAt` (Date); the plan said `expiresAt`, fixed there too.
 - Pages touched: overview, index, concepts/data-model, concepts/mcp-server.
+
+## [2026-10-15] update | MCP: six new tools
+- Source: `netlify/mcp/server.ts`, `tasks/mcp-plan.md`
+- Pages touched: concepts/mcp-server
+- Notes: favorites, suggestions (magic wand), history, stats, default list. Security review in the plan.

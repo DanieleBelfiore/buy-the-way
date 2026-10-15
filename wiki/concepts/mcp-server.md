@@ -20,12 +20,12 @@ client -> /mcp (Bearer token)
   -> oauthTokens lookup (hash) -> uid + grant
   -> beta gate config/mcp -> rate limits (per uid)
   -> client SDK signed in as uid (custom token, claim via: 'mcp')
-  -> McpServer (11 tools) -> src/services/* -> Firestore rules
+  -> McpServer (17 tools) -> src/services/* -> Firestore rules
 ```
 
 - **Stateless Streamable HTTP**: POST only, JSON responses, a fresh server per request. Code in `netlify/mcp/` (`handler.ts`, `server.ts`, `session.ts`), bundled by `vite.mcp.config.ts` into `netlify/functions/mcp/` during the CI deploy.
 - **Rules stay the single enforcement point**: the tools call the same services as the app, signed in as the user. Items added this way get `addedVia: 'assistant'`.
-- **Tools**: `list_lists`, `get_list`, `create_list`, `add_items`, `set_item_checked`, `update_item`, `remove_item`, `move_items`, `copy_items`, `rename_list`, `empty_list`. No list deletion, collaborators or photos. `empty_list` requires an explicit scope, as the app's dialog does.
+- **Tools**: `list_lists`, `get_list`, `create_list`, `add_items`, `set_item_checked`, `update_item`, `remove_item`, `move_items`, `copy_items`, `rename_list`, `empty_list`, plus (2026-10-15) `get_favorites`, `set_favorite`, `suggest_items`, `get_history`, `get_stats`, `set_default_list`. No list deletion, collaborators or photos. Read tools return names, categories and quantities only: no uids, notes in history or photo URLs. `empty_list` requires an explicit scope, as the app's dialog does.
 
 ## OAuth 2.1 authorization server
 

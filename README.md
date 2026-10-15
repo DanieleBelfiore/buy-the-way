@@ -142,8 +142,13 @@ Any other client that supports remote MCP over Streamable HTTP with OAuth works 
 | `remove_item` | Remove one item (asks for confirmation) |
 | `move_items` / `copy_items` | Move or copy items to another list |
 | `empty_list` | Remove all items or only the checked ones; always asks which |
+| `get_favorites` / `set_favorite` | A list's favorites shelf; pin or unpin an item |
+| `suggest_items` | The magic wand: what is due again, from the list's past shops |
+| `get_history` | Past shops of a list, newest first |
+| `get_stats` | Most added items, category split and totals across your lists |
+| `set_default_list` | Choose (or clear) the default list, used when you do not name one |
 
-Not available by design: deleting lists, managing collaborators, photos.
+Not available by design: deleting, leaving or transferring lists, managing collaborators (invites email a third party), photos, account settings (export, deletion, connected apps, notifications) and purely visual settings (wallpaper, category and list order).
 
 ### How it works
 

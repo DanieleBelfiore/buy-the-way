@@ -145,6 +145,14 @@ Deployable bundle: `vite.mcp.config.ts` (SSR build, `firebase-admin` external), 
 | `copy_items` | `bulkCopyItems` | |
 | `rename_list` | `renameList` | idempotent |
 | `empty_list` | `recordListHistory` + `emptyList`, `scope: 'all' \| 'checked'` | destructive |
+| `get_favorites` | `fetchListFavorites` + `rankListFavorites` | readOnly |
+| `set_favorite` | `findListFavoriteByName` / `ensureListFavorite` + `setListFavoriteState` | idempotent |
+| `suggest_items` | `fetchListHistory` + `buildSuggestions` | readOnly |
+| `get_history` | `fetchListHistory` | readOnly |
+| `get_stats` | `fetchCatalog` + `domain/stats` | readOnly |
+| `set_default_list` | `setUserDefaultList` | idempotent |
+
+Added 2026-10-15 after a feature triage of the app. Security notes: every list tool goes through `requireList` (membership) and the unchanged rules (`favoriteState` and `history` are collaborator-only, `catalog` and `private/state` owner-only); outputs omit uids and photo URLs; `set_favorite` and `set_default_list` are reversible and mirror what any collaborator can do in the app. Item names and history are written by collaborators, so the server instructions tell the model to treat them as data (prompt injection). Left out on purpose: list deletion/leave/ownership transfer (irreversible), collaborators (invites email a third party), photos, account settings, purely visual settings.
 
 Notes on the list-level tools (added 2026-10-14):
 

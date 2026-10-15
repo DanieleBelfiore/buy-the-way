@@ -4,6 +4,7 @@ import {
   setDoc,
   updateDoc,
   getDoc,
+  getDocs,
   onSnapshot,
   increment,
 } from 'firebase/firestore';
@@ -30,6 +31,12 @@ export const subscribeListFavorites = (
     },
     (error) => onError(error as Error),
   );
+};
+
+/** One-shot read of a list's favorite state, for callers without a live view (MCP). */
+export const fetchListFavorites = async (listId: ULID): Promise<ListFavoriteState[]> => {
+  const snap = await getDocs(collection(db, 'lists', listId, 'favoriteState'));
+  return snap.docs.map((d) => ({ slug: d.id, ...d.data() }) as ListFavoriteState);
 };
 
 /**

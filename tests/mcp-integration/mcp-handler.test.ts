@@ -99,7 +99,7 @@ describe('/mcp handler', () => {
     expect(((await init.json()) as any).result.serverInfo.name).toBe('buy-the-way');
 
     const list = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-    expect(((await list.json()) as any).result.tools).toHaveLength(11);
+    expect(((await list.json()) as any).result.tools).toHaveLength(17);
 
     const created = await rpc({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'create_list', arguments: { name: 'via http' } } });
     const createdText = ((await created.json()) as any).result.content[0].text;

@@ -31,6 +31,12 @@ export const subscribeCatalog = (
   );
 };
 
+/** One-shot read of the user's catalog, for callers without a live view (MCP). */
+export const fetchCatalog = async (ownerUid: string): Promise<CatalogEntry[]> => {
+  const snap = await getDocs(collection(db, 'catalog', ownerUid, 'entries'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as CatalogEntry);
+};
+
 export const upsertCatalogEntry = async (
   ownerUid: string,
   name: string,
