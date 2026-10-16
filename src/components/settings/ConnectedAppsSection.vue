@@ -55,7 +55,14 @@ watch(
 onUnmounted(stop);
 
 const dateFormatter = computed(
-  () => new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short', year: 'numeric' }),
+  () =>
+    new Intl.DateTimeFormat(locale.value, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
 );
 const formatDate = (ms: number): string => dateFormatter.value.format(new Date(ms));
 const nameOf = (app: ConnectedApp): string => app.clientName.trim() || t('connectedApps.unnamed');

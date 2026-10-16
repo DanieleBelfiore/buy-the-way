@@ -17,7 +17,7 @@
   },
   "auth": {
     "loginTitle": "Accedi alle tue liste",
-    "loginSubtitle": "Con Google o con un link via email. Niente password da ricordare.",
+    "loginSubtitle": "Con Google o con un link via email.\nNiente password da ricordare.",
     "continueWithGoogle": "Accedi con Google",
     "signOut": "Esci",
     "signingIn": "Accesso in corso…",

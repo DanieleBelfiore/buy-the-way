@@ -100,7 +100,7 @@ const useAnotherMagicLinkEmail = (): void => {
         >
           {{ t('auth.loginTitle') }}
         </h1>
-        <p class="text-base leading-relaxed text-muted-gray text-pretty">
+        <p class="text-base leading-relaxed text-muted-gray text-pretty whitespace-pre-line">
           {{ t('auth.loginSubtitle') }}
         </p>
       </div>
