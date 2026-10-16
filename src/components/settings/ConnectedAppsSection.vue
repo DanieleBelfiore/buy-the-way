@@ -92,7 +92,7 @@ const confirmDisconnect = async (): Promise<void> => {
     data-testid="connected-apps"
     class="px-5 pt-8"
   >
-    <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-1">
+    <h2 class="text-sm font-semibold text-muted-gray mb-1">
       {{ t('connectedApps.title') }}
     </h2>
     <p class="text-sm text-muted-gray mb-2">{{ t('connectedApps.hint') }}</p>
@@ -116,8 +116,8 @@ const confirmDisconnect = async (): Promise<void> => {
           type="button"
           :data-testid="`disconnect-${app.grantId}`"
           :aria-label="t('connectedApps.disconnectAria', { client: nameOf(app) })"
-          class="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-3 rounded-full text-sm font-medium text-red-700 dark:text-red-400
-                 hover:bg-red-700/10 active:bg-red-700/20 transition-colors"
+          class="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-3 rounded-full text-sm font-medium text-danger-ink
+                 hover:bg-danger-ink/10 active:bg-danger-ink/20 transition-colors"
           @click="askDisconnect(app)"
         >
           <Unplug :size="16" :stroke-width="2" aria-hidden="true" />

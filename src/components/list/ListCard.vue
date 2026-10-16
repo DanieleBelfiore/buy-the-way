@@ -95,7 +95,7 @@ const updatedLabel = computed(() => dateFormatter.value.format(new Date(props.li
 
 const pinButtonClass = computed(() => {
   const base =
-    'shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full';
+    'relative shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full';
   if (props.isDefault) {
     return hasWallpaper.value ? `${base} text-white` : `${base} text-primary`;
   }
@@ -108,10 +108,8 @@ const pinButtonClass = computed(() => {
   <div
     data-testid="list-card"
     :data-list-id="props.list.id"
-    role="button"
-    tabindex="0"
     :class="[
-      'group w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3 cursor-pointer',
+      'group relative w-full text-left px-4 py-3 rounded-2xl border flex items-center gap-3 cursor-pointer',
       'transition-[box-shadow,border-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
       hasWallpaper
         ? 'text-white border-transparent shadow-sm hover:shadow-md'
@@ -122,11 +120,18 @@ const pinButtonClass = computed(() => {
       { 'list-card-no-drag': props.isDefault },
     ]"
     :style="cardStyle"
-    :aria-label="props.list.name"
-    @click="emit('open', props.list.id)"
-    @keydown.enter.prevent="emit('open', props.list.id)"
-    @keydown.space.prevent="emit('open', props.list.id)"
   >
+    <!-- Opening the list is a transparent button stretched over the card,
+         not a role="button" wrapper: the pin is a button too, and nesting
+         one control inside another is invalid. The pin comes later and is
+         positioned, so it stays on top of this one. -->
+    <button
+      type="button"
+      data-testid="list-card-open"
+      class="absolute inset-0 w-full rounded-2xl"
+      :aria-label="props.list.name"
+      @click="emit('open', props.list.id)"
+    />
     <!-- Avatar cluster: profile photos use CSS background (not <img>) so a
          long-press on mobile does not offer "Save image" and clash with the
          list reorder drag gesture. -->

@@ -52,7 +52,7 @@ const skip = (): void => emit('done');
 <template>
   <div
     data-testid="onboarding-tour"
-    class="fixed inset-0 z-[200] flex items-center justify-center"
+    class="fixed inset-0 z-tour flex items-center justify-center"
   >
     <div
       data-testid="onboarding-backdrop"

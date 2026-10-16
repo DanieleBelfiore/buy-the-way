@@ -38,7 +38,7 @@ const empty = computed(() => count.value === 0);
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="favorites-backdrop"

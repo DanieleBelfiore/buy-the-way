@@ -40,6 +40,11 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     descriptionKey: 'seo.terms.description',
     public: true,
   },
+  'not-found': {
+    titleKey: 'seo.notFound.title',
+    descriptionKey: 'seo.notFound.description',
+    public: true,
+  },
   lists: {
     titleKey: 'seo.lists.title',
     descriptionKey: 'seo.lists.description',

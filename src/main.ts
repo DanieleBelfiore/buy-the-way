@@ -11,6 +11,10 @@ import { useThemeStore } from '@/stores/theme';
 import { installSafeBackTracker } from '@/composables/useSafeBack';
 import { setupServiceWorker } from '@/pwa/registerSW';
 import { setupInstallPrompt } from '@/pwa/installPrompt';
+// Imported here, not via @import in global.css: going through Tailwind's CSS
+// pipeline left the font's relative url(./files/...) unrewritten, so the
+// woff2 requests hit the SPA fallback and the font never loaded.
+import '@fontsource-variable/hanken-grotesk/index.css';
 import '@/styles/global.css';
 
 const app = createApp(App);

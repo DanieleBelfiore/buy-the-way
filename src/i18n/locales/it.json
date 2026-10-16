@@ -16,6 +16,8 @@
     "back": "Indietro"
   },
   "auth": {
+    "loginTitle": "Accedi alle tue liste",
+    "loginSubtitle": "Con Google o con un link via email. Niente password da ricordare.",
     "continueWithGoogle": "Accedi con Google",
     "signOut": "Esci",
     "signingIn": "Accesso in corso…",
@@ -67,7 +69,8 @@
     "completionEmptyTitle": "Tutto comprato!",
     "completionEmptyMessage": "Hai spuntato tutti gli articoli. Vuoi svuotare la lista adesso?",
     "completionEmptyConfirm": "Svuota lista",
-    "completionEmptyCancel": "Mantieni lista"
+    "completionEmptyCancel": "Mantieni lista",
+    "pageTitle": "Le mie liste"
   },
   "item": {
     "addPlaceholder": "Aggiungi un articolo",
@@ -78,8 +81,8 @@
     "dontSuggestAgainMessage": "\"{name}\" non comparirà più nei suggerimenti dell'autocompletamento in nessuna delle tue liste.",
     "dontSuggestAgainAction": "Non suggerire più",
     "keepSuggesting": "Continua a suggerire",
-    "markAsBought": "Segna come comprato",
-    "markAsToBuy": "Segna come da comprare",
+    "markAsBought": "Segna {name} come comprato",
+    "markAsToBuy": "Segna {name} come da comprare",
     "firstCheckTutorialToast": "Articolo segnato come comprato!",
     "addCustom": "Aggiungi \"{name}\" come articolo personalizzato",
     "quantity": "Quantità",
@@ -346,13 +349,34 @@
     "cta": "Inizia ora",
     "featuresTitle": "Funzionalità",
     "features": [
-      "Sincronizzazione in tempo reale su tutti i dispositivi",
-      "Funziona offline - le modifiche si sincronizzano quando torni online",
-      "Condividi le liste con familiari o coinquilini",
-      "Preferiti intelligenti basati su ciò che acquisti più spesso",
-      "Statistiche sulle tue abitudini di acquisto",
-      "Collegabile al tuo assistente AI (Claude e altri, tramite MCP)",
-      "Nessuna pubblicità, nessun tracking, nessuna analytics"
+      {
+        "term": "Tempo reale",
+        "desc": "Ogni modifica appare subito su tutti i dispositivi."
+      },
+      {
+        "term": "Offline",
+        "desc": "Quello che fai senza rete si sincronizza appena torni online."
+      },
+      {
+        "term": "Condivisione",
+        "desc": "Liste in comune con familiari o coinquilini."
+      },
+      {
+        "term": "Preferiti",
+        "desc": "Suggerimenti basati su ciò che compri più spesso."
+      },
+      {
+        "term": "Statistiche",
+        "desc": "Le tue abitudini di acquisto, in chiaro."
+      },
+      {
+        "term": "Assistente AI",
+        "desc": "Collegabile a Claude e ad altri assistenti tramite MCP."
+      },
+      {
+        "term": "Privacy",
+        "desc": "Nessuna pubblicità, nessun tracking, nessuna analytics."
+      }
     ],
     "faqTitle": "Domande frequenti",
     "faq": [
@@ -400,32 +424,70 @@
         "q": "Quali lingue sono supportate?",
         "a": "Italiano e inglese. L'interfaccia cambia in base alla preferenza nelle Impostazioni."
       }
-    ]
+    ],
+    "closingTitle": "Pronta per la prossima spesa?"
   },
   "home": {
-    "heroTitle": "Le liste della spesa che tutta la famiglia condivide",
-    "heroSubtitle": "Buy The Way tiene tutti sincronizzati in tempo reale. Aggiungi articoli, spuntali e non comprare mai due volte la stessa cosa. Gratis, pronta offline, senza pubblicità.",
+    "heroTitle": "Le liste della spesa che tutta la famiglia {accent}",
+    "heroTitleAccent": "condivide",
+    "heroSubtitle": "Aggiungi, spunta, fatto: tutti vedono la stessa lista in tempo reale, anche senza segnale in corsia.",
+    "heroNote": "Gratis. Niente pubblicità, niente tracking.",
     "ctaPrimary": "Inizia ora",
     "ctaSecondary": "Scopri di più",
-    "highlightsTitle": "Perché Buy The Way",
-    "highlights": [
-      {
-        "title": "Sincronizzazione in tempo reale",
-        "body": "Ogni modifica appare all'istante su tutti i dispositivi tuoi e della tua famiglia."
+    "highlightsTitle": "Pensata per la spesa vera",
+    "features": {
+      "sync": {
+        "title": "Una lista, tutti allineati",
+        "body": "Spunti il latte al banco frigo e a casa sparisce dalla lista di chi stava per comprarlo. Ogni modifica arriva sui telefoni di tutti in un istante.",
+        "deviceA": "Il tuo telefono",
+        "deviceB": "Telefono di Marco",
+        "item": "Latte",
+        "other": "Uova"
       },
-      {
-        "title": "Funziona offline",
-        "body": "Fai la spesa anche senza segnale. Le modifiche si sincronizzano appena torni online."
+      "offline": {
+        "title": "Il segnale cade, la lista no",
+        "body": "Nei sotterranei del supermercato l'app continua a funzionare. Aggiungi e spunti come sempre: tutto si sincronizza appena torni online.",
+        "banner": "Sei offline",
+        "pending": "In attesa di rete"
       },
-      {
-        "title": "Privata per scelta",
-        "body": "Nessuna pubblicità, nessun tracking, nessuna analytics. Le tue liste restano tue."
-      },
-      {
-        "title": "Anche dal tuo assistente AI",
-        "body": "Collega Claude o un altro assistente AI e chiedigli di aggiornare le liste: \"aggiungi quello che serve per una carbonara\". In beta."
+      "ai": {
+        "title": "Chiedilo al tuo assistente",
+        "label": "In beta",
+        "body": "Collega Claude o un altro assistente AI e scrivigli cosa ti serve. Lui sceglie gli articoli, li mette nella categoria giusta e aggiorna la lista condivisa.",
+        "prompt": "aggiungi quello che serve per una carbonara",
+        "reply": "Aggiunti 5 articoli a Spesa di sabato.",
+        "items": [
+          "Spaghetti",
+          "Guanciale",
+          "Uova",
+          "Pecorino",
+          "Pepe nero"
+        ]
       }
-    ]
+    },
+    "privacyBand": {
+      "statement": "Nessuna pubblicità. Nessun tracking. Nessuna analytics.",
+      "body": "Le tue liste sono visibili solo a te e alle persone con cui le condividi.",
+      "link": "Leggi l'informativa privacy"
+    },
+    "closing": {
+      "title": "La prossima spesa, già in lista.",
+      "cta": "Crea la tua prima lista"
+    },
+    "mock": {
+      "title": "Spesa di sabato",
+      "items": {
+        "tomatoes": "Pomodorini",
+        "basil": "Basilico",
+        "lemons": "Limoni",
+        "mozzarella": "Mozzarella",
+        "yogurt": "Yogurt greco",
+        "bread": "Pane integrale"
+      },
+      "syncAuthor": "Marco",
+      "syncAction": "ha aggiunto {item}",
+      "syncTime": "ora"
+    }
   },
   "seo": {
     "login": {
@@ -463,6 +525,10 @@
     "oauthAuthorize": {
       "title": "Collega un assistente AI · Buy The Way",
       "description": "Autorizza un assistente AI ad accedere alle tue liste."
+    },
+    "notFound": {
+      "title": "Pagina non trovata · Buy The Way",
+      "description": "Questa pagina non esiste."
     }
   },
   "stats": {
@@ -515,5 +581,20 @@
     "errorTitle": "Qualcosa è andato storto",
     "errorBody": "Non è stato possibile completare la richiesta. Riprova tra poco.",
     "retry": "Riprova"
+  },
+  "public": {
+    "header": {
+      "home": "Buy The Way, pagina iniziale",
+      "nav": "Principale",
+      "signIn": "Accedi"
+    }
+  },
+  "notFound": {
+    "title": "Questa pagina non è nella lista.",
+    "body": "Il link potrebbe essere vecchio o scritto male. Riparti dalla pagina iniziale.",
+    "home": "Torna alla home",
+    "lists": "Le mie liste",
+    "checked1": "Latte",
+    "checked2": "Pane"
   }
 }

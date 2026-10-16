@@ -64,7 +64,7 @@ const visible = computed(() => !ready.value || navSlow.value);
   <Transition name="global-loader-fade">
     <div
       v-if="visible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-cream"
+      class="fixed inset-0 z-boot flex items-center justify-center bg-cream"
       role="status"
       aria-live="polite"
       :aria-label="t('common.loading')"

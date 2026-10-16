@@ -32,7 +32,7 @@ useFocusTrap(openRef, dialogRef);
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="priority-picker-backdrop"
@@ -93,10 +93,10 @@ useFocusTrap(openRef, dialogRef);
           data-testid="priority-picker-urgent"
           :aria-checked="currentPriority() === 'urgent'"
           :class="[
-            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-orange-500',
+            'flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-xs font-medium transition-colors text-center text-urgent',
             currentPriority() === 'urgent'
-              ? 'border-orange-400 bg-orange-50'
-              : 'border-cream-soft bg-offwhite hover:bg-orange-50/50',
+              ? 'border-urgent bg-urgent-soft'
+              : 'border-cream-soft bg-offwhite hover:bg-urgent-soft/50',
           ]"
           @click="onSelect('urgent')"
         >

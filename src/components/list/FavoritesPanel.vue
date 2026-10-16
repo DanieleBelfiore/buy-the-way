@@ -63,7 +63,7 @@ const groups = computed<Array<[Category, ListFavoriteState[]]>>(() =>
       :data-testid="`shelf-group-${category}`"
     >
       <h3
-        class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-gray font-medium mb-1.5"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-gray mb-1.5"
         :data-testid="`shelf-group-title-${category}`"
       >
         <span aria-hidden="true" :style="{ color: CATEGORIES[category].cssVar }">{{ CATEGORIES[category].icon }}</span>

@@ -28,7 +28,7 @@ const titleId = useId();
 
 const confirmClasses = computed(() =>
   props.destructive
-    ? 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900'
+    ? 'bg-danger text-white hover:bg-danger-hover active:bg-danger-active'
     : 'bg-primary text-white hover:bg-primary-hover active:bg-primary-active',
 );
 
@@ -45,7 +45,7 @@ useFocusTrap(openRef, dialogRef);
 </script>
 
 <template>
-  <div v-if="props.open" class="fixed inset-0 z-[120] flex items-center justify-center">
+  <div v-if="props.open" class="fixed inset-0 z-modal flex items-center justify-center">
     <div
       data-testid="confirm-modal-backdrop"
       class="absolute inset-0 bg-black/40"

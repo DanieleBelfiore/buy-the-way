@@ -85,7 +85,7 @@ const submit = async (): Promise<void> => {
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="feedback-modal-backdrop"
@@ -122,7 +122,7 @@ const submit = async (): Promise<void> => {
         v-if="errorMsg"
         data-testid="feedback-error"
         role="alert"
-        class="mt-2 text-sm text-red-600"
+        class="mt-2 text-sm text-danger-ink"
       >
         {{ t('settings.feedbackError') }}
       </p>
@@ -142,7 +142,7 @@ const submit = async (): Promise<void> => {
           data-testid="feedback-submit"
           type="button"
           :disabled="sending || !message.trim()"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors disabled:bg-cream-soft disabled:text-muted-gray"
           @click="submit"
         >
           <Send :size="16" :stroke-width="2.25" aria-hidden="true" />

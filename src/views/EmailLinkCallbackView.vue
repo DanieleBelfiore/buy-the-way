@@ -91,7 +91,7 @@ onMounted(async () => {
           :placeholder="t('auth.magicLink.emailLabel')"
           class="w-full px-4 py-3 bg-cream border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
         />
-        <p v-if="errorMessage" class="text-red-600 text-xs">{{ errorMessage }}</p>
+        <p v-if="errorMessage" class="text-danger-ink text-xs">{{ errorMessage }}</p>
         <button
           type="submit"
           data-testid="magic-link-confirm"
@@ -103,7 +103,7 @@ onMounted(async () => {
       </form>
 
       <div v-else data-testid="magic-link-error" class="space-y-3 text-center">
-        <p class="text-base font-semibold text-red-700">
+        <p class="text-base font-semibold text-danger-ink">
           {{ t('auth.magicLink.errorTitle') }}
         </p>
         <p v-if="errorMessage" class="text-xs text-muted-gray">{{ errorMessage }}</p>

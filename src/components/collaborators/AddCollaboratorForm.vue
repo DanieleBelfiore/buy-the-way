@@ -65,7 +65,7 @@ const onSubmit = async () => {
         spellcheck="false"
         :aria-label="t('collaborators.addPlaceholder')"
         :placeholder="t('collaborators.addPlaceholder')"
-        class="flex-1 px-4 py-3 bg-offwhite border border-cream-soft rounded-xl
+        class="flex-1 min-w-0 px-4 py-3 bg-offwhite border border-cream-soft rounded-xl
                text-sm text-charcoal placeholder-muted-gray
                focus:outline-none focus:ring-2 focus:ring-charcoal/20"
         @input="onInput"
@@ -74,7 +74,7 @@ const onSubmit = async () => {
         type="submit"
         :disabled="!canSubmit"
         class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl
-               hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
+               hover:bg-primary-hover active:bg-primary-active disabled:bg-cream-soft disabled:text-muted-gray min-w-[110px]"
       >
         <UserPlus :size="16" :stroke-width="2" aria-hidden="true" />
         {{ t('collaborators.submit') }}

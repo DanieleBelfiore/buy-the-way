@@ -16,6 +16,8 @@
     "back": "Back"
   },
   "auth": {
+    "loginTitle": "Sign in to your lists",
+    "loginSubtitle": "With Google or an email link. No password to remember.",
     "continueWithGoogle": "Sign in with Google",
     "signOut": "Sign out",
     "signingIn": "Signing in…",
@@ -67,7 +69,8 @@
     "completionEmptyTitle": "All bought!",
     "completionEmptyMessage": "You have checked off every item. Empty the list now?",
     "completionEmptyConfirm": "Empty list",
-    "completionEmptyCancel": "Keep list"
+    "completionEmptyCancel": "Keep list",
+    "pageTitle": "My lists"
   },
   "item": {
     "addPlaceholder": "Add an item",
@@ -78,8 +81,8 @@
     "dontSuggestAgainMessage": "\"{name}\" will no longer appear in autocomplete suggestions across any of your lists.",
     "dontSuggestAgainAction": "Don't suggest again",
     "keepSuggesting": "Keep suggesting",
-    "markAsBought": "Mark as bought",
-    "markAsToBuy": "Mark as to buy",
+    "markAsBought": "Mark {name} as bought",
+    "markAsToBuy": "Mark {name} as to buy",
     "firstCheckTutorialToast": "Item marked as bought!",
     "addCustom": "Add \"{name}\" as a custom item",
     "quantity": "Quantity",
@@ -346,13 +349,34 @@
     "cta": "Get started",
     "featuresTitle": "Features",
     "features": [
-      "Real-time sync across devices",
-      "Works offline - changes sync when you reconnect",
-      "Share lists with family or roommates",
-      "Smart favorites based on what you buy most",
-      "Statistics on your shopping habits",
-      "Works with your AI assistant (Claude and others, via MCP)",
-      "No ads, no tracking, no analytics"
+      {
+        "term": "Real time",
+        "desc": "Every change shows up on every device right away."
+      },
+      {
+        "term": "Offline",
+        "desc": "What you do without a connection syncs as soon as you are back online."
+      },
+      {
+        "term": "Sharing",
+        "desc": "Lists in common with family or housemates."
+      },
+      {
+        "term": "Favorites",
+        "desc": "Suggestions based on what you buy most often."
+      },
+      {
+        "term": "Stats",
+        "desc": "Your shopping habits, laid out plainly."
+      },
+      {
+        "term": "AI assistant",
+        "desc": "Connects to Claude and other assistants over MCP."
+      },
+      {
+        "term": "Privacy",
+        "desc": "No ads, no tracking, no analytics."
+      }
     ],
     "faqTitle": "Frequently asked questions",
     "faq": [
@@ -400,32 +424,70 @@
         "q": "Which languages are supported?",
         "a": "Italian and English. The interface switches based on your preference in Settings."
       }
-    ]
+    ],
+    "closingTitle": "Ready for your next shop?"
   },
   "home": {
-    "heroTitle": "Shopping lists your whole family shares",
-    "heroSubtitle": "Buy The Way keeps everyone in sync in real time. Add items, check them off, and never buy the same thing twice. Free, offline-ready, no ads.",
+    "heroTitle": "Shopping lists your whole family {accent}",
+    "heroTitleAccent": "shares",
+    "heroSubtitle": "Add it, tick it, done: everyone sees the same list in real time, even with no signal in the aisle.",
+    "heroNote": "Free. No ads, no tracking.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Learn more",
-    "highlightsTitle": "Why Buy The Way",
-    "highlights": [
-      {
-        "title": "Real-time sync",
-        "body": "Every change appears instantly on every device you and your family use."
+    "highlightsTitle": "Built for real grocery runs",
+    "features": {
+      "sync": {
+        "title": "One list, everyone in step",
+        "body": "Tick off the milk at the dairy aisle and it disappears from the list of whoever was about to buy it. Every change reaches everyone's phone in an instant.",
+        "deviceA": "Your phone",
+        "deviceB": "Priya's phone",
+        "item": "Milk",
+        "other": "Eggs"
       },
-      {
-        "title": "Works offline",
-        "body": "Shop without signal. Your edits sync the moment you reconnect."
+      "offline": {
+        "title": "The signal drops, the list doesn't",
+        "body": "Down in the supermarket basement the app keeps working. Add and tick as usual: everything syncs as soon as you are back online.",
+        "banner": "You're offline",
+        "pending": "Waiting for network"
       },
-      {
-        "title": "Private by design",
-        "body": "No ads, no tracking, no analytics. Your lists stay yours."
-      },
-      {
-        "title": "From your AI assistant too",
-        "body": "Connect Claude or another AI assistant and ask it to update your lists: \"add what I need for a carbonara\". In beta."
+      "ai": {
+        "title": "Ask your assistant",
+        "label": "Beta",
+        "body": "Connect Claude or another AI assistant and tell it what you need. It picks the items, files them under the right category and updates the shared list.",
+        "prompt": "add what I need for a carbonara",
+        "reply": "Added 5 items to Saturday shop.",
+        "items": [
+          "Spaghetti",
+          "Guanciale",
+          "Eggs",
+          "Pecorino",
+          "Black pepper"
+        ]
       }
-    ]
+    },
+    "privacyBand": {
+      "statement": "No ads. No tracking. No analytics.",
+      "body": "Your lists are read only by you and the people you share them with.",
+      "link": "Read the privacy policy"
+    },
+    "closing": {
+      "title": "Your next shop, already on the list.",
+      "cta": "Create your first list"
+    },
+    "mock": {
+      "title": "Saturday shop",
+      "items": {
+        "tomatoes": "Cherry tomatoes",
+        "basil": "Basil",
+        "lemons": "Lemons",
+        "mozzarella": "Mozzarella",
+        "yogurt": "Greek yogurt",
+        "bread": "Wholemeal bread"
+      },
+      "syncAuthor": "Priya",
+      "syncAction": "added {item}",
+      "syncTime": "now"
+    }
   },
   "seo": {
     "login": {
@@ -463,6 +525,10 @@
     "oauthAuthorize": {
       "title": "Connect an AI assistant · Buy The Way",
       "description": "Allow an AI assistant to access your lists."
+    },
+    "notFound": {
+      "title": "Page not found · Buy The Way",
+      "description": "This page does not exist."
     }
   },
   "stats": {
@@ -515,5 +581,20 @@
     "errorTitle": "Something went wrong",
     "errorBody": "The request could not be completed. Try again in a moment.",
     "retry": "Try again"
+  },
+  "public": {
+    "header": {
+      "home": "Buy The Way, home",
+      "nav": "Main",
+      "signIn": "Sign in"
+    }
+  },
+  "notFound": {
+    "title": "This page isn't on the list.",
+    "body": "The link may be old or mistyped. Start again from the home page.",
+    "home": "Back to home",
+    "lists": "My lists",
+    "checked1": "Milk",
+    "checked2": "Bread"
   }
 }

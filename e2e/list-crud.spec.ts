@@ -55,15 +55,15 @@ test('open list → add item → check → reload preserved', async ({ page }) =
   await addItem(page, 'Milk');
   await addItem(page, 'Yogurt');
 
-  const milkRow = page.getByTestId('row-toggle').filter({ hasText: 'Milk' });
-  await expect(milkRow).toHaveAttribute('aria-label', 'Mark as bought');
+  const milkRow = page.getByTestId('list-item-row').filter({ hasText: 'Milk' }).getByTestId('row-toggle');
+  await expect(milkRow).toHaveAttribute('aria-label', 'Mark Milk as bought');
   await milkRow.click();
-  await expect(milkRow).toHaveAttribute('aria-label', 'Mark as to buy');
+  await expect(milkRow).toHaveAttribute('aria-label', 'Mark Milk as to buy');
 
   await page.reload();
-  await expect(page.getByTestId('row-toggle').filter({ hasText: 'Milk' })).toHaveAttribute(
+  await expect(page.getByTestId('list-item-row').filter({ hasText: 'Milk' }).getByTestId('row-toggle')).toHaveAttribute(
     'aria-label',
-    'Mark as to buy',
+    'Mark Milk as to buy',
   );
   // Stats reflect 1 bought of 2 items.
   await expect(page.getByTestId('stat-bought')).toContainText('1/2');

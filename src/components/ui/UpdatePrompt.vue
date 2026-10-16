@@ -23,7 +23,7 @@ const onReload = async (): Promise<void> => {
 <template>
   <div
     v-if="needRefresh"
-    class="fixed inset-0 z-[250] flex items-center justify-center px-5"
+    class="fixed inset-0 z-update flex items-center justify-center px-5"
     data-testid="update-required-overlay"
   >
     <div

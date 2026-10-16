@@ -86,7 +86,7 @@ The product UI follows a **single editorial direction**: Editorial Cream / Lovab
 - **Tone:** warm-neutral (cream, not white) with charcoal ink. Color used semantically for category icons only - never for surfaces, buttons, or chrome.
 - **Single direction commitment:** versions B (cream + citrus) and C (notebook) explored during design were rejected. Version A is the canonical look.
 - **Light + dark theme:** dark mode shipped in Sprint 4. Tokens flip on `[data-theme]`; manual override persisted per user; default follows the OS via `prefers-color-scheme`.
-- **Typography:** Hanken Grotesk (Google Fonts) as the production substitute for Lovable's Camera Plain Variable. Weights 400/500/600 only.
+- **Typography:** Hanken Grotesk as the production substitute for Lovable's Camera Plain Variable, self-hosted via `@fontsource-variable/hanken-grotesk` (CSS family name `'Hanken Grotesk Variable'`). Weights 400/500/600 only. Public pages (landing, about, login, legal) add Fraunces (`@fontsource-variable/fraunces`, token `--font-display`) for headings only; see `tasks/redesign-brief.md`.
 
 **Canonical palette - Editorial Cream (Lovable tokens):**
 
@@ -98,8 +98,13 @@ The product UI follows a **single editorial direction**: Editorial Cream / Lovab
 | Primary ink / dark surfaces | `--charcoal` | `#1c1c1c` | Body text, primary CTA fill, FAB, dark chips, offline banner, toast |
 | Captions / muted | `--muted-gray` | `#5f5f5d` | Labels, captions, secondary text |
 | Focus ring | `--ring-blue` | `rgba(59,130,246,0.5)` | Focus visible state |
+| Danger fill | `--danger` (+ `-hover`, `-active`) | `#b91c1c` | Confirm button of a destructive modal, recording indicator; white text on top |
+| Danger ink | `--danger-ink` | `#b91c1c` (dark `#f87171`) | Error text, destructive outline buttons and icons |
+| Danger tint | `--danger-soft` | `#fbeaea` (dark `#2e1a1c`) | Error box background |
+| Urgent ink | `--urgent` | `#c2410c` (dark `#fb923c`) | Urgent item name and flame icon |
+| Urgent tint | `--urgent-soft` | `#fff1e6` (dark `#33231a`) | Selected "Urgente" option |
 
-Opacity-derived neutrals (all from `--charcoal`) are used for hover tints and depth: `--ink-04`, `--ink-03`, `--ink-40`, `--ink-82`, `--ink-83`, `--ink-100`. No new hex codes outside this set.
+Opacity-derived neutrals (all from `--charcoal`) are used for hover tints and depth: `--ink-04`, `--ink-03`, `--ink-40`, `--ink-82`, `--ink-83`, `--ink-100`. No new hex codes outside this set. Destructive actions use the danger tokens only, never Tailwind's `red-*` scale (`tasks/app-redesign-brief.md`, step 2).
 
 **Category icon hues (icon-only, never used as fill):**
 
@@ -230,8 +235,7 @@ buy-the-way/
 │   │   ├── useImageCompress.ts       # Client-side JPEG compression for item photos
 │   │   ├── useShareApp.ts            # Web Share API helper
 │   │   ├── useModalBack.ts           # Hardware-back integration for sheets
-│   │   ├── useSafeBack.ts            # Router back with fallback
-│   │   └── useFitText.ts             # Auto-shrink long names
+│   │   └── useSafeBack.ts            # Router back with fallback
 │   ├── services/                     # Firebase + serverless wrappers
 │   │   ├── firebase.ts               # Init app + Auth + Firestore + Storage + Messaging
 │   │   ├── auth.service.ts           # Google + email magic link + onAuthState + upsert users/{uid} + deleteAccountCascade

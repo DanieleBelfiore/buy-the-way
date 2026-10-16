@@ -96,10 +96,10 @@ test('two contexts see check toggle sync', async ({ browser }) => {
   await expect(bobPage.getByText('Eggs').first()).toBeVisible({ timeout: 5_000 });
 
   // Bob toggles Eggs; Alice's Eggs row should reflect the new state.
-  const bobEggs = bobPage.getByTestId('row-toggle').filter({ hasText: 'Eggs' });
+  const bobEggs = bobPage.getByTestId('list-item-row').filter({ hasText: 'Eggs' }).getByTestId('row-toggle');
   await bobEggs.click();
-  const aliceEggs = alicePage.getByTestId('row-toggle').filter({ hasText: 'Eggs' });
-  await expect(aliceEggs).toHaveAttribute('aria-label', 'Mark as to buy', { timeout: 3_000 });
+  const aliceEggs = alicePage.getByTestId('list-item-row').filter({ hasText: 'Eggs' }).getByTestId('row-toggle');
+  await expect(aliceEggs).toHaveAttribute('aria-label', 'Mark Eggs as to buy', { timeout: 3_000 });
 
   await aliceCtx.close();
   await bobCtx.close();

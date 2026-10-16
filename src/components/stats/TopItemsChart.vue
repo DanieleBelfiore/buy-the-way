@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import type { TooltipItem } from 'chart.js';
+import type { Scale, TooltipItem } from 'chart.js';
 import { useI18n } from 'vue-i18n';
 import { CATEGORIES } from '@/domain/categories';
 import { useThemeStore } from '@/stores/theme';
@@ -17,7 +17,16 @@ import type { TopItem } from '@/domain/stats';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
+// Chart.js draws on a canvas, so it cannot inherit CSS fonts: without this it
+// falls back to Helvetica. Read the app font from <body> so it stays in sync.
+if (typeof document !== 'undefined') {
+  ChartJS.defaults.font.family = getComputedStyle(document.body).fontFamily;
+}
+
 const props = defineProps<{ items: readonly TopItem[] }>();
+
+// Emoji + name; about what fits beside the bars on a 320 px phone.
+const LABEL_MAX_CHARS = 18;
 
 const { t } = useI18n();
 const themeStore = useThemeStore();
@@ -52,6 +61,12 @@ const chartData = computed(() => ({
   ],
 }));
 
+// The canvas is role="img": screen readers get the same data as text.
+const ariaLabel = computed(
+  () =>
+    `${t('stats.topItems.title')}. ${props.items.map((i) => `${i.name}: ${i.usageCount}`).join(', ')}`,
+);
+
 const chartOptions = computed(() => ({
   indexAxis: 'y' as const,
   responsive: true,
@@ -74,7 +89,16 @@ const chartOptions = computed(() => ({
     },
     y: {
       grid: { display: false },
-      ticks: { autoSkip: false, color: inkColor.value },
+      ticks: {
+        autoSkip: false,
+        color: inkColor.value,
+        // Chart.js clips an over-long label at the start ("zarella di
+        // bufala"). Cut it at the end instead; the tooltip keeps the full name.
+        callback(this: Scale, value: string | number): string {
+          const label = this.getLabelForValue(Number(value));
+          return label.length > LABEL_MAX_CHARS ? `${label.slice(0, LABEL_MAX_CHARS - 1).trimEnd()}…` : label;
+        },
+      },
     },
   },
 }));
@@ -84,6 +108,6 @@ const chartOptions = computed(() => ({
   <div data-testid="top-items-chart" class="w-full" :style="{ height: `${Math.max(items.length * 32 + 32, 220)}px` }">
     <!-- :key forces a fresh chart instance on theme flip so axes + ticks
          pick up the new ink color without needing a manual chart.update(). -->
-    <Bar :key="`bars-${themeStore.resolved}`" :data="chartData" :options="chartOptions" />
+    <Bar :key="`bars-${themeStore.resolved}`" :data="chartData" :options="chartOptions" :aria-label="ariaLabel" />
   </div>
 </template>

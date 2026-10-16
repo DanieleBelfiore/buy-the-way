@@ -6,7 +6,8 @@ import UpdatePrompt from '@/components/ui/UpdatePrompt.vue';
 import InstallPrompt from '@/components/ui/InstallPrompt.vue';
 import GlobalLoadingOverlay from '@/components/ui/GlobalLoadingOverlay.vue';
 import { setupButtonTextFit } from '@/composables/useButtonTextFit';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 // Set <html lang> at app root so it survives route changes (and authenticated
 // views that don't call useDocumentHead). axe-core fails serious if it's missing.
@@ -19,6 +20,17 @@ useHead({ htmlAttrs: { lang: () => locale.value } });
 // Vue Transition's initial render, so we hard-disable it via the env flag.
 const isE2E = import.meta.env['VITE_E2E'] === 'true';
 
+// No fade on the first view: router-view goes from empty to the initial route,
+// which Vue treats as an enter, so the page painted at opacity 0. Chrome does
+// not count text painted at opacity 0 as LCP, leaving text-only heroes (the
+// landing) with no LCP at all. Later navigations keep the fade.
+const fadeViews = ref(false);
+void useRouter()
+  .isReady()
+  .then(() => requestAnimationFrame(() => {
+    fadeViews.value = true;
+  }));
+
 onMounted(() => {
   setupButtonTextFit();
 });
@@ -27,7 +39,7 @@ onMounted(() => {
 <template>
   <OfflineBanner />
   <router-view v-slot="{ Component }">
-    <Transition v-if="!isE2E" name="view-fade">
+    <Transition v-if="!isE2E" name="view-fade" :css="fadeViews">
       <KeepAlive :include="['ListsView']">
         <component :is="Component" />
       </KeepAlive>

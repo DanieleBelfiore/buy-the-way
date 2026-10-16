@@ -36,7 +36,7 @@ useFocusTrap(openRef, dialogRef);
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="list-picker-backdrop"
@@ -73,7 +73,7 @@ useFocusTrap(openRef, dialogRef);
         v-if="props.errorMessage"
         data-testid="list-picker-error"
         role="alert"
-        class="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+        class="mb-3 rounded-xl border border-danger-ink/30 bg-danger-soft px-3 py-2 text-xs text-danger-ink"
       >
         {{ props.errorMessage }}
       </div>
@@ -108,7 +108,7 @@ useFocusTrap(openRef, dialogRef);
             :data-testid="`list-picker-move-${l.id}`"
             type="button"
             :disabled="props.busy"
-            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:opacity-40"
+            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary-hover disabled:bg-cream-soft disabled:text-muted-gray"
             @click="onMove(l.id)"
           >
             <ArrowRightLeft :size="14" :stroke-width="2" aria-hidden="true" />

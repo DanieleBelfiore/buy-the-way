@@ -15,6 +15,12 @@ import type { CategoryBreakdownSlice } from '@/domain/stats';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+// Chart.js draws on a canvas, so it cannot inherit CSS fonts: without this it
+// falls back to Helvetica. Read the app font from <body> so it stays in sync.
+if (typeof document !== 'undefined') {
+  ChartJS.defaults.font.family = getComputedStyle(document.body).fontFamily;
+}
+
 const props = defineProps<{ slices: readonly CategoryBreakdownSlice[] }>();
 
 const { t } = useI18n();
@@ -49,6 +55,17 @@ const chartData = computed(() => ({
     },
   ],
 }));
+
+// The canvas is role="img": screen readers get the same data as text,
+// with the same rounded percentages the legend shows.
+const ariaLabel = computed(() => {
+  const total = props.slices.reduce((sum, sl) => sum + sl.count, 0);
+  const parts = props.slices.map((sl) => {
+    const pct = total === 0 ? 0 : Math.round((sl.count / total) * 100);
+    return `${t(CATEGORIES[sl.category].labelKey)} ${pct}%`;
+  });
+  return `${t('stats.categories.title')}. ${parts.join(', ')}`;
+});
 
 const chartOptions = computed(() => ({
   responsive: true,
@@ -108,6 +125,6 @@ const chartOptions = computed(() => ({
   <div data-testid="category-donut" class="w-full" style="height: 280px">
     <!-- :key forces Chart.js to rebuild the canvas when the theme flips so
          legend text + tooltips pick up the new ink color on first paint. -->
-    <Doughnut :key="`donut-${themeStore.resolved}`" :data="chartData" :options="chartOptions" />
+    <Doughnut :key="`donut-${themeStore.resolved}`" :data="chartData" :options="chartOptions" :aria-label="ariaLabel" />
   </div>
 </template>

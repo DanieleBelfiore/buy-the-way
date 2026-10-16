@@ -74,7 +74,7 @@ const onSubmit = (): void => {
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="bulk-paste-backdrop"
@@ -141,7 +141,7 @@ const onSubmit = (): void => {
           type="button"
           data-testid="bulk-paste-submit"
           :disabled="!canSubmit"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover active:bg-primary-active disabled:bg-cream-soft disabled:text-muted-gray"
           @click="onSubmit"
         >
           <Check :size="16" :stroke-width="2.25" aria-hidden="true" />

@@ -185,7 +185,7 @@ onMounted(loadRequest);
       </div>
 
       <div v-else-if="state === 'invalid'" data-testid="oauth-invalid" class="space-y-3 text-center">
-        <p class="text-base font-semibold text-red-700">{{ t('oauthAuthorize.invalidTitle') }}</p>
+        <p class="text-base font-semibold text-danger-ink">{{ t('oauthAuthorize.invalidTitle') }}</p>
         <p class="text-sm text-muted-gray">{{ t('oauthAuthorize.invalidBody') }}</p>
         <button
           type="button"
@@ -198,7 +198,7 @@ onMounted(loadRequest);
       </div>
 
       <div v-else data-testid="oauth-error" class="space-y-3 text-center">
-        <p class="text-base font-semibold text-red-700">{{ t('oauthAuthorize.errorTitle') }}</p>
+        <p class="text-base font-semibold text-danger-ink">{{ t('oauthAuthorize.errorTitle') }}</p>
         <p class="text-sm text-muted-gray">{{ t('oauthAuthorize.errorBody') }}</p>
         <button
           type="button"

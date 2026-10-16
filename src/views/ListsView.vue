@@ -513,6 +513,9 @@ watch(
       </button>
     </header>
 
+    <!-- The logo is the visual title; screen readers get a real heading. -->
+    <h1 class="sr-only">{{ t('list.pageTitle') }}</h1>
+
     <!-- Hero brand block -->
     <section class="shrink-0 px-5 pt-2 flex justify-center" :class="showFullLogo ? 'pb-6' : 'pb-4'">
       <picture>
@@ -563,7 +566,7 @@ watch(
           :disabled="creating || !newListName.trim()"
           class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl
                  transition active:scale-[0.98] motion-reduce:active:scale-100
-                 hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+                 hover:bg-primary-hover active:bg-primary-active disabled:bg-cream-soft disabled:text-muted-gray"
           @click="submitCreate"
         >
           <Plus :size="16" :stroke-width="2.5" aria-hidden="true" />

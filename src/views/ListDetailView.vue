@@ -753,7 +753,7 @@ watch(
           type="button"
           data-testid="bulk-delete"
           :aria-label="t('item.delete')"
-          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-red-700"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full text-danger-ink"
           :disabled="bulkSel.isEmpty.value"
           @click="handleBulkDelete"
         >

@@ -5,7 +5,8 @@
     "footer": {
       "about": "Chi siamo",
       "privacy": "Privacy",
-      "terms": "Termini"
+      "terms": "Termini",
+      "claim": "Liste della spesa condivise in tempo reale. Senza pubblicità né tracking."
     },
     "privacy": {
       "title": "Informativa Privacy",
@@ -103,6 +104,7 @@
           "body": "Possiamo modificare unilateralmente i presenti Termini di Servizio quando necessario per adeguamenti normativi, evoluzioni del servizio o motivi di sicurezza. In caso di modifiche sostanziali pubblichiamo un avviso in-app al successivo accesso e aggiorniamo la data indicata in cima a questo documento. L'uso continuato del servizio dopo la data di efficacia delle modifiche costituisce accettazione dei Termini aggiornati. Se non accetti le modifiche puoi cessare l'uso e eliminare il tuo account in qualsiasi momento da Impostazioni → Elimina account."
         }
       ]
-    }
+    },
+    "toc": "Indice"
   }
 }

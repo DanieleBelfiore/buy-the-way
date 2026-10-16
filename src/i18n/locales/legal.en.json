@@ -5,7 +5,8 @@
     "footer": {
       "about": "About",
       "privacy": "Privacy",
-      "terms": "Terms"
+      "terms": "Terms",
+      "claim": "Shared shopping lists, synced in real time. No ads, no tracking."
     },
     "privacy": {
       "title": "Privacy Policy",
@@ -103,6 +104,7 @@
           "body": "We may unilaterally amend these Terms of Service when needed for legal compliance, service evolution or security reasons. When we make material changes we publish an in-app notice on your next sign-in and update the date at the top of this document. Continued use of the service after the effective date of the changes constitutes acceptance of the updated Terms. If you do not accept the changes you may stop using the service and delete your account at any time from Settings → Delete account."
         }
       ]
-    }
+    },
+    "toc": "Contents"
   }
 }

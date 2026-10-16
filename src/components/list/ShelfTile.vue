@@ -75,7 +75,7 @@ const rowClasses = computed(() => [
       type="button"
       data-testid="shelf-tile-exclude"
       :aria-label="t('shelf.excludeConfirm')"
-      class="shrink-0 inline-flex items-center justify-center w-8 h-8 mr-1 rounded-full text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
+      class="shrink-0 inline-flex items-center justify-center w-8 h-8 mr-1 rounded-full text-danger-ink transition-colors hover:bg-danger-soft active:bg-danger-ink/15"
       @click="onExcludeClick"
     >
       <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />

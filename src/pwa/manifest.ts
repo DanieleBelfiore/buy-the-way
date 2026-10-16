@@ -90,7 +90,9 @@ export const pwaOptions: Partial<VitePWAOptions> = {
   workbox: {
     globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
     // Served as /sw.js on the retired domain only (netlify.toml).
-    globIgnores: ['**/sw-retire.js'],
+    // The display serif is for the public pages only: installed users never
+    // see it, so it loads on demand instead of riding in every precache.
+    globIgnores: ['**/sw-retire.js', '**/fraunces-*.woff2'],
     navigateFallback: '/index.html',
     navigateFallbackDenylist: [
       /^\/__/,

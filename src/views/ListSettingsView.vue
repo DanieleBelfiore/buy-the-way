@@ -318,7 +318,7 @@ const handleDelete = async () => {
 
     <div v-else class="px-5 flex-1 flex flex-col gap-6">
       <section v-if="isAdmin" data-testid="rename-section" class="space-y-2">
-        <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
+        <label class="block text-sm font-semibold text-muted-gray">
           {{ t('listSettings.rename') }}
         </label>
         <div class="flex gap-2">
@@ -326,25 +326,25 @@ const handleDelete = async () => {
             v-model="nameDraft"
             :placeholder="t('listSettings.renamePlaceholder')"
             :aria-label="t('listSettings.renamePlaceholder')"
-            class="flex-1 px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
+            class="flex-1 min-w-0 px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal placeholder-muted-gray focus:outline-none focus:ring-2 focus:ring-charcoal/20"
             @keydown.enter="handleRename"
           />
           <button
             data-testid="rename-save"
             type="button"
             :disabled="renaming || !nameDraft.trim() || nameDraft.trim() === list.name"
-            class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 min-w-[110px]"
+            class="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-hover active:bg-primary-active disabled:bg-cream-soft disabled:text-muted-gray min-w-[110px]"
             @click="handleRename"
           >
             <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
             {{ t('listSettings.save') }}
           </button>
         </div>
-        <p v-if="renameError" class="text-red-500 text-xs">{{ renameError }}</p>
+        <p v-if="renameError" class="text-danger-ink text-xs">{{ renameError }}</p>
       </section>
 
       <section v-if="isAdmin" data-testid="wallpaper-section" class="space-y-2">
-        <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium">
+        <label class="block text-sm font-semibold text-muted-gray">
           {{ t('listSettings.wallpaper') }}
         </label>
         <WallpaperPicker
@@ -355,7 +355,7 @@ const handleDelete = async () => {
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-xs uppercase tracking-wide text-muted-gray font-medium">
+        <h2 class="text-sm font-semibold text-muted-gray">
           {{ t('listSettings.members') }}
         </h2>
         <CollaboratorList
@@ -396,14 +396,14 @@ const handleDelete = async () => {
               type="button"
               :data-testid="`cancel-pending-${pe}`"
               :aria-label="`${t('collaborators.remove')} ${pe}`"
-              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-red-600 dark:text-red-400"
+              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-danger-ink"
               @click="handleCancelPending(pe)"
             >
               ×
             </button>
           </li>
         </ul>
-        <p v-if="actionError" class="text-red-500 text-xs">{{ actionError }}</p>
+        <p v-if="actionError" class="text-danger-ink text-xs">{{ actionError }}</p>
       </section>
 
       <div class="mt-auto pt-4 border-t border-cream-soft">
@@ -411,7 +411,7 @@ const handleDelete = async () => {
           v-if="!isAdmin"
           data-testid="leave-list-bottom"
           type="button"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium border border-danger-ink/40 bg-transparent text-danger-ink hover:bg-danger-ink/10 active:bg-danger-ink/15 transition-colors"
           @click="handleLeave"
         >
           <LogOut :size="16" :stroke-width="2" aria-hidden="true" />
@@ -421,7 +421,7 @@ const handleDelete = async () => {
           v-if="isAdmin"
           data-testid="delete-list"
           type="button"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium border border-danger-ink/40 bg-transparent text-danger-ink hover:bg-danger-ink/10 active:bg-danger-ink/15 transition-colors"
           @click="deleteOpen = true"
         >
           <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />

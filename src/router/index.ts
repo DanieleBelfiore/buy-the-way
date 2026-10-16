@@ -152,6 +152,13 @@ const router = createRouter({
       name: 'oauth-authorize',
       component: () => import('@/views/OAuthAuthorizeView.vue'),
     },
+    {
+      // Unknown URLs get a branded 404 instead of bouncing to /login, which
+      // read as "you must sign in" for a mistyped or dead link.
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+    },
   ],
 });
 

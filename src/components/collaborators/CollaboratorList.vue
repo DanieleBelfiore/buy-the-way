@@ -112,7 +112,7 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`demote-${m.uid}`"
           :aria-label="`${t('collaborators.demote')} ${labelFor(m)}`"
-          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 dark:text-red-400"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-danger-ink"
           @click="emit('demote', m.uid)"
         >
           <ShieldOff :size="14" :stroke-width="2.25" aria-hidden="true" />
@@ -123,7 +123,7 @@ const colorFor = (uid: string): string => {
           type="button"
           :data-testid="`remove-${m.uid}`"
           :aria-label="`${t('collaborators.remove')} ${labelFor(m)}`"
-          class="inline-flex items-center justify-center rounded-full p-1.5 text-red-600 dark:text-red-400"
+          class="inline-flex items-center justify-center rounded-full p-1.5 text-danger-ink"
           @click="emit('remove', m.uid)"
         >
           <Trash2 :size="14" :stroke-width="2.25" aria-hidden="true" />
@@ -135,7 +135,7 @@ const colorFor = (uid: string): string => {
       v-if="!isSelfAdmin && !props.hideLeave"
       type="button"
       data-testid="leave-list"
-      class="inline-flex items-center gap-2 rounded-full bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 active:bg-red-900 transition-colors"
+      class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border border-danger-ink/40 bg-transparent text-danger-ink hover:bg-danger-ink/10 active:bg-danger-ink/15 transition-colors"
       @click="emit('leave')"
     >
       <LogOut :size="16" :stroke-width="2" aria-hidden="true" />

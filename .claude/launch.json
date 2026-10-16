@@ -12,6 +12,16 @@
         "dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "preview-build",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "preview",
+        "--port",
+        "4173"
+      ],
+      "port": 4173
     }
   ]
 }

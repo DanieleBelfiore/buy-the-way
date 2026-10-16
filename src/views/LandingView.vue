@@ -1,38 +1,52 @@
 <script setup lang="ts">
-import { computed, type FunctionalComponent } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { computed } from 'vue';
+import { useI18n, Translation as I18nT } from 'vue-i18n';
 import { useHead } from '@unhead/vue';
 import { useRouter } from 'vue-router';
 import { useDocumentHead } from '@/composables/useDocumentHead';
-import { useLogoMotion } from '@/composables/useLogoMotion';
 import { safeJsonLd } from '@/domain/jsonld';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
-import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
-import { RefreshCw, WifiOff, ShieldCheck, Bot } from '@lucide/vue';
+import PublicHeader from '@/components/public/PublicHeader.vue';
+import ListMock from '@/components/public/ListMock.vue';
+import FeatureVisual from '@/components/public/FeatureVisual.vue';
+import { ArrowRight } from '@lucide/vue';
+import { prefersReducedMotionSync } from '@/composables/useReducedMotion';
 
-const { t, tm, locale } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
-const logoMotion = useLogoMotion();
 
 useDocumentHead({
   titleKey: 'seo.home.title',
   descriptionKey: 'seo.home.description',
 });
 
-interface Highlight {
-  title: string;
-  body: string;
-}
+type FeatureKey = 'sync' | 'offline' | 'ai';
 
-// Icons pair with highlights by index; the copy lives in i18n so the order
-// here must mirror home.highlights (sync, offline, privacy, AI assistant).
-const ICONS: readonly FunctionalComponent[] = [RefreshCw, WifiOff, ShieldCheck, Bot];
+// Zig-zag rows; privacy has its own full-width band further down.
+const FEATURES: readonly FeatureKey[] = ['sync', 'offline', 'ai'];
 
-const highlights = computed(() => {
-  const raw = tm('home.highlights') as unknown;
-  const list = Array.isArray(raw) ? (raw as Highlight[]) : [];
-  return list.map((h, idx) => ({ ...h, icon: ICONS[idx] ?? ICONS[0] }));
-});
+// Rows rise in as they scroll into view. Off under reduced motion and in e2e,
+// where axe would read mid-fade colours.
+const isE2E = import.meta.env['VITE_E2E'] === 'true';
+const reveal =
+  isE2E || prefersReducedMotionSync()
+    ? undefined
+    : {
+        initial: { opacity: 0, y: 28 },
+        visibleOnce: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 650, ease: [0.2, 0.8, 0.2, 1] },
+        },
+      };
+
+const ctaClass =
+  'group inline-flex h-13 items-center justify-center gap-2 rounded-full bg-primary pl-7 pr-6 ' +
+  'text-base font-medium text-white shadow-lift transition-[transform,background-color] ' +
+  'duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary-hover active:translate-y-0 ' +
+  'active:scale-[0.98] active:bg-primary-active focus-visible:outline-none focus-visible:ring-2 ' +
+  'focus-visible:ring-offset-2 focus-visible:ring-offset-cream focus-visible:ring-primary ' +
+  'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 const webAppJsonLd = computed(() =>
   safeJsonLd({
@@ -77,98 +91,161 @@ const goToLogin = (): void => {
   void router.push({ name: 'login' });
 };
 
-const goToAbout = (): void => {
-  void router.push({ name: 'about' });
-};
 </script>
 
 <template>
-  <main class="min-h-dvh bg-cream text-charcoal flex flex-col">
-    <div class="absolute top-4 right-4 z-10">
-      <LocaleSwitcher />
-    </div>
+  <main class="public-grain min-h-dvh bg-cream text-charcoal flex flex-col">
+    <PublicHeader />
 
     <section
-      class="flex-1 flex flex-col items-center justify-center text-center
-             mx-auto w-full max-w-3xl px-6 pt-20 pb-12 space-y-7"
+      class="mx-auto grid w-full max-w-6xl items-center gap-x-8 gap-y-16 px-6
+             pt-10 pb-24 sm:pt-16 lg:grid-cols-12 lg:pt-20 lg:pb-32"
     >
-      <picture>
-        <source
-          srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"
-          type="image/avif"
-        />
-        <img
-          v-motion="logoMotion"
-          src="/branding/logo-original.png"
-          alt=""
-          aria-hidden="true"
-          data-testid="home-logo"
-          width="540"
-          height="399"
-          fetchpriority="high"
-          decoding="async"
-          class="mx-auto h-48 sm:h-56 w-auto select-none"
-          draggable="false"
-        />
-      </picture>
-
-      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight text-balance">
-        {{ t('home.heroTitle') }}
-      </h1>
-
-      <p class="text-lg text-muted-gray max-w-xl text-pretty">
-        {{ t('home.heroSubtitle') }}
-      </p>
-
-      <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
-        <button
-          type="button"
-          data-testid="home-cta"
-          class="inline-flex items-center justify-center h-12 px-7 bg-primary text-white
-                 text-base font-medium rounded-full
-                 hover:bg-primary-hover active:bg-primary-active
-                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-                 focus-visible:ring-offset-cream focus-visible:ring-primary"
-          @click="goToLogin"
+      <div class="space-y-7 lg:col-span-7">
+        <h1
+          class="font-display font-medium text-balance
+                 text-[clamp(2.6rem,6.4vw,4.75rem)] leading-[1.02] tracking-[-0.025em]"
         >
-          {{ t('home.ctaPrimary') }}
-        </button>
-        <button
-          type="button"
-          data-testid="home-secondary"
-          class="inline-flex items-center justify-center h-12 px-7 bg-cream-soft text-charcoal
-                 text-base font-medium rounded-full border border-charcoal/15
-                 hover:bg-cream active:bg-cream
-                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-                 focus-visible:ring-offset-cream focus-visible:ring-primary"
-          @click="goToAbout"
-        >
-          {{ t('home.ctaSecondary') }}
-        </button>
+          <I18nT keypath="home.heroTitle" scope="global">
+            <template #accent>
+              <em class="italic text-primary-ink">{{ t('home.heroTitleAccent') }}</em>
+            </template>
+          </I18nT>
+        </h1>
+
+        <p class="max-w-[34rem] text-lg leading-relaxed text-muted-gray text-pretty sm:text-xl">
+          {{ t('home.heroSubtitle') }}
+        </p>
+
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-4 pt-1">
+          <button
+            type="button"
+            data-testid="home-cta"
+            :class="ctaClass"
+            @click="goToLogin"
+          >
+            <span>{{ t('home.ctaPrimary') }}</span>
+            <ArrowRight
+              :size="18"
+              :stroke-width="2.25"
+              aria-hidden="true"
+              class="transition-transform duration-200 group-hover:translate-x-0.5
+                     motion-reduce:transition-none"
+            />
+          </button>
+          <router-link
+            to="/about"
+            data-testid="home-secondary"
+            class="inline-flex min-h-11 items-center text-base font-medium text-charcoal
+                   underline decoration-charcoal/30 underline-offset-[6px]
+                   transition-colors duration-200 hover:decoration-charcoal
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+                   rounded-sm"
+          >
+            {{ t('home.ctaSecondary') }}
+          </router-link>
+        </div>
+
+        <p class="text-sm text-muted-gray">{{ t('home.heroNote') }}</p>
+      </div>
+
+      <div class="lg:col-span-5">
+        <ListMock />
       </div>
     </section>
 
     <section
-      class="mx-auto w-full max-w-4xl px-6 pb-16"
-      :aria-label="t('home.highlightsTitle')"
+      class="mx-auto w-full max-w-6xl px-6 pb-24 lg:pb-32"
+      aria-labelledby="features-title"
     >
-      <h2 class="sr-only">{{ t('home.highlightsTitle') }}</h2>
-      <ul class="grid gap-5 sm:grid-cols-2">
-        <li
-          v-for="(h, idx) in highlights"
-          :key="idx"
-          class="rounded-2xl bg-offwhite border border-charcoal/10 p-6 text-left space-y-3"
+      <h2
+        id="features-title"
+        class="max-w-xl font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.05]
+               tracking-[-0.02em] text-balance"
+      >
+        {{ t('home.highlightsTitle') }}
+      </h2>
+
+      <div class="mt-14 space-y-20 lg:mt-20 lg:space-y-28">
+        <article
+          v-for="(key, idx) in FEATURES"
+          :key="key"
+          v-motion="reveal"
+          class="grid items-center gap-8 lg:grid-cols-12 lg:gap-16"
         >
-          <span
-            class="inline-flex items-center justify-center h-11 w-11 rounded-xl
-                   bg-primary/10 text-primary"
-          >
-            <component :is="h.icon" class="h-6 w-6" aria-hidden="true" />
-          </span>
-          <h3 class="text-lg font-semibold">{{ h.title }}</h3>
-          <p class="text-base text-muted-gray">{{ h.body }}</p>
-        </li>
-      </ul>
+          <div :class="['min-w-0 lg:col-span-7', idx % 2 === 1 ? 'lg:order-2' : '']">
+            <FeatureVisual :kind="key" />
+          </div>
+          <div :class="['min-w-0 space-y-4 lg:col-span-5', idx % 2 === 1 ? 'lg:order-1' : '']">
+            <p class="text-sm font-medium text-muted-gray tabular-nums">
+              0{{ idx + 1 }}
+              <template v-if="key === 'ai'">
+                <span class="px-1.5" aria-hidden="true">/</span>{{ t('home.features.ai.label') }}
+              </template>
+            </p>
+            <h3 class="font-display text-[1.75rem] font-medium leading-tight tracking-[-0.015em] text-balance">
+              {{ t(`home.features.${key}.title`) }}
+            </h3>
+            <p class="max-w-[30rem] text-lg leading-relaxed text-muted-gray text-pretty">
+              {{ t(`home.features.${key}.body`) }}
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="w-full bg-cream-soft" aria-labelledby="privacy-band-title">
+      <div v-motion="reveal" class="mx-auto w-full max-w-6xl px-6 pt-24 pb-28 lg:pt-32 lg:pb-36">
+        <h2
+          id="privacy-band-title"
+          class="max-w-4xl font-display text-[clamp(2.25rem,5.4vw,4.25rem)] font-medium
+                 leading-[1.04] tracking-[-0.025em] text-balance"
+        >
+          {{ t('home.privacyBand.statement') }}
+        </h2>
+        <p class="mt-6 max-w-xl text-lg leading-relaxed text-muted-gray text-pretty">
+          {{ t('home.privacyBand.body') }}
+        </p>
+        <router-link
+          to="/privacy"
+          class="mt-6 inline-flex min-h-11 items-center rounded-sm text-base font-medium
+                 text-charcoal underline decoration-charcoal/30 underline-offset-[6px]
+                 transition-colors duration-200 hover:decoration-charcoal
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {{ t('home.privacyBand.link') }}
+        </router-link>
+      </div>
+    </section>
+
+    <section
+      v-motion="reveal"
+      class="mx-auto flex w-full max-w-6xl flex-col items-start gap-8 px-6 py-24
+             sm:flex-row sm:items-end sm:justify-between lg:py-32"
+      aria-labelledby="closing-title"
+    >
+      <h2
+        id="closing-title"
+        class="max-w-2xl font-display text-[clamp(2rem,4.4vw,3.5rem)] font-medium leading-[1.05]
+               tracking-[-0.02em] text-balance"
+      >
+        {{ t('home.closing.title') }}
+      </h2>
+      <button
+        type="button"
+        data-testid="home-cta-bottom"
+        :class="[ctaClass, 'shrink-0']"
+        @click="goToLogin"
+      >
+        <span>{{ t('home.closing.cta') }}</span>
+        <ArrowRight
+          :size="18"
+          :stroke-width="2.25"
+          aria-hidden="true"
+          class="transition-transform duration-200 group-hover:translate-x-0.5
+                 motion-reduce:transition-none"
+        />
+      </button>
     </section>
 
     <LegalFooter />

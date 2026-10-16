@@ -11,7 +11,7 @@ vi.mock('@/stores/auth', () => ({
 
 import { useAuth, type AuthUser } from '@/composables/useAuth';
 import { useAuthStore } from '@/stores/auth';
-import { authGuard, __resetDefaultListRedirect } from '@/router/index';
+import router, { authGuard, __resetDefaultListRedirect } from '@/router/index';
 import { saveReturnTo, consumeReturnTo } from '@/domain/returnTo';
 import type { RouteLocationNormalized } from 'vue-router';
 
@@ -91,5 +91,19 @@ describe('authGuard', () => {
     readyRef.value = true;
     const result = await guardPromise;
     expect(result).toEqual({ name: 'login' });
+  });
+
+  describe('unknown URLs', () => {
+    it('resolve to the public 404 page instead of shadowing real routes', () => {
+      expect(router.resolve('/no/such/page').name).toBe('not-found');
+      expect(router.resolve('/lists/abc').name).toBe('list-detail');
+      expect(router.resolve('/oauth/authorize').name).toBe('oauth-authorize');
+    });
+
+    it('lets an anonymous visitor see the 404 rather than bouncing to /login', async () => {
+      mockUseAuth.mockReturnValue({ user: ref(null), ready: ref(true) });
+      expect(await authGuard(makeRoute('not-found'), makeBootRoute())).toBeUndefined();
+      expect(await authGuard(makeRoute('lists'), makeBootRoute())).toEqual({ name: 'login' });
+    });
   });
 });

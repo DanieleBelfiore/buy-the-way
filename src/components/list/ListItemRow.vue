@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, toRef } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AlertTriangle, Check, CircleDashed, Flag, Flame, Image, Settings, Trash2, UserPlus } from '@lucide/vue';
 import InfoHint from '@/components/ui/InfoHint.vue';
 import { iconForItem, isCustomItemName } from '@/domain/public-catalog';
-import { useFitText } from '@/composables/useFitText';
 import type { Item } from '@/domain/types';
 
 const { t, locale } = useI18n();
@@ -23,12 +22,6 @@ const props = withDefaults(
 const icon = computed(() => iconForItem(props.item.name, locale.value, props.item.category));
 const isCustom = computed(() => isCustomItemName(props.item.name, locale.value));
 
-// Auto-fit the name + custom-badge + note onto one line. Re-measure when
-// the item's name or note changes - `toRef` keeps the watch source live.
-const nameContainerRef = ref<HTMLElement | null>(null);
-const nameInnerRef = ref<HTMLElement | null>(null);
-const nameSignature = computed(() => `${props.item.name}|${props.item.quantity}|${props.item.note}`);
-useFitText(nameInnerRef, nameContainerRef, toRef(nameSignature));
 const emit = defineEmits<{
   'toggle-checked': [boolean];
   remove: [];
@@ -107,14 +100,24 @@ const priorityAria = computed(() => {
   return t('item.priorityNone');
 });
 
+// Row actions stay quiet so the names lead: a thinner stroke and a softer
+// grey at rest, softer still on bought rows. Both greys keep 3:1 against the
+// background (WCAG 1.4.11) in both themes. A set priority is information, so
+// its icon keeps full colour and weight.
+const hasPriority = computed(() => props.item.priority === 'urgent' || props.item.priority === 'optional');
+const actionToneClass = computed(() => (props.item.checked ? 'text-muted-gray/75' : 'text-muted-gray/90'));
+const ACTION_STROKE = 1.75;
+
 const priorityBtnClasses = computed(() => {
-  if (props.item.priority === 'urgent') return 'text-orange-500';
-  return 'text-muted-gray';
+  if (props.item.priority === 'urgent') return 'text-urgent';
+  if (props.item.priority === 'optional') return 'text-muted-gray';
+  return actionToneClass.value;
 });
+const priorityStroke = computed(() => (hasPriority.value ? 2 : ACTION_STROKE));
 
 const nameStateClasses = computed(() => {
   if (props.item.checked) return 'text-muted-gray/70';
-  if (props.item.priority === 'urgent') return 'text-orange-500 font-semibold';
+  if (props.item.priority === 'urgent') return 'text-urgent font-semibold';
   if (props.item.priority === 'optional') return 'text-muted-gray';
   return 'text-charcoal';
 });
@@ -122,23 +125,30 @@ const nameStateClasses = computed(() => {
 
 <template>
   <div
+    data-testid="list-item-row"
     :class="[
       'flex items-center min-h-[44px] transition-colors active:bg-charcoal/5',
       props.selectionMode && props.selected ? 'bg-primary/10' : '',
     ]"
   >
-    <button
-      data-testid="row-toggle"
-      type="button"
-      class="flex-1 min-w-0 flex items-center gap-3 pl-5 pr-0 min-h-[44px] text-left select-none"
-      :aria-label="props.item.checked ? t('item.markAsToBuy') : t('item.markAsBought')"
-      @click="onClick"
-      @pointerdown="onPressStart"
-      @pointermove="onPressMove"
-      @pointerup="onPressEnd"
-      @pointercancel="onPressEnd"
-      @pointerleave="onPressEnd"
-    >
+    <!-- The toggle is a transparent button stretched over this area rather
+         than a wrapper around it: the InfoHint badges are buttons too, and a
+         button inside a button is invalid HTML. The visible content sits
+         under the toggle (unpositioned, so taps land on the toggle); the
+         badges are positioned and come later, so they stay on top. -->
+    <div class="relative flex-1 min-w-0 flex items-center gap-3 pl-5 pr-0 min-h-[44px] text-left select-none">
+      <button
+        data-testid="row-toggle"
+        type="button"
+        class="absolute inset-0 w-full"
+        :aria-label="t(props.item.checked ? 'item.markAsToBuy' : 'item.markAsBought', { name: props.item.name })"
+        @click="onClick"
+        @pointerdown="onPressStart"
+        @pointermove="onPressMove"
+        @pointerup="onPressEnd"
+        @pointercancel="onPressEnd"
+        @pointerleave="onPressEnd"
+      />
       <span
         aria-hidden="true"
         data-testid="row-check"
@@ -159,27 +169,24 @@ const nameStateClasses = computed(() => {
       >
         {{ icon }}
       </span>
+      <!-- Long names wrap to a second line at full size instead of shrinking:
+           the list is read at arm's length in a shop. -->
       <span
-        ref="nameContainerRef"
-        :class="['flex-1 min-w-0 text-sm transition-colors duration-200', nameStateClasses]"
+        :class="['flex-1 min-w-0 py-2 text-sm leading-snug transition-colors duration-200', nameStateClasses]"
         data-testid="row-name-container"
-        style="overflow: hidden;"
       >
-        <span
-          ref="nameInnerRef"
-          data-testid="row-name-inner"
-          class="inline-flex items-center gap-1.5 whitespace-nowrap"
-        >
+        <span data-testid="row-name-inner" class="line-clamp-2 [overflow-wrap:anywhere]">
           <span :class="['font-medium', { 'line-through': props.item.checked }]">{{ props.item.name }}</span>
           <span
             v-if="props.item.quantity"
             data-testid="row-quantity"
-            class="text-sm text-charcoal/70"
+            class="ml-1 text-sm text-charcoal/70"
           >
             ({{ props.item.quantity }})
           </span>
           <InfoHint
             v-if="isCustom"
+            class="ml-1 align-middle"
             :message="t('item.customBadgeHint')"
             test-id="row-custom-badge"
           >
@@ -192,6 +199,7 @@ const nameStateClasses = computed(() => {
           </InfoHint>
           <InfoHint
             v-if="props.possibleDuplicate"
+            class="ml-1 align-middle"
             :message="t('item.possibleDuplicateHint')"
             test-id="row-duplicate-badge"
           >
@@ -204,6 +212,7 @@ const nameStateClasses = computed(() => {
           </InfoHint>
           <InfoHint
             v-if="props.item.thumbURL"
+            class="ml-1 align-middle"
             :message="t('item.photoHint')"
             test-id="row-photo-badge"
           >
@@ -217,13 +226,13 @@ const nameStateClasses = computed(() => {
           <span
             v-if="props.item.note"
             data-testid="row-note"
-            class="text-xs text-muted-gray font-normal italic"
+            class="ml-1.5 text-xs text-muted-gray font-normal italic"
           >
             {{ props.item.note }}
           </span>
         </span>
       </span>
-    </button>
+    </div>
     <div class="flex items-center shrink-0 -space-x-1 pr-0.5">
       <button
         data-testid="row-priority"
@@ -236,25 +245,25 @@ const nameStateClasses = computed(() => {
         :data-priority="props.item.priority ?? 'none'"
         @click="onRequestPriority"
       >
-        <component :is="priorityIcon" :size="20" :stroke-width="2" aria-hidden="true" />
+        <component :is="priorityIcon" :size="20" :stroke-width="priorityStroke" aria-hidden="true" />
       </button>
       <button
         data-testid="row-settings"
         type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-muted-gray transition-colors"
+        :class="['inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent transition-colors', actionToneClass]"
         :aria-label="t('item.openSettings')"
         @click="onOpenSettings"
       >
-        <Settings :size="20" :stroke-width="2" aria-hidden="true" />
+        <Settings :size="20" :stroke-width="ACTION_STROKE" aria-hidden="true" />
       </button>
       <button
         data-testid="row-remove"
         type="button"
-        class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent text-muted-gray transition-colors"
+        :class="['inline-flex items-center justify-center w-11 h-11 rounded-full bg-transparent transition-colors', actionToneClass]"
         :aria-label="t('item.remove')"
         @click="emit('remove')"
       >
-        <Trash2 :size="20" :stroke-width="2" aria-hidden="true" />
+        <Trash2 :size="20" :stroke-width="ACTION_STROKE" aria-hidden="true" />
       </button>
     </div>
   </div>

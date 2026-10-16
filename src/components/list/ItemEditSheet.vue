@@ -62,6 +62,8 @@ watch(
 );
 
 const titleId = useId();
+// Each <label> points at its field so screen readers announce it.
+const fieldId = useId();
 
 const openRef = toRef(props, 'open');
 useModalBack(openRef, () => emit('cancel'));
@@ -178,7 +180,7 @@ watch(
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[100] flex items-center justify-center"
+    class="fixed inset-0 z-sheet flex items-center justify-center"
   >
     <div
       data-testid="item-edit-backdrop"
@@ -190,7 +192,7 @@ watch(
       role="dialog"
       aria-modal="true"
       :aria-labelledby="titleId"
-      class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl"
+      class="relative z-10 w-full sm:max-w-md mx-5 rounded-2xl bg-cream p-5 shadow-xl max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
       @keydown="onDialogKeydown"
     >
       <h2 :id="titleId" class="text-base font-semibold text-charcoal mb-4">
@@ -199,22 +201,24 @@ watch(
 
       <div class="space-y-3">
         <div>
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <label :for="`${fieldId}-name`" class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('item.name') }}
           </label>
           <input
             v-model="nameRef"
+            :id="`${fieldId}-name`"
             data-testid="edit-name"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           />
         </div>
 
         <div>
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <label :for="`${fieldId}-category`" class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('category.label') }}
           </label>
           <select
             v-model="categoryRef"
+            :id="`${fieldId}-category`"
             data-testid="edit-category"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           >
@@ -225,22 +229,24 @@ watch(
         </div>
 
         <div>
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <label :for="`${fieldId}-quantity`" class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('item.quantity') }}
           </label>
           <input
             v-model="quantityRef"
+            :id="`${fieldId}-quantity`"
             data-testid="edit-quantity"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
           />
         </div>
 
         <div>
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <label :for="`${fieldId}-note`" class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('item.note') }}
           </label>
           <textarea
             v-model="noteRef"
+            :id="`${fieldId}-note`"
             data-testid="edit-note"
             rows="2"
             class="w-full px-4 py-3 bg-offwhite border border-cream-soft rounded-xl text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-charcoal/20"
@@ -250,9 +256,9 @@ watch(
         <!-- S4.2: photo attachment. Existing photo renders as a square thumb
              with a Remove overlay; absent photo shows a single Add button. -->
         <div data-testid="edit-photo-section">
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <h3 class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('item.photo') }}
-          </label>
+          </h3>
           <input
             ref="galleryInputRef"
             type="file"
@@ -271,12 +277,12 @@ watch(
             @change="onFileChosen"
           />
           <div v-if="hasPhoto || photoBusy" class="flex flex-col gap-3">
-            <div class="flex flex-row gap-2">
+            <div class="flex flex-row flex-wrap gap-2">
               <button
                 type="button"
                 data-testid="edit-photo-camera"
                 :disabled="photoBusy"
-                class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+                class="flex-1 basis-[8.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
                 @click="onPickFromCamera"
               >
                 <Camera :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
@@ -286,7 +292,7 @@ watch(
                 type="button"
                 data-testid="edit-photo-gallery"
                 :disabled="photoBusy"
-                class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
+                class="flex-1 basis-[8.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10 disabled:opacity-40"
                 @click="onPickFromGallery"
               >
                 <Images :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
@@ -297,7 +303,7 @@ watch(
               type="button"
               data-testid="edit-photo-remove"
               :disabled="photoBusy"
-              class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-white bg-red-700 hover:bg-red-800 active:bg-red-900 disabled:opacity-40"
+              class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border border-danger-ink/40 bg-transparent text-danger-ink hover:bg-danger-ink/10 active:bg-danger-ink/15 disabled:opacity-40"
               @click="onRemovePhoto"
             >
               <Trash2 :size="16" :stroke-width="2" aria-hidden="true" />
@@ -344,11 +350,11 @@ watch(
               </div>
             </div>
           </div>
-          <div v-else class="flex flex-row gap-2">
+          <div v-else class="flex flex-row flex-wrap gap-2">
             <button
               type="button"
               data-testid="edit-photo-camera"
-              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              class="flex-1 basis-[8.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
               @click="onPickFromCamera"
             >
               <Camera :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
@@ -357,7 +363,7 @@ watch(
             <button
               type="button"
               data-testid="edit-photo-gallery"
-              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              class="flex-1 basis-[8.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
               @click="onPickFromGallery"
             >
               <Images :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
@@ -368,17 +374,19 @@ watch(
 
         <!-- Secondary actions relocated from the row: favorite toggle + move/copy. -->
         <div data-testid="edit-actions-section">
-          <label class="block text-xs uppercase tracking-wide text-muted-gray font-medium mb-1">
+          <h3 class="block text-sm font-semibold text-muted-gray mb-1">
             {{ t('item.actions') }}
-          </label>
-          <div data-testid="edit-actions" class="flex flex-row gap-2">
+          </h3>
+          <!-- Each button needs about 12.5rem for its label; below that they
+               stack instead of truncating ("Aggiungi ai prefer"). -->
+          <div data-testid="edit-actions" class="flex flex-row flex-wrap gap-2">
             <button
               type="button"
               data-testid="edit-pin"
               :aria-pressed="pinnedRef"
               :aria-label="pinnedRef ? t('item.unpinFavorite') : t('item.pinFavorite')"
               :class="[
-                'flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border transition-colors',
+                'flex-1 basis-[12.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm border transition-colors',
                 pinnedRef
                   ? 'bg-favorite-gold-soft border-favorite-gold text-charcoal'
                   : 'bg-offwhite border-cream-soft text-charcoal hover:bg-black/5 active:bg-black/10',
@@ -399,7 +407,7 @@ watch(
               type="button"
               data-testid="edit-move-copy"
               :aria-label="t('item.moveOrCopy')"
-              class="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
+              class="flex-1 basis-[12.5rem] min-w-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm text-charcoal bg-offwhite border border-cream-soft hover:bg-black/5 active:bg-black/10"
               @click="onMoveCopy"
             >
               <ArrowRightLeft :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
@@ -424,7 +432,7 @@ watch(
           data-testid="edit-save"
           type="button"
           :disabled="!nameRef.trim()"
-          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition active:scale-[0.98] motion-reduce:active:scale-100 hover:bg-primary-hover active:bg-primary-active disabled:opacity-40"
+          class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white transition active:scale-[0.98] motion-reduce:active:scale-100 hover:bg-primary-hover active:bg-primary-active disabled:bg-cream-soft disabled:text-muted-gray"
           @click="onSave"
         >
           <Check :size="16" :stroke-width="2.25" aria-hidden="true" />
@@ -437,7 +445,7 @@ watch(
       <div
         v-if="photoZoomOpen && zoomPhotoSrc"
         data-testid="edit-photo-zoom"
-        class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4"
+        class="fixed inset-0 z-lightbox flex items-center justify-center bg-black/90 p-4"
         role="dialog"
         aria-modal="true"
         :aria-label="t('item.photoZoom')"

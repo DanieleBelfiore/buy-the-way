@@ -17,6 +17,19 @@
   --favorite-gold: #c9a227;
   --favorite-gold-soft: #f5ecc6;
 
+  /* Danger: one red for destructive actions and errors.
+     `--danger` is a fill under white text, `--danger-ink` is text or an icon
+     on a surface, `--danger-soft` tints an error box. */
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-active: #7f1d1d;
+  --danger-ink: #b91c1c;
+  --danger-soft: #fbeaea;
+
+  /* Urgent items: text and icon ink, plus the selected-option tint. */
+  --urgent: #c2410c;
+  --urgent-soft: #fff1e6;
+
   /* Focus */
   --ring-blue: rgba(59, 130, 246, 0.5);
 
@@ -27,6 +40,17 @@
   --ink-82: rgba(28, 28, 28, 0.82);
   --ink-83: rgba(28, 28, 28, 0.83);
   --ink-100: rgba(28, 28, 28, 1);
+
+  /* Public site only (landing, about, login, legal, 404): display serif for
+     headings, a navy-tinted lift shadow and the grain overlay strength.
+     The signed-in app never reads these. */
+  --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  /* Brand navy as text colour (display accents). Lifted on dark for AA. */
+  --primary-ink: #113261;
+  --shadow-lift:
+    0 1px 2px rgba(17, 50, 97, 0.06),
+    0 18px 40px -14px rgba(17, 50, 97, 0.24);
+  --grain-opacity: 0.05;
 
   /* Category icon hues (icon-only, never used as fill) */
   --cat-fruit: #4a7048;
@@ -68,6 +92,17 @@
   --favorite-gold: #d8b54a;
   --favorite-gold-soft: #3a3220;
 
+  /* Danger - the fill stays deep so white text keeps 4.5:1; the ink lifts
+     so red text and icons stay readable on the dark surfaces. */
+  --danger: #b91c1c;
+  --danger-hover: #c62a2a;
+  --danger-active: #991b1b;
+  --danger-ink: #f87171;
+  --danger-soft: #2e1a1c;
+
+  --urgent: #fb923c;
+  --urgent-soft: #33231a;
+
   /* Focus - keep blue ring visible on dark */
   --ring-blue: rgba(96, 165, 250, 0.6);
 
@@ -78,6 +113,13 @@
   --ink-82: rgba(236, 232, 222, 0.82);
   --ink-83: rgba(236, 232, 222, 0.83);
   --ink-100: rgba(236, 232, 222, 1);
+
+  /* Public site only - shadows go neutral-deep on dark, grain softer */
+  --primary-ink: #9db8e6;
+  --shadow-lift:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 18px 40px -14px rgba(0, 0, 0, 0.6);
+  --grain-opacity: 0.035;
 
   /* Category icon hues - brighter so they read against dark cards */
   --cat-fruit: #7eb878;

@@ -3,11 +3,10 @@ import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { useLogoMotion } from '@/composables/useLogoMotion';
 import { useDocumentHead } from '@/composables/useDocumentHead';
 import { consumeReturnTo } from '@/domain/returnTo';
 import LegalFooter from '@/components/ui/LegalFooter.vue';
-import LocaleSwitcher from '@/components/ui/LocaleSwitcher.vue';
+import PublicHeader from '@/components/public/PublicHeader.vue';
 import { Send, X, Info } from '@lucide/vue';
 import pkg from '../../package.json';
 
@@ -21,8 +20,6 @@ useDocumentHead({
 });
 const router = useRouter();
 const auth = useAuthStore();
-
-const logoMotion = useLogoMotion();
 
 // Redirect as soon as Firebase resolves the authenticated user.
 // The guard only runs during navigation, so we must watch here too.
@@ -83,32 +80,29 @@ const useAnotherMagicLinkEmail = (): void => {
 </script>
 
 <template>
-  <main class="min-h-dvh bg-cream flex flex-col items-center px-6 relative">
-    <div class="absolute top-4 right-4">
-      <LocaleSwitcher />
-    </div>
-    <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center">
-      <!-- Logo + Wordmark -->
-      <div class="text-center space-y-3">
-        <picture>
-          <source
-            srcset="/branding/logo-540.avif 1x, /branding/logo-original.avif 2x"
-            type="image/avif"
-          />
-          <img
-            v-motion="logoMotion"
-            src="/branding/logo-original.png"
-            alt=""
-            aria-hidden="true"
-            data-testid="login-logo"
-            width="540"
-            height="399"
-            fetchpriority="high"
-            decoding="async"
-            class="mx-auto h-50 w-auto select-none"
-            draggable="false"
-          />
-        </picture>
+  <main class="public-grain min-h-dvh bg-cream text-charcoal flex flex-col items-center">
+    <PublicHeader :show-sign-in="false" />
+    <div class="w-full max-w-sm space-y-10 flex-1 flex flex-col justify-center px-6 py-10">
+      <div class="space-y-4">
+        <img
+          src="/branding/logo-icon-80.png"
+          alt=""
+          aria-hidden="true"
+          data-testid="login-logo"
+          width="72"
+          height="80"
+          decoding="async"
+          class="h-14 w-auto -rotate-6 select-none"
+          draggable="false"
+        />
+        <h1
+          class="font-display text-[2.5rem] font-medium leading-[1.05] tracking-[-0.025em] text-balance"
+        >
+          {{ t('auth.loginTitle') }}
+        </h1>
+        <p class="text-base leading-relaxed text-muted-gray text-pretty">
+          {{ t('auth.loginSubtitle') }}
+        </p>
       </div>
 
       <!-- CTA -->

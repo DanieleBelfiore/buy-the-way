@@ -58,16 +58,16 @@ test('toggle item while offline → reconnect → state preserved', async ({ pag
 
   await context.setOffline(true);
   await expect(page.getByTestId('offline-banner')).toBeVisible();
-  const cheeseRow = page.getByTestId('row-toggle').filter({ hasText: 'Cheese' });
+  const cheeseRow = page.getByTestId('list-item-row').filter({ hasText: 'Cheese' }).getByTestId('row-toggle');
   await cheeseRow.click();
-  await expect(cheeseRow).toHaveAttribute('aria-label', 'Mark as to buy', { timeout: 3_000 });
+  await expect(cheeseRow).toHaveAttribute('aria-label', 'Mark Cheese as to buy', { timeout: 3_000 });
   await expect(page.getByTestId('stat-bought')).toContainText('1/2');
 
   await context.setOffline(false);
   await page.reload();
   await expect(page.getByTestId('stat-bought')).toContainText('1/2', { timeout: 5_000 });
-  await expect(page.getByTestId('row-toggle').filter({ hasText: 'Cheese' })).toHaveAttribute(
+  await expect(page.getByTestId('list-item-row').filter({ hasText: 'Cheese' }).getByTestId('row-toggle')).toHaveAttribute(
     'aria-label',
-    'Mark as to buy',
+    'Mark Cheese as to buy',
   );
 });

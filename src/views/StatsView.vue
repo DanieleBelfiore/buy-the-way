@@ -57,20 +57,25 @@ onUnmounted(() => {
   _catalogUnsub?.();
 });
 
-const totalCards = computed(() => [
+// Two headline figures (how much you shop, how varied it is) and a compact
+// row for the context numbers, instead of five equal cards with an orphan.
+const primaryTotals = computed(() => [
+  {
+    key: 'totalUsage',
+    label: t('stats.totals.totalUsage'),
+    value: totals.value.totalUsage,
+  },
+  { key: 'catalog', label: t('stats.totals.catalog'), value: totals.value.catalogEntries },
+]);
+
+const secondaryTotals = computed(() => [
   { key: 'lists', label: t('stats.totals.lists'), value: totals.value.listsCount },
   {
     key: 'collaborators',
     label: t('stats.totals.collaborators'),
     value: totals.value.uniqueCollaborators,
   },
-  { key: 'catalog', label: t('stats.totals.catalog'), value: totals.value.catalogEntries },
   { key: 'favorites', label: t('stats.totals.favorites'), value: totals.value.favorites },
-  {
-    key: 'totalUsage',
-    label: t('stats.totals.totalUsage'),
-    value: totals.value.totalUsage,
-  },
 ]);
 </script>
 
@@ -100,8 +105,11 @@ const totalCards = computed(() => [
       class="px-5 space-y-6"
     >
       <span class="sr-only">{{ t('stats.loading') }}</span>
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <SkeletonCard v-for="i in 5" :key="i" height-class="h-16" />
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <SkeletonCard v-for="i in 2" :key="i" height-class="h-24" />
+        </div>
+        <SkeletonCard height-class="h-16" />
       </div>
       <SkeletonCard height-class="h-48" />
       <SkeletonCard height-class="h-48" />
@@ -116,21 +124,31 @@ const totalCards = computed(() => [
     </div>
 
     <div v-else class="px-5 space-y-6">
-      <section
-        data-testid="stats-totals"
-        class="grid grid-cols-2 gap-3 sm:grid-cols-5"
-      >
-        <div
-          v-for="card in totalCards"
-          :key="card.key"
-          :data-testid="`stats-total-${card.key}`"
-          class="bg-offwhite rounded-xl border border-cream-soft px-4 py-3"
-        >
-          <div class="text-2xl font-semibold text-charcoal tabular-nums">
-            {{ card.value }}
+      <section data-testid="stats-totals" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div
+            v-for="card in primaryTotals"
+            :key="card.key"
+            :data-testid="`stats-total-${card.key}`"
+            class="bg-offwhite rounded-xl border border-cream-soft px-4 py-4"
+          >
+            <div class="text-4xl font-semibold leading-none tracking-tight text-charcoal tabular-nums">
+              {{ card.value }}
+            </div>
+            <div class="text-sm text-muted-gray mt-2">{{ card.label }}</div>
           </div>
-          <div class="text-xs text-muted-gray mt-1">{{ card.label }}</div>
         </div>
+        <dl class="grid grid-cols-3 divide-x divide-cream-soft rounded-xl border border-cream-soft bg-offwhite py-3">
+          <div
+            v-for="card in secondaryTotals"
+            :key="card.key"
+            :data-testid="`stats-total-${card.key}`"
+            class="flex flex-col-reverse items-center gap-0.5 px-2 text-center"
+          >
+            <dt class="text-xs text-muted-gray">{{ card.label }}</dt>
+            <dd class="text-lg font-semibold text-charcoal tabular-nums">{{ card.value }}</dd>
+          </div>
+        </dl>
       </section>
 
       <section v-if="top.length > 0" data-testid="stats-top-items" class="space-y-2">

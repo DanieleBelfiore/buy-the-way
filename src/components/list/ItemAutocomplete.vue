@@ -124,7 +124,7 @@ const onKeydown = (e: KeyboardEvent) => {
       :id="listboxId"
       role="listbox"
       :class="[
-        'absolute left-0 right-0 z-50 bg-offwhite border border-cream-soft rounded-xl shadow-sm overflow-y-auto',
+        'absolute left-0 right-0 z-dropdown bg-offwhite border border-cream-soft rounded-xl shadow-sm overflow-y-auto',
         listboxPlacementClass,
       ]"
       :style="{ maxHeight: `calc(2.75rem * ${VISIBLE_SUGGESTIONS})` }"

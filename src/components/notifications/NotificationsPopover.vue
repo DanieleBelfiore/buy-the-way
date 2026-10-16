@@ -78,7 +78,7 @@ const handleRowClick = (n: NotificationDoc): void => {
 <template>
   <div
     v-if="props.open"
-    class="fixed inset-0 z-[120] flex items-start justify-center px-5 pt-20"
+    class="fixed inset-0 z-modal flex items-start justify-center px-5 pt-20"
     data-testid="notifications-popover"
   >
     <div

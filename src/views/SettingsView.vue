@@ -198,7 +198,7 @@ const reauthAndRetry = async () => {
       data-testid="account-section"
       class="px-5 pt-6"
     >
-      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
+      <h2 class="text-sm font-semibold text-muted-gray mb-2">
         {{ t('settings.account') }}
       </h2>
       <div class="bg-offwhite rounded-xl border border-cream-soft px-4 py-3 flex items-center gap-3">
@@ -234,7 +234,7 @@ const reauthAndRetry = async () => {
     </section>
 
     <section class="px-5 pt-8">
-      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
+      <h2 class="text-sm font-semibold text-muted-gray mb-2">
         {{ t('settings.theme') }}
       </h2>
       <div
@@ -278,7 +278,7 @@ const reauthAndRetry = async () => {
     </section>
 
     <section class="px-5 pt-8">
-      <h2 class="text-xs uppercase tracking-wide text-muted-gray mb-2">
+      <h2 class="text-sm font-semibold text-muted-gray mb-2">
         {{ t('settings.language') }}
       </h2>
       <LocaleSwitcher variant="segmented" />
@@ -290,27 +290,30 @@ const reauthAndRetry = async () => {
       data-testid="settings-page-footer"
       class="mt-auto shrink-0 w-full pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-3"
     >
+    <!-- Two-up rows wrap instead of shrinking their labels: each button
+         takes its label's natural width and drops to its own line when two
+         do not fit (most phones in Italian). -->
     <section class="px-5">
-      <div class="flex flex-row gap-2">
+      <div class="flex flex-row flex-wrap gap-2">
         <button
           type="button"
           data-testid="share-btn"
-          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-primary text-white font-medium rounded-xl
+          class="flex-1 basis-[12.5rem] min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-primary text-white font-medium rounded-xl
                  hover:bg-primary/90 active:bg-primary/80 transition-colors"
           @click="handleShare"
         >
           <Share2 :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.share') }}</span>
+          <span class="text-sm">{{ t('settings.share') }}</span>
         </button>
         <button
           type="button"
           data-testid="feedback-btn"
-          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
+          class="flex-1 basis-[12.5rem] min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
                  hover:bg-black/5 active:bg-black/10 transition-colors"
           @click="openFeedback"
         >
           <MessageSquare :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.feedback') }}</span>
+          <span class="text-sm">{{ t('settings.feedback') }}</span>
         </button>
       </div>
     </section>
@@ -326,34 +329,34 @@ const reauthAndRetry = async () => {
           @click="handleExportData"
         >
           <Download :size="18" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">
+          <span class="text-sm">
             {{ exporting ? t('settings.exportRunning') : t('settings.exportData') }}
           </span>
         </button>
     </section>
 
-    <section class="px-5 flex flex-row gap-3">
+    <section class="px-5 flex flex-row flex-wrap gap-2">
         <button
           v-if="user"
           :disabled="deletingAccount"
           data-testid="delete-account-btn"
-          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-800 text-white font-medium rounded-xl
-                 hover:bg-red-900 active:bg-red-950 transition-colors disabled:opacity-40"
+          class="flex-1 basis-[10rem] min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 font-medium rounded-xl
+                 border border-danger-ink/40 bg-transparent text-danger-ink hover:bg-danger-ink/10 active:bg-danger-ink/15 transition-colors disabled:opacity-40"
           @click="openDeleteConfirm"
         >
           <Trash2 :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ t('settings.deleteAccount') }}</span>
+          <span class="text-sm">{{ t('settings.deleteAccount') }}</span>
         </button>
 
         <button
           :disabled="signingOut"
           data-testid="sign-out-btn"
-          class="flex-1 min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-red-700 text-white font-medium rounded-xl
-                 hover:bg-red-800 active:bg-red-900 transition-colors disabled:opacity-40"
+          class="flex-1 basis-[10rem] min-w-0 inline-flex items-center justify-center gap-2 px-3 py-3 bg-offwhite text-charcoal font-medium border border-cream-soft rounded-xl
+                 hover:bg-black/5 active:bg-black/10 transition-colors disabled:opacity-40"
           @click="handleSignOut"
         >
           <LogOut :size="16" :stroke-width="2" class="shrink-0" aria-hidden="true" />
-          <span class="truncate text-[clamp(0.75rem,3.2vw,0.9rem)]">{{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}</span>
+          <span class="text-sm">{{ signingOut ? t('auth.signingIn') : t('settings.signOut') }}</span>
         </button>
     </section>
 
