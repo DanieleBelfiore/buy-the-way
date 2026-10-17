@@ -8,7 +8,6 @@ import { i18n } from './i18n/index';
 import { useAuthStore } from '@/stores/auth';
 import { consumeRedirectResult } from '@/services/auth.service';
 import { useThemeStore } from '@/stores/theme';
-import { installSafeBackTracker } from '@/composables/useSafeBack';
 import { setupServiceWorker } from '@/pwa/registerSW';
 import { setupInstallPrompt } from '@/pwa/installPrompt';
 // Imported here, not via @import in global.css: going through Tailwind's CSS
@@ -43,11 +42,6 @@ void consumeRedirectResult();
 
 app.use(router);
 app.use(i18n);
-
-// Count in-app navigations so `useSafeBack` knows whether a back arrow can
-// safely call router.back(). Must register AFTER `app.use(router)` so the
-// initial nav doesn't race the hook.
-installSafeBackTracker(router);
 
 app.mount('#app');
 
